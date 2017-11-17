@@ -11,24 +11,26 @@ function oeVec = oeShare(rankVec, elasticity)
 %
 
 
-    ix = ~isnan(rankVec);
-    
-    N = sum(ix);  % number of competitors that launched
+    ixOk = ~isnan(rankVec);
+    okRank = rankVec(ixOk);
+    N = length(okRank);  % number of competitors that launched
     
     order = 1:N;
     a_solve = log(1.0 / sum(order .^ elasticity));  % share weights must add to 1.0
     share = exp(a_solve) * order .^ elasticity;
     
-    oeVec = nan(size(rankVec));
-    uRank = unique(rankVec);
+    shareVec = nan(size(okRank));
+    uRank = unique(okRank);
     p = 1;
     for m = 1:length(uRank)
-        ix = find(rankVec == uRank(m));
+        ix = find(okRank == uRank(m));
         q = p + length(ix) - 1;
         aveShare = sum(share(p:q)) / (q-p+1);
-        oeVec(ix) = aveShare;
+        shareVec(ix) = aveShare;
         p = q + 1;
     end
     
+    oeVec = nan(size(rankVec));
+    oeVec(ixOk) = shareVec;
     
 end
