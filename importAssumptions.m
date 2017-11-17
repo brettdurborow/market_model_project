@@ -1,0 +1,141 @@
+function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
+
+
+    sheetName1 = 'Assets';
+    [~,~,raw]  = xlsread(fileName, sheetName1);
+    sheetName2 = 'ChangeEvents';
+    [~,~,raw2] = xlsread(fileName, sheetName2);
+
+    %% Model-wide assumptions
+
+    [ixRow, ~] = find(strcmpi('Scenario Selected >>', raw));
+
+    MODEL = struct;
+    MODEL.CountrySelected = raw{ixRow, 3};
+    MODEL.ScenarioSelected = raw{ixRow, 11};
+    MODEL.ProfileWeight = raw{ixRow+1, 3};
+    MODEL.OrderOfEntryWeight = raw{ixRow+2, 3};
+    MODEL.WillingToPayForTreatment = raw{ixRow+1, 9};
+    MODEL.ProfileElasticity = raw{ixRow, 26};
+
+    %% Assets
+    
+    ixHeader = find(strcmpi('Country', raw(:,1)));
+
+    ASSET = struct;
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Country');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Assets Rated');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Phase');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share Year');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share Month');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Benchmark PTRS');
+    ASSET = parseColumn(ASSET, raw, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
+
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Branded Access Barriers');
+
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Therapy Class');
+
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Year');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Month');
+
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE Year');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE Month');
+
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Total Preference Score');
+    
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Product p');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Product q');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Class p');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Class q');
+    
+    Nrows = length(ASSET.Country);
+    
+    fieldsToCheck = {'Country', 'Assets_Rated', 'Starting_Share', 'Starting_Share_Year', ...
+        'Starting_Share_Month', 'Scenario_PTRS', 'Patient_Barriers', ...
+        'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
+        'LOE_Year', 'LOE_Month', 'Total_Preference_Score', ...
+        'Product_p', 'Product_q', 'Class_p', 'Class_q'};
+    
+    validateFields(ASSET, sheetName2, fieldsToCheck, Nrows);    
+    
+    %% Change Events
+
+    [ixHeader, ~] = find(strcmpi('Country', raw2));
+
+    CHANGE = struct;
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Country');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Asset');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Event');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Company');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Phase');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Benchmark PTRS');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Branded Access Barriers');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Therapy Class');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Year');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Month');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Year');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Month');
+    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Total Preference Score');
+    Nrows = length(CHANGE.Country);
+    
+    fieldsToCheck = {'Country', 'Asset', 'Scenario_PTRS', 'Patient_Barriers', ...
+        'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
+        'LOE_Year', 'LOE_Month', 'Total_Preference_Score'};
+    
+    validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
+
+    ix = ~cellisempty(CHANGE.Asset) & ~cellisnan(CHANGE.Asset);  % remove empty rows
+    CHANGE = structSelect(CHANGE, ix, 1);
+    
+    
+end
+
+%%
+
+function DATA = parseColumn(DATA, xlsRaw, ixHeader, columnName, fieldName, isExact)
+    if nargin < 6
+        isExact = true;
+    end
+    if isExact
+        ixCol = find(strcmpi(columnName, xlsRaw(ixHeader, :)));
+    else
+        ixCol = find(strncmpi(columnName, xlsRaw(ixHeader, :), length(columnName)));
+    end
+    colOut = xlsRaw(ixHeader+1:end, ixCol);
+    if ~exist('fieldName', 'var') || isempty(fieldName)
+        fieldName = cleanFieldName(cleanFieldName(xlsRaw{ixHeader, ixCol}));
+    end
+    DATA.(fieldName) = colOut;
+end
+
+function validateFields(DATA, sheetName, fieldNames, Nrows)
+    validMx = false(Nrows, length(fieldNames));
+    for m = 1:length(fieldNames)
+        validMx(:,m) = ~cellisnan(DATA.(fieldNames{m}));
+    end
+    ixAll = all(validMx, 2);
+    ixAny = any(validMx, 2);
+    ixErr = ixAny & ~ixAll;
+    if any(ixErr)
+        ixErrCol = any(~validMx(ixErr,:), 1);
+        error('Found missing data in sheet: "%s". Please ensure each row is either empty or complete. Problem columns: %s', ...
+            sheetName, strjoin(fieldNames(ixErrCol), ', '));
+    end
+end
+
+function textOut = cleanFieldName(textIn) % create a valid struct field name
+    ascii = int32(strtrim(textIn));      
+    ixNum = ascii >= 40 & ascii <= 57;  % 0 ... 9
+    ixUpper = ascii >= 65 & ascii <= 90;   % A ... Z
+    ixLower = ascii >= 97 & ascii <= 122';  % a ... z
+    ixOk = ixNum | ixUpper | ixLower;
+    ascii(~ixOk) = int32('_');
+    textOut = char(ascii);
+    if ixNum(1)
+        textOut = ['a', textOut];
+    end
+end
