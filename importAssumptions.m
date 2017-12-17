@@ -5,6 +5,9 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     [~,~,raw]  = xlsread(fileName, sheetName1);
     sheetName2 = 'ChangeEvents';
     [~,~,raw2] = xlsread(fileName, sheetName2);
+    
+    raw = removeEmptyTrailing(raw);
+    raw2 = removeEmptyTrailing(raw2);
 
     %% Model-wide assumptions
 
@@ -50,13 +53,17 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Class p');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Class q');
     
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE p');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE q');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE %', 'LOE_Pct');
+    
     Nrows = length(ASSET.Country);
     
     fieldsToCheck = {'Country', 'Assets_Rated', 'Starting_Share', 'Starting_Share_Year', ...
         'Starting_Share_Month', 'Scenario_PTRS', 'Patient_Barriers', ...
         'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
         'LOE_Year', 'LOE_Month', 'Total_Preference_Score', ...
-        'Product_p', 'Product_q', 'Class_p', 'Class_q'};
+        'Product_p', 'Product_q', 'Class_p', 'Class_q', 'LOE_p', 'LOE_q', 'LOE_Pct'};
     
     validateFields(ASSET, sheetName2, fieldsToCheck, Nrows);    
     
@@ -110,6 +117,27 @@ function DATA = parseColumn(DATA, xlsRaw, ixHeader, columnName, fieldName, isExa
         fieldName = cleanFieldName(cleanFieldName(xlsRaw{ixHeader, ixCol}));
     end
     DATA.(fieldName) = colOut;
+end
+
+function raw = removeEmptyTrailing(raw)
+    [Nr, Nc] = size(raw);
+    ixNullRow = false(Nr,1);
+    for m = Nr:-1:1
+        if all(cellisnan(raw(m,:)))
+            ixNullRow(m) = true;
+        else
+            break;  % stop at last non-empty row
+        end
+    end
+    ixNullCol = false(1,Nc);
+    for m = Nc:-1:1
+        if all(cellisnan(raw(:,m)))
+            ixNullCol(m) = true;
+        else
+            break;  % stop at first non-empty column
+        end        
+    end
+    raw = raw(~ixNullRow, ~ixNullCol);
 end
 
 function validateFields(DATA, sheetName, fieldNames, Nrows)

@@ -1,9 +1,9 @@
 
 %% Read assumptions from Excel file on disk
 
-fileName = '.\Data\MATLAB_ps1.xlsb';
+fileName = '.\Data\MATLABv31.xlsb';
 
-% [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
+[MODEL, ASSET, CHANGE] = importAssumptions(fileName);
 
 ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
 ASSET.LOE_Date = datenum(cell2mat(ASSET.LOE_Year), cell2mat(ASSET.LOE_Month), 1);
