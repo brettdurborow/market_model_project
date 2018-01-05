@@ -1,12 +1,13 @@
 
 %% Read assumptions from Excel file on disk
 
-fileName = '.\Data\MATLABv31.xlsb';
+fileName = '.\Data\MATLABv33.xlsb';
 
 [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
 
 ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
 ASSET.LOE_Date = datenum(cell2mat(ASSET.LOE_Year), cell2mat(ASSET.LOE_Month), 1);
+ASSET.Starting_Share_Date = datenum(cell2mat(ASSET.Starting_Share_Year), cell2mat(ASSET.Starting_Share_Month), 1);
 
 CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launch_Month), 1);
 CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
@@ -18,6 +19,7 @@ rng(100);  % set random number seed.  Remove this after debugging
 
 Na = length(ASSET.Scenario_PTRS);
 isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
+isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
 
 Nc = length(CHANGE.Scenario_PTRS);
 isChange = rand(Nc,1) <= cell2mat(CHANGE.Scenario_PTRS);
@@ -32,7 +34,7 @@ elastAsset = -0.5;
 CLASS = therapyClassRank(MODEL, ASSET, isLaunch);
 
 eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; CHANGE.Launch_Date; CHANGE.LOE_Date]);
-sharePerAssetSeries = nan(length(isLaunch), length(eventDates));  % row for each asset, col for each date
+sharePerAssetEventSeries = nan(Na, length(eventDates));  % row for each asset, col for each date
 
 for m = 1:length(eventDates)
 
@@ -46,12 +48,74 @@ for m = 1:length(eventDates)
     adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChange, eventDate);
     newSharePerAsset = reDistribute(sharePerAsset, adjustmentFactor);
     
-    sharePerAssetSeries(:, m) = sharePerAsset;
+    sharePerAssetEventSeries(:, m) = newSharePerAsset;
 end
 
-%% Apply factors for Market Access and Patient Barriers
+%% Bass Diffusion Model to fill in times between events
+
+startDate = min(ASSET.Starting_Share_Date);
+[yr0, mo0, dy0] = datevec(startDate);
+daysPerMonth = 30.4;
+daysPerYear = 365.25;
+monthCount = ceil(120 + (eventDates(end) - startDate) / daysPerMonth);  % 10 years after last event
+dateGrid = datenum(yr0, mo0:mo0+monthCount, 1);
+ix = dateGrid <= eventDates(end) & dateGrid >= startDate;
+% datestr(dateGrid(~ix))
+dateGrid = dateGrid(ix);  % Grid of monthly dates from first event to last event
+sharePerAssetMonthlySeries = zeros(Na, length(dateGrid));
+sharePerAssetMonthlySeries(:,1) = cell2mat(ASSET.Starting_Share) / nansum(cell2mat(ASSET.Starting_Share));
+% For each date, find the prior market share target, the next future market share target, 
+% and the proper p and q.  Compute the interpolated market share using the Bass diffusion model
+
+% ToDo: figure out the right logic for Bass diffusion: how do handle class p and q, 
+% product p and q, LOE p and q (for class and for product), etc.  This is not yet well-defined.
+% But does it really change the result very much?  Target shares are more important.  
+% Bass diffusion only controls how quickly they are reached.
+tmp = [];
+m0 = find(eventDates >= startDate, 1, 'first');
+for m = m0:length(eventDates) - 1
+    eventDate = eventDates(m);
+    nextDate =  eventDates(m+1);
+    
+    pVec = [];
+    qVec = [];
+    
+    ix0 = find(ASSET.Launch_Date == eventDate);
+    if ~isempty(ix0)
+        [pLaunch, ix_p] = max([ASSET.Product_p{ix0}]);
+        qLaunch = ASSET.Product_q{ix0(ix_p)};
+        pVec = [pVec, pLaunch];
+        qVec = [qVec, qLaunch];
+    end
+    
+    ix1 = find(ASSET.LOE_Date == eventDate);
+    if ~isempty(ix1)
+        [pLoe, ix_p] = max([ASSET.LOE_p{ix1}]);
+        qLoe = ASSET.LOE_q{ix1(ix_p)};
+        pVec = [pVec, pLoe];
+        qVec = [qVec, qLoe];
+    end
+    
+    [pMax, ix_p] = max(pVec);
+    qMax = qVec(ix_p);
+    tmp(end+1) = pMax;
+    
+    pMax = 0.22;
+    qMax = 0.28;
+    
+    ixStart = find(dateGrid == eventDate, 1);
+    ixEnd = find(dateGrid == nextDate, 1);
+    tt = (dateGrid(ixStart:ixEnd) - dateGrid(ixStart)) / daysPerYear;
+    for n = 1:Na
+        s0 = sharePerAssetMonthlySeries(n, ixStart);
+        s1 = sharePerAssetEventSeries(n, m);
+        share = bassDiffusion(tt, pMax, qMax, s0, s1, false);
+        sharePerAssetMonthlySeries(n, ixStart:ixEnd) = share;
+    end
+end
 
 
-
-
-
+figure; semilogy(dateGrid, sharePerAssetMonthlySeries); datetick; grid on; 
+        legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+        
+figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);

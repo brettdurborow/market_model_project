@@ -30,10 +30,10 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
     
     ixLOE = loeDate <= eventDate;
     
-    marketAccessFilter = repmat(MODEL.WillingToPayForTreatment, size(isLaunch));
-    marketAccessFilter(~ixLOE) = cell2mat(ASSET.Branded_Access_Barriers(~ixLOE));
+%     marketAccessFilter = repmat(MODEL.WillingToPayForTreatment, size(isLaunch));
+%     marketAccessFilter(~ixLOE) = cell2mat(ASSET.Branded_Access_Barriers(~ixLOE));
     
-    adjustmentFactor = marketAccessFilter .* patientBarriers;
+    adjustmentFactor = patientBarriers;
     adjustmentFactor = adjustmentFactor / max(adjustmentFactor);
     
 end

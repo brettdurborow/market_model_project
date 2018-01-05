@@ -18,8 +18,15 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     MODEL.ScenarioSelected = raw{ixRow, 11};
     MODEL.ProfileWeight = raw{ixRow+1, 3};
     MODEL.OrderOfEntryWeight = raw{ixRow+2, 3};
-    MODEL.WillingToPayForTreatment = raw{ixRow+1, 9};
+%     MODEL.WillingToPayForTreatment = raw{ixRow+1, 9};  % No longer used
     MODEL.ProfileElasticity = raw{ixRow, 26};
+    
+    fnames = fieldnames(MODEL);
+    for m = 1:length(fnames)
+        if isnan(MODEL.(fnames{m}))
+            error('Missing value in field: %s.  Please check input worksheet.', fnames{m});
+        end
+    end
 
     %% Assets
     
@@ -34,6 +41,8 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share Month');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Benchmark PTRS');
     ASSET = parseColumn(ASSET, raw, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
+    
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Simulation');
 
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Branded Access Barriers');
@@ -56,6 +65,9 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE p');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE q');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE %', 'LOE_Pct');
+    
+    ix = strcmpi(MODEL.CountrySelected, ASSET.Country);
+    ASSET = structSelect(ASSET, ix, 1);  % Return only the country being modeled
     
     Nrows = length(ASSET.Country);
     
@@ -87,17 +99,19 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Year');
     CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Month');
     CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Total Preference Score');
+    
+    ix = strcmpi(MODEL.CountrySelected, CHANGE.Country);
+    CHANGE = structSelect(CHANGE, ix, 1);  % Return only the country being modeled
     Nrows = length(CHANGE.Country);
+
+    ix = ~cellisempty(CHANGE.Asset) & ~cellisnan(CHANGE.Asset);  % remove empty rows
+    CHANGE = structSelect(CHANGE, ix, 1);    
     
     fieldsToCheck = {'Country', 'Asset', 'Scenario_PTRS', 'Patient_Barriers', ...
         'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
         'LOE_Year', 'LOE_Month', 'Total_Preference_Score'};
     
     validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
-
-    ix = ~cellisempty(CHANGE.Asset) & ~cellisnan(CHANGE.Asset);  % remove empty rows
-    CHANGE = structSelect(CHANGE, ix, 1);
-    
     
 end
 

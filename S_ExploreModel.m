@@ -103,7 +103,29 @@ adjustmentFactor = adjustmentFactor / max(adjustmentFactor);
 
 
 
-%%
+%% Bass Diffusion Model
+
+% O9 = daysSinceLaunch
+% O5 = daysPerYear
+% O9/O5 = yearsSinceLaunch
+% =(1-EXP(-(p+q)*(O9/O5)))/(1+(q/p)*EXP(-(p+q)*(O9/O5)))*s
+
+p = 0.22;
+q = 0.28;
+s = 1.0;
+daysPerYear = 365.25;
+yearsSinceLaunch = (1:5295) / daysPerYear;
+bassDiff =(1-exp(-(p+q)*(yearsSinceLaunch))) ./ (1+(q/p)*exp(-(p+q)*(yearsSinceLaunch)))*s;
+
+figure; plot(yearsSinceLaunch, bassDiff); grid on;
+
+tt = 0:(1/12):10;  % monthly timeseries, 10 years long
+s0 = bassDiffusion(tt, p, q, 0, 0.22, true);
+s1 = bassDiffusion(tt, p, q, 0.53, 0.42, true);
+s2 = bassDiffusion(tt, p, q, 0.47, 0.36, true);
+figure; plot(tt, s0+s1+s2 - 1); grid on;
+
+%% Test functions
 
 function newShare = reDistribute(oldShare, adjustment)
 
@@ -129,8 +151,6 @@ function newShare = reDistribute(oldShare, adjustment)
     newShare = newShare / sum(newShare);
 
 end
-
-
 
 
 
