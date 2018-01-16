@@ -9,6 +9,9 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     raw = removeEmptyTrailing(raw);
     raw2 = removeEmptyTrailing(raw2);
 
+    ixHeader = find(strcmpi('Country', raw(:,1)));  % Find header row for big Asset table
+
+    
     %% Model-wide assumptions
 
     [ixRow, ~] = find(strcmpi('Scenario Selected >>', raw));
@@ -21,6 +24,20 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
 %     MODEL.WillingToPayForTreatment = raw{ixRow+1, 9};  % No longer used
     MODEL.ProfileElasticity = raw{ixRow, 26};
     
+    % Find & parse Patient Population stats for the selected country
+    [ixR, ixC] = find(strcmpi('Pop', raw(1:ixHeader,:)));
+    if ~strcmpi(raw{ixR+1, ixC}, 'SubPop') || ~strcmpi(raw{ixR+2, ixC}, 'PCP Factor') || ~strcmpi(raw{ixR+3, ixC}, 'Tdays')
+        error('Expected table with "Pop", "SubPop", "PCP Factor", "Tdays" to appear in Assets sheet');
+    end
+    ixCountryCol = find(strcmpi(MODEL.CountrySelected, raw(ixR-1, ixC+1:end)));
+    if isempty(ixCountryCol)
+        error('Could not find country code: "%s" in patient population stats table on Assets sheet', MODEL.CountrySelected);
+    end
+    MODEL.Pop = raw{ixR, ixC+ixCountryCol};
+    MODEL.SubPop = raw{ixR+1, ixC+ixCountryCol};
+    MODEL.PCP_Factor = raw{ixR+2, ixC+ixCountryCol};
+    MODEL.Tdays = raw{ixR+3, ixC+ixCountryCol};
+        
     fnames = fieldnames(MODEL);
     for m = 1:length(fnames)
         if isnan(MODEL.(fnames{m}))
@@ -30,7 +47,6 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
 
     %% Assets
     
-    ixHeader = find(strcmpi('Country', raw(:,1)));
 
     ASSET = struct;
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Country');
@@ -65,6 +81,15 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE p');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE q');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE %', 'LOE_Pct');
+    
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Avg Therapy Days');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Price / DOT', 'Launch_Price_DOT');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Price Change');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Price Ceiling / Floor', 'Price_Ceiling_Floor');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN %', 'GTN_Pct');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN Change');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN Ceiling / Floor', 'GTN_Ceiling_Floor');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Units per DOT');
     
     ix = strcmpi(MODEL.CountrySelected, ASSET.Country);
     ASSET = structSelect(ASSET, ix, 1);  % Return only the country being modeled
@@ -171,7 +196,7 @@ end
 
 function textOut = cleanFieldName(textIn) % create a valid struct field name
     ascii = int32(strtrim(textIn));      
-    ixNum = ascii >= 40 & ascii <= 57;  % 0 ... 9
+    ixNum = ascii >= 48 & ascii <= 57;  % 0 ... 9
     ixUpper = ascii >= 65 & ascii <= 90;   % A ... Z
     ixLower = ascii >= 97 & ascii <= 122';  % a ... z
     ixOk = ixNum | ixUpper | ixLower;
