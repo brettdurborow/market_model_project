@@ -1,18 +1,13 @@
-function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, doPlots)
+function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange)
 
-    %% Launch/Not-Launch based on scenario probability
-
-    Na = length(ASSET.Scenario_PTRS);
-    isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
-    %isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
-
-    Nchange = length(CHANGE.Scenario_PTRS);
-    isChange = rand(Nchange,1) <= cell2mat(CHANGE.Scenario_PTRS);
 
 
     %% Run the "Order of Entry" model and "Profile" model.  
     %  Combine them using their respective weights.
 
+    Na = length(ASSET.Scenario_PTRS);
+
+    
     % Elasticity assumptions
     elastClass = MODEL.ClassOeElasticity;  % 0.2 
     elastAsset = MODEL.ProductOeElasticity;  % -0.5
@@ -48,12 +43,4 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, doPlots)
     SIM.SharePerAssetMonthlySeries = sharePerAssetMonthlySeries;
     
     
-    if doPlots
-        figure; semilogy(dateGrid, sharePerAssetMonthlySeries); datetick; grid on; title('Share Per Asset');
-                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
-
-        figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);
-    end
-
-
 end

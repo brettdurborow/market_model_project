@@ -1,6 +1,6 @@
 
 %% Read assumptions from Excel file on disk
-doPlots = false;
+doPlots = true;
 tStart = tic;
 
 fileName = '.\Data\MATLABv33.xlsb';
@@ -22,28 +22,78 @@ CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launc
 CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
 CHANGE = structSort(CHANGE, {'Launch_Date'});  % sort by launch date in ascending order
 
+Na = length(ASSET.Scenario_PTRS);
+Nchange = length(CHANGE.Scenario_PTRS);
+
+
 %% Run many realizations, collect stats at the end
 
 rng(100);  % set random number seed.  Remove this after debugging
 
-Nsim = 1000;
+Nsim = 10;
 SimSet = cell(Nsim,1);
-for m = 1:Nsim
-    SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, doPlots);
+for m = 1:Nsim    
+%     isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
+    isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
+
+    isChange = rand(Nchange,1) <= cell2mat(CHANGE.Scenario_PTRS);    
+    
+    SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
     SimSet{m} = SIM;
 end
 
+STAT = computeSimStats(SimSet);
+
+%% Plot one Asset
 
 
-%% Produce various outputs
+if doPlots
+    aNum = 9;  % asset number to plot
+    figure; 
+    plot(SIM.DateGrid, STAT.Percentile90(aNum,:), SIM.DateGrid, STAT.Percentile50(aNum,:), SIM.DateGrid, STAT.Percentile10(aNum,:));
+    legend({'90th %ile', '50th %ile', '10th %ile'});
+    title(sprintf('Monthly Share Percentiles: %s', ASSET.Assets_Rated{aNum}));
+    datetick; grid on; timeCursor(false);
+        
+end
+
+%% Produce various outputs for a single realization
+
+simNum = 1;
+SIM = SimSet{simNum};
+dateGrid = SIM.DateGrid;
+sharePerAssetMonthlySeries = SIM.SharePerAssetMonthlySeries;
+
+uClass = unique(ASSET.Therapy_Class);
+Nc = length(uClass);
+Nt = size(sharePerAssetMonthlySeries, 2);
+sharePerClassMonthlySeries = zeros(Nc, Nt);
+
+for m = 1:Nc
+    ix = find(strcmpi(uClass(m), ASSET.Therapy_Class));
+    sharePerClassMonthlySeries(m,:) = nansum(sharePerAssetMonthlySeries(ix, :), 1);    
+end
 
 OUT = computeOutputs(MODEL, ASSET, SIM.DateGrid, SIM.SharePerAssetMonthlySeries);
 
 if doPlots
-    figure; semilogy(SIM.DateGrid, OUT.Units); datetick; grid on; title('Units');
+    figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);
+    
+    figure; semilogy(dateGrid, sharePerAssetMonthlySeries); datetick; grid on; title('Share Per Asset');
             legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
-    figure; semilogy(SIM.DateGrid, OUT.NetRevenues); datetick; grid on; title('Net Revenues');
+    figure; hA = area(dateGrid, sharePerAssetMonthlySeries'); datetick; grid on; axis tight;
+            title('Share Per Asset'); 
+            legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
+
+    figure; hA = area(dateGrid, sharePerClassMonthlySeries'); datetick; grid on; axis tight;
+            title('Share Per Class'); 
+            legend(hA(end:-1:1), uClass(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);            
+    
+    figure; semilogy(dateGrid, OUT.Units); datetick; grid on; title('Units');
+            legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+
+    figure; semilogy(dateGrid, OUT.NetRevenues); datetick; grid on; title('Net Revenues');
             legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
 end

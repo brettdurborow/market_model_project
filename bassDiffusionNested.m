@@ -55,58 +55,57 @@ function shareMx = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareSt
     uClass = unique(ASSET.Therapy_Class);
     Nc = length(uClass);
     
-    % Find p and q for Therapy Class diffusion, from most recent event
+    % CLASS DIFFUSION -----------------------------------------------------
+    % Find p and q for Therapy Class diffusion, from most recent class event
+    
+    % ToDo: Class p and q should correspond to most recent time a class launched, 
+    % not just to the class of the last event that launched.  (eg. the event 
+    % could be the second in its class, in which case it would not represent 
+    % the launch of a new class.)
+    
     ix0 = find(eventDate == ASSET.Launch_Date);
     if isempty(ix0) % if event isn't a launch, then use most recent prior launch date
         tmpDate = max(ASSET.Launch_Date(ASSET.Launch_Date <= eventDate));
         ix0 = find(tmpDate == ASSET.Launch_Date);  
     end
     [pMaxClass, ix1] = max([ASSET.Class_p{ix0}]);
-    qMaxClass = ASSET.Class_q{ix0(ix1)};        
+    qMaxClass = ASSET.Class_q{ix0(ix1)};
+    
+    [pMaxAsset, ix1] = max([ASSET.Product_p{ix0}]);
+    qMaxAsset = ASSET.Class_q{ix0(ix1)};
     
     classShareMx = zeros(Nc, length(tt));
+    assetShareMx = zeros(Na, length(tt)); 
     shareMx = zeros(Na, length(tt)); 
 
+    % ASSET DIFFUSION -----------------------------------------------------
+    % Find p and q for assets, from most recent asset event
+    for m = 1:Na
+        share = bassDiffusion(tt, pMaxAsset, qMaxAsset, shareStartVec(m), shareTargetVec(m), false);
+        assetShareMx(m, :) = share;
+    end    
+
+    % CLASS DIFFUSION -----------------------------------------------------
+    % Find p and q for Therapy Class diffusion, from most recent class event    
     for m = 1:Nc
         ix = find(strcmpi(uClass(m), ASSET.Therapy_Class));
         s0 = sum(shareStartVec(ix));
         s1 = sum(shareTargetVec(ix));
         classShareMx(m,:) = bassDiffusion(tt, pMaxClass, qMaxClass, s0, s1, false);
         
-        
-        % Find p and q for assets within this Therapy Class, from most recent intra-class event
-        ix0 = find(eventDate == ASSET.Launch_Date(ix));
-        if isempty(ix0)
-            tmpDates = ASSET.Launch_Date(ix);
-            tmpDate = max(tmpDates(tmpDates <= eventDate));
-            if ~isempty(tmpDate)
-                ix0 = find(tmpDate == tmpDates);
-            end
+        % COMBINED DIFFUSION -----------------------------------------------------
+        % Scale asset shares within a class to sum to class shares in classShareMx
+        numer = classShareMx(m,:);
+        denom = sum(assetShareMx(ix,:), 1);
+        if any(numer ~= 0 & denom == 0)
+            error('Unexpected values in assetShare and classShare');
         end
-        [pMax, ix1] = max([ASSET.Product_p{ix(ix0)}]);
-        
-        if ~isempty(pMax)
-            qMax = ASSET.Product_q{ix(ix0(ix1))};
-                    
-            for n = 1:length(ix)
-                s0 = shareStartVec(ix(n));
-                s1 = shareTargetVec(ix(n));
-                share = bassDiffusion(tt, pMax, qMax, s0, s1, false);  
-                shareMx(ix(n), :) = share;
-            end
-            scaleVec = classShareMx(m,:) ./ sum(shareMx(ix,:), 1);
-            for n = 1:length(ix)  % Now normalize asset shares to sum to class share
-                shareMx(ix(n),:) = shareMx(ix(n),:) .* scaleVec;
-            end
-            
-        end
-        
+        scaleVec = zeros(1, length(tt));
+        ixNZ = denom ~= 0;
+        scaleVec(ixNZ) = numer(ixNZ) ./ denom(ixNZ);
+        for n = 1:length(ix)  % Now normalize asset shares to sum to class share
+            shareMx(ix(n),:) = assetShareMx(ix(n),:) .* scaleVec;
+        end        
     end
-    
-%     for n = 1:Na
-%         share = bassDiffusion(tt, pMax, qMax, shareStartVec(n), shareTargetVec(n), false);
-%         shareMx(n, :) = share;
-%     end
-    
-    
+        
 end
