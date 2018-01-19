@@ -23,6 +23,8 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     MODEL.OrderOfEntryWeight = raw{ixRow+2, 3};
 %     MODEL.WillingToPayForTreatment = raw{ixRow+1, 9};  % No longer used
     MODEL.ProfileElasticity = raw{ixRow, 26};
+    MODEL.ClassOeElasticity = raw{ixRow+1, 26};
+    MODEL.ProductOeElasticity = raw{ixRow+2, 26};
     
     % Find & parse Patient Population stats for the selected country
     [ixR, ixC] = find(strcmpi('Pop', raw(1:ixHeader,:)));
