@@ -1,8 +1,4 @@
-function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries, doPlots)
-
-    if ~exist('doPlots', 'var')
-        doPlots = false;
-    end
+function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries)
     
     Nd = length(dateGrid);
 
@@ -43,18 +39,9 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries
     OUT.Units = sharePerAssetMonthlySeries * MODEL.Pop * MODEL.SubPop * MODEL.PCP_Factor * MODEL.Tdays;
     OUT.NetRevenues = OUT.Units .* OUT.PriceFloorOrCeiling;
 
-    if doPlots
-        figure; semilogy(dateGrid, OUT.Units); datetick; grid on; title('Units');
-                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
-
-        figure; semilogy(dateGrid, OUT.NetRevenues); datetick; grid on; title('Net Revenues');
-                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
-
-        tmp = repmat((1:Na)', 1, Nd);
-        figure; plot(dateGrid, launchPrice + tmp); datetick; grid on;
-                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
-
-    end
-
+%     tmp = repmat((1:Na)', 1, Nd);
+%     figure; plot(dateGrid, launchPrice + tmp); datetick; grid on;
+%             legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+    
 
 end

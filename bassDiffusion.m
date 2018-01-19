@@ -9,9 +9,6 @@ function share = bassDiffusion(t, p, q, s0, s1, doPlot)
 % t = (1:5295) / 365.25;
 % share = bassDiffusion(t, 0.22, 0.28, 0.5, 0.75, true);
 
-    if ~exist('doPlot', 'var')
-        doPlot = false;
-    end
     if isnan(s0)
         s0 = 0;
     end
@@ -19,7 +16,7 @@ function share = bassDiffusion(t, p, q, s0, s1, doPlot)
         s1 = 0;
     end
 
-    y =(1-exp(-(p+q)*(t))) ./ (1+(q/p)*exp(-(p+q)*(t)));
+    y = (1-exp(-(p+q)*(t))) ./ (1+(q/p)*exp(-(p+q)*(t)));
     share = s0 + y * (s1 - s0);
 
     if doPlot
