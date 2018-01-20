@@ -30,39 +30,37 @@ Nchange = length(CHANGE.Scenario_PTRS);
 
 rng(100);  % set random number seed.  Remove this after debugging
 
-Nsim = 10;
+isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Temporary - make it match the Excel sheet
+isChange = true(size(CHANGE.Scenario_PTRS));
+SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);  % one once to initialize
+dateGrid = SIM.DateGrid;
+Nt = length(dateGrid);
+
+Nsim = 1000;
 SimSet = cell(Nsim,1);
-for m = 1:Nsim    
-%     isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
-    isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
+SimCube = zeros(Nsim, Na, Nt);  % 3D data cube for percentile calcs
+parfor m = 1:Nsim    
+    isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
+%     isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
 
     isChange = rand(Nchange,1) <= cell2mat(CHANGE.Scenario_PTRS);    
     
     SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
-    SimSet{m} = SIM;
+    %SimSet{m} = SIM;
+    SimCube(m, :, :) = SIM.SharePerAssetMonthlySeries;
 end
 
-STAT = computeSimStats(SimSet);
+STAT = computeSimStats(SimCube);
 
-%% Plot one Asset
-
-
-if doPlots
-    aNum = 9;  % asset number to plot
-    figure; 
-    plot(SIM.DateGrid, STAT.Percentile90(aNum,:), SIM.DateGrid, STAT.Percentile50(aNum,:), SIM.DateGrid, STAT.Percentile10(aNum,:));
-    legend({'90th %ile', '50th %ile', '10th %ile'});
-    title(sprintf('Monthly Share Percentiles: %s', ASSET.Assets_Rated{aNum}));
-    datetick; grid on; timeCursor(false);
-        
-end
 
 %% Produce various outputs for a single realization
 
 simNum = 1;
-SIM = SimSet{simNum};
-dateGrid = SIM.DateGrid;
-sharePerAssetMonthlySeries = SIM.SharePerAssetMonthlySeries;
+% SIM = SimSet{simNum};
+% dateGrid = SIM.DateGrid;
+% sharePerAssetMonthlySeries = SIM.SharePerAssetMonthlySeries;
+
+sharePerAssetMonthlySeries = squeeze(SimCube(simNum, :, :));
 
 uClass = unique(ASSET.Therapy_Class);
 Nc = length(uClass);
@@ -74,7 +72,7 @@ for m = 1:Nc
     sharePerClassMonthlySeries(m,:) = nansum(sharePerAssetMonthlySeries(ix, :), 1);    
 end
 
-OUT = computeOutputs(MODEL, ASSET, SIM.DateGrid, SIM.SharePerAssetMonthlySeries);
+OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries);
 
 if doPlots
     figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);
@@ -97,6 +95,21 @@ if doPlots
             legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
 end
+
+
+%% Plot one Asset
+
+
+if doPlots
+    aNum = 9;  % asset number to plot
+    figure; 
+    plot(dateGrid, STAT.Percentile90(aNum,:), dateGrid, STAT.Percentile50(aNum,:), dateGrid, STAT.Percentile10(aNum,:));
+    legend({'90th %ile', '50th %ile', '10th %ile'});
+    title(sprintf('Monthly Share Percentiles: %s', ASSET.Assets_Rated{aNum}));
+    datetick; grid on; timeCursor(false);
+        
+end
+
 
 tElapsed = toc(tImport);
 fprintf('Run complete, elapsed time = %1.2f sec\n', tElapsed);
