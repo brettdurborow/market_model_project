@@ -7,7 +7,6 @@ fileName = '.\Data\MATLABv33.xlsb';
 
 [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
 
-tImport = tic;
 fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
@@ -28,37 +27,41 @@ Nchange = length(CHANGE.Scenario_PTRS);
 
 %% Run many realizations, collect stats at the end
 
-rng(100);  % set random number seed.  Remove this after debugging
+% rng(100);  % set random number seed.  Remove this after debugging
+% 
+% isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Temporary - make it match the Excel sheet
+% isChange = true(size(CHANGE.Scenario_PTRS));
+% SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);  % one once to initialize
+% dateGrid = SIM.DateGrid;
+% Nt = length(dateGrid);
+% 
+% Nsim = 10000;
+% SimSet = cell(Nsim,1);
+% SimCube = zeros(Nsim, Na, Nt);  % 3D data cube for percentile calcs
+% parfor m = 1:Nsim    
+%     isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
+% %     isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
+% 
+%     isChange = rand(Nchange,1) <= cell2mat(CHANGE.Scenario_PTRS);    
+%     
+%     SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
+%     %SimSet{m} = SIM;
+%     SimCube(m, :, :) = SIM.SharePerAssetMonthlySeries;
+% end
 
-isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Temporary - make it match the Excel sheet
-isChange = true(size(CHANGE.Scenario_PTRS));
-SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);  % one once to initialize
-dateGrid = SIM.DateGrid;
-Nt = length(dateGrid);
+[SimCube, dateGrid] = marketModelMonteCarlo(MODEL, ASSET, CHANGE);
 
-Nsim = 1000;
-SimSet = cell(Nsim,1);
-SimCube = zeros(Nsim, Na, Nt);  % 3D data cube for percentile calcs
-parfor m = 1:Nsim    
-    isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
-%     isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
-
-    isChange = rand(Nchange,1) <= cell2mat(CHANGE.Scenario_PTRS);    
-    
-    SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
-    %SimSet{m} = SIM;
-    SimCube(m, :, :) = SIM.SharePerAssetMonthlySeries;
-end
+Nsim = size(SimCube, 1);
+fprintf('Ran %d simulations, elapsed time = %1.1f sec\n', Nsim, toc(tStart));
 
 STAT = computeSimStats(SimCube);
+
+fprintf('Computed Percentile Statistics, elapsed time = %1.1f sec\n', toc(tStart));
 
 
 %% Produce various outputs for a single realization
 
 simNum = 1;
-% SIM = SimSet{simNum};
-% dateGrid = SIM.DateGrid;
-% sharePerAssetMonthlySeries = SIM.SharePerAssetMonthlySeries;
 
 sharePerAssetMonthlySeries = squeeze(SimCube(simNum, :, :));
 
@@ -76,6 +79,7 @@ OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries);
 
 if doPlots
     figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);
+            title('Sum-To-One Error');
     
     figure; semilogy(dateGrid, sharePerAssetMonthlySeries); datetick; grid on; title('Share Per Asset');
             legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
@@ -101,15 +105,18 @@ end
 
 
 if doPlots
-    aNum = 9;  % asset number to plot
+    aNum = 10;  % asset number to plot
     figure; 
     plot(dateGrid, STAT.Percentile90(aNum,:), dateGrid, STAT.Percentile50(aNum,:), dateGrid, STAT.Percentile10(aNum,:));
     legend({'90th %ile', '50th %ile', '10th %ile'});
     title(sprintf('Monthly Share Percentiles: %s', ASSET.Assets_Rated{aNum}));
     datetick; grid on; timeCursor(false);
         
+    figure; cdfplot(SimCube(:, aNum, Nt)); 
+    title(sprintf('CDF of final share over %d sims for Asset %d.  PTRS=%1.1f%%', Nsim, aNum, ASSET.Scenario_PTRS{aNum} * 100));
+   
 end
 
 
-tElapsed = toc(tImport);
+tElapsed = toc(tStart);
 fprintf('Run complete, elapsed time = %1.2f sec\n', tElapsed);

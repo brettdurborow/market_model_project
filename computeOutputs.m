@@ -38,6 +38,14 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries
 
     OUT.Units = sharePerAssetMonthlySeries * MODEL.Pop * MODEL.SubPop * MODEL.PCP_Factor * MODEL.Tdays;
     OUT.NetRevenues = OUT.Units .* OUT.PriceFloorOrCeiling;
+    
+%     CumulativeSales
+%     PeakSales
+%     PeakPointShare
+%     PeakPatientShare
+%     CumulativeUnits
+%     PeakUnits
+    
 
 %     tmp = repmat((1:Na)', 1, Nd);
 %     figure; plot(dateGrid, launchPrice + tmp); datetick; grid on;
