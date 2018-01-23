@@ -140,6 +140,18 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     
     validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
     
+    ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
+    ASSET.LOE_Date = datenum(cell2mat(ASSET.LOE_Year), cell2mat(ASSET.LOE_Month), 1);
+    ASSET.Starting_Share_Date = datenum(cell2mat(ASSET.Starting_Share_Year), cell2mat(ASSET.Starting_Share_Month), 1);
+    sDates = unique(ASSET.Starting_Share_Date);
+    if length(sDates) ~= 1
+        error('Expected Starting Share Year and Month to be equal across all assets');
+    end
+
+    CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launch_Month), 1);
+    CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
+    CHANGE = structSort(CHANGE, {'Launch_Date'});  % sort by launch date in ascending order
+
 end
 
 %%
