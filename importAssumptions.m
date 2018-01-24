@@ -53,6 +53,7 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = struct;
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Country');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Assets Rated');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'FORCE', 'Force', false);
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Phase');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share Year');
@@ -93,6 +94,7 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN Ceiling / Floor', 'GTN_Ceiling_Floor');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Units per DOT');
     
+    
     ix = strcmpi(MODEL.CountrySelected, ASSET.Country);
     ASSET = structSelect(ASSET, ix, 1);  % Return only the country being modeled
     
@@ -104,7 +106,8 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
         'LOE_Year', 'LOE_Month', 'Total_Preference_Score', ...
         'Product_p', 'Product_q', 'Class_p', 'Class_q', 'LOE_p', 'LOE_q', 'LOE_Pct'};
     
-    validateFields(ASSET, sheetName2, fieldsToCheck, Nrows);    
+    validateFields(ASSET, sheetName1, fieldsToCheck, Nrows);    
+    
     
     %% Change Events
 
@@ -140,14 +143,23 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     
     validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
     
+
+    
+    %% Remove those assets and change events with FORCE == 'OFF'
+    ixF = strcmpi(ASSET.Force, 'OFF');
+    ixCF = ismember(CHANGE.Asset, ASSET.Assets_Rated(ixF));
+    ASSET = structSelect(ASSET, ~ixF, 1);
+    CHANGE = structSelect(CHANGE, ~ixCF, 1);
+    
+    %% Postprocess some DATE fields to get them in the expected datatype
     ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
     ASSET.LOE_Date = datenum(cell2mat(ASSET.LOE_Year), cell2mat(ASSET.LOE_Month), 1);
     ASSET.Starting_Share_Date = datenum(cell2mat(ASSET.Starting_Share_Year), cell2mat(ASSET.Starting_Share_Month), 1);
     sDates = unique(ASSET.Starting_Share_Date);
     if length(sDates) ~= 1
         error('Expected Starting Share Year and Month to be equal across all assets');
-    end
-
+    end    
+            
     CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launch_Month), 1);
     CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
     CHANGE = structSort(CHANGE, {'Launch_Date'});  % sort by launch date in ascending order
