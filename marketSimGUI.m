@@ -188,7 +188,12 @@ function marketSimGUI()
             resultsFolderPath = folderName;
             fullFileName = fullfile(folderName, fileName);
             set(hEditInputFile, 'String', fullFileName);
-            [status, sheets, xlFormat] = xlsfinfo(fullFileName);
+            try
+                [status, sheets, xlFormat] = xlsfinfo(fullFileName);
+            catch
+                addStatusMsg('Unable to open Input file!  Please check file location and Excel installation.');
+                isOkInput = false;
+            end
             if ~ismember('Assets', sheets)
                 msgbox('Found no sheet in this file named "Assets".  Unable to continue.');
                 isOkInput = false;

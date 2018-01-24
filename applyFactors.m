@@ -9,6 +9,9 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
     patientBarriers = zeros(size(isLaunch));
     patientBarriers(isLaunch) = cell2mat(ASSET.Patient_Barriers(isLaunch));
     
+    brandedAccessBarriers = zeros(size(isLaunch));
+    brandedAccessBarriers(isLaunch) = cell2mat(ASSET.Branded_Access_Barriers(isLaunch));
+    
     %% Handle ChangeEvents if there are any
     
     for m = 1:length(CHANGE.Asset)
@@ -33,7 +36,7 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
 %     marketAccessFilter = repmat(MODEL.WillingToPayForTreatment, size(isLaunch));
 %     marketAccessFilter(~ixLOE) = cell2mat(ASSET.Branded_Access_Barriers(~ixLOE));
     
-    adjustmentFactor = patientBarriers;
+    adjustmentFactor = patientBarriers .* brandedAccessBarriers;
     adjustmentFactor = adjustmentFactor / max(adjustmentFactor);
     
 end
