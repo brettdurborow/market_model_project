@@ -9,8 +9,14 @@ function newShare = reDistribute(initialShare, adjustment, errThresh)
     end
     
     ixOk = ~isnan(initialShare);
+    if sum(ixOk) == 0
+        newShare = initialShare;
+        return;
+    end
+    
     okShare = initialShare(ixOk);
     okAdjustment = adjustment(ixOk);
+
 
     if abs(sum(okShare)-1) > length(okShare) * eps
         error('Expected oldShare to sum to 1');

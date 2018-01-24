@@ -3,7 +3,7 @@
 doPlots = true;
 tStart = tic;
 
-fileName = '.\Data\MATLABv33.xlsb';
+fileName = '.\Data\MATLABv33_ps1.xlsb';
 
 [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
 
@@ -16,7 +16,7 @@ Nchange = length(CHANGE.Scenario_PTRS);
 
 %% Run many realizations, collect stats at the end
 
-numIterations = 1000;
+numIterations = 100;
 numWorkers = 3;
 [SimCube, dateGrid] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
 

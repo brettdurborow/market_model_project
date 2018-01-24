@@ -14,7 +14,7 @@ oeVec = oeShare([1 2 3 4 5], elasticity);
 doPlots = true;
 tStart = tic;
 
-fileName = '.\Data\MATLABv33.xlsb';
+fileName = '.\Data\MATLABv33_ps1.xlsb';
 
 [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
 
@@ -35,13 +35,13 @@ SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);  % on
 dateGrid = SIM.DateGrid;
 Nt = length(dateGrid);
 
-Nsim = 1000;
+Nsim = 10;
 SimCube = zeros(Nsim, Na, Nt);  % 3D data cube for percentile calcs
-parfor m = 1:Nsim    
-    isLaunch = rand(Na,1) <= cell2mat(ASSET.Scenario_PTRS);
+for m = 1:Nsim    
+    isLaunch = rand(Na,1) < cell2mat(ASSET.Scenario_PTRS);
 %     isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;       % Temporary - make it match the Excel sheet
 
-    isChange = rand(Nchange,1) <= cell2mat(CHANGE.Scenario_PTRS);    
+    isChange = rand(Nchange,1) < cell2mat(CHANGE.Scenario_PTRS);    
     
     SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
     SimCube(m, :, :) = SIM.SharePerAssetMonthlySeries;

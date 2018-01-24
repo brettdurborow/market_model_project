@@ -33,8 +33,8 @@ function [SimCube, dateGrid] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIt
     end        
     
     parfor m = 1:numIterations
-        isLaunch = rand(Na,1) <= probVecAsset;
-        isChange = rand(Nchange,1) <= probVecChange;    
+        isLaunch = rand(Na,1) < probVecAsset;
+        isChange = rand(Nchange,1) < probVecChange;    
 
         SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
 
