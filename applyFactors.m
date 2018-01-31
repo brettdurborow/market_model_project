@@ -31,7 +31,7 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
     
     %% Compute factors
     
-    ixLOE = loeDate <= eventDate;
+%     ixLOE = loeDate <= eventDate;
     
 %     marketAccessFilter = repmat(MODEL.WillingToPayForTreatment, size(isLaunch));
 %     marketAccessFilter(~ixLOE) = cell2mat(ASSET.Branded_Access_Barriers(~ixLOE));

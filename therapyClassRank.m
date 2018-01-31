@@ -1,7 +1,7 @@
 function CLASS = therapyClassRank(MODEL, ASSET, isLaunch)
 
 
-    uClass = unique(ASSET.Therapy_Class);
+    uClass = unique(ASSET.Therapy_Class, 'sorted');
     isCountrySelected = strcmp(MODEL.CountrySelected, ASSET.Country);
 
     firstLaunch = nan(size(uClass));

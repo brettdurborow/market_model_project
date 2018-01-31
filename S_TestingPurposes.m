@@ -23,15 +23,44 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 Na = length(ASSET.Scenario_PTRS);
 Nchange = length(CHANGE.Scenario_PTRS);
 
+%% Run a single controlled realization, to validate model vs. Excel
+
+
+rng(100);  % set random number seed.  Remove this after debugging
+
+isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Testing purposes
+isLaunch = cell2mat(ASSET.Scenario_PTRS) >= 0.5;     % Testing purposes
+isChange = false(size(CHANGE.Scenario_PTRS));        % Testing purposes
+doDebug = true;
+SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);  % one once to initialize
+dateGrid = SIM.DateGrid;
+Nt = length(dateGrid);
+
+if ~isempty(SIM.DBG)
+    outFileName = sprintf('DebugOutput_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS'));
+    xlswrite(outFileName, SIM.DBG.BassClass, 'BassClass');
+    xlswrite(outFileName, SIM.DBG.BassClassPrep, 'BassClassPrep');
+    
+    xlswrite(outFileName, SIM.DBG.ClassOrderOfEntry, 'ClassOrderOfEntry');
+    xlswrite(outFileName, SIM.DBG.ClassProfile, 'ClassProfile');
+    xlswrite(outFileName, SIM.DBG.ClassAdjFactor, 'ClassAdjFactor');
+    xlswrite(outFileName, SIM.DBG.ClassTargetShare, 'ClassTargetShare');
+    
+    xlswrite(outFileName, SIM.DBG.AssetOrderOfEntry, 'AssetOrderOfEntry');
+    xlswrite(outFileName, SIM.DBG.AssetProfile, 'AssetProfile');
+    xlswrite(outFileName, SIM.DBG.AssetAdjFactor, 'AssetAdjFactor');
+    xlswrite(outFileName, SIM.DBG.AssetTargetShare, 'AssetTargetShare');
+end
 
 %% Run many realizations, collect stats at the end
 
+doDebug = false;
 
 rng(100);  % set random number seed.  Remove this after debugging
 
 isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Temporary - make it match the Excel sheet
 isChange = true(size(CHANGE.Scenario_PTRS));
-SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);  % one once to initialize
+SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);  % one once to initialize
 dateGrid = SIM.DateGrid;
 Nt = length(dateGrid);
 
@@ -43,7 +72,7 @@ for m = 1:Nsim
 
     isChange = rand(Nchange,1) < cell2mat(CHANGE.Scenario_PTRS);    
     
-    SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange);
+    SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);
     SimCube(m, :, :) = SIM.SharePerAssetMonthlySeries;
 end
 

@@ -1,4 +1,4 @@
-function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange)
+function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug)
 
 
 
@@ -17,6 +17,13 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; ASSET.Starting_Share_Date; CHANGE.Launch_Date; CHANGE.LOE_Date]);
     sharePerAssetEventSeries = zeros(Na, length(eventDates));  % row for each asset, col for each date
 
+    if doDebug
+        dbgAssetOE = zeros(Na, length(eventDates));
+        dbgAssetP = zeros(Na, length(eventDates));
+        dbgAssetAdjFactor = zeros(Na, length(eventDates));
+        dbgAssetTargetShare = zeros(Na, length(eventDates));
+    end
+    
     for m = 1:length(eventDates)
 
         eventDate = eventDates(m);
@@ -30,11 +37,20 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
         newSharePerAsset = reDistribute(sharePerAsset, adjustmentFactor);
 
         sharePerAssetEventSeries(:, m) = newSharePerAsset;
+        
+        if doDebug
+            dbgAssetOE(:,m) = sharePerAssetOE;
+            dbgAssetP(:,m) = sharePerAssetP;
+            dbgAssetAdjFactor(:,m) = adjustmentFactor;
+            dbgAssetTargetShare(:,m) = newSharePerAsset;
+        end
     end
 
     %% Bass Diffusion Model to fill in times between events
+    
+    [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDiffusionClass(ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, doDebug);
 
-    [dateGrid, sharePerAssetMonthlySeries] = bassDiffusionNested(ASSET, eventDates, sharePerAssetEventSeries);
+%     [dateGrid, sharePerAssetMonthlySeries, DBG] = bassDiffusionNested(ASSET, eventDates, sharePerAssetEventSeries, doDebug);
 
     SIM = struct;
     SIM.EventDates = eventDates;
@@ -42,5 +58,36 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     SIM.DateGrid = dateGrid;
     SIM.SharePerAssetMonthlySeries = sharePerAssetMonthlySeries;
     
+    if doDebug
+        dateHead = num2cell(year(eventDates) + month(eventDates) / 12); 
+        DBG.AssetOrderOfEntry = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetOE);
+        DBG.AssetProfile = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetP);
+        DBG.AssetAdjFactor = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetAdjFactor);
+        DBG.AssetTargetShare = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetTargetShare);
+        
+        dbgClassOE = zeros(length(CLASS.Therapy_Class), length(eventDates));
+        dbgClassP = zeros(length(CLASS.Therapy_Class), length(eventDates));
+        dbgClassAdjFactor = zeros(length(CLASS.Therapy_Class), length(eventDates));
+        dbgClassTargetShare = zeros(length(CLASS.Therapy_Class), length(eventDates));
+        for m = 1:length(CLASS.Therapy_Class)
+            ix = strcmpi(CLASS.Therapy_Class{m}, ASSET.Therapy_Class);
+            if sum(ix) > 0
+                dbgClassOE(m,:) = nansum(dbgAssetOE(ix,:), 1);
+                dbgClassP(m,:) = nansum(dbgAssetP(ix,:), 1);
+                dbgClassAdjFactor(m,:) = nansum(dbgAssetAdjFactor(ix,:), 1);
+                dbgClassTargetShare(m,:) = nansum(dbgAssetTargetShare(ix,:), 1);
+            end
+        end
+        DBG.ClassOrderOfEntry = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassOE);
+        DBG.ClassProfile = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassP);
+        DBG.ClassAdjFactor = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassAdjFactor);
+        DBG.ClassTargetShare = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassTargetShare);
+        
+        SIM.DBG = DBG;
+    end
     
+end
+
+function celltab = mx2celltab(colHead, rowHead, dataMx)
+    celltab = [[{''}, colHead(:)']; [rowHead(:), num2cell(dataMx)]];
 end

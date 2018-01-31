@@ -1,4 +1,4 @@
-function [dateGrid, sharePerAssetMonthlySeries] = bassDiffusionNested(ASSET, eventDates, sharePerAssetEventSeries)
+function [dateGrid, sharePerAssetMonthlySeries, DBG] = bassDiffusionNested(ASSET, eventDates, sharePerAssetEventSeries, doDebug)
 % For each date, find the prior market share target, the next future market share target, 
 % and the proper p and q.  Compute the interpolated market share using the Bass diffusion model
 
@@ -12,11 +12,12 @@ function [dateGrid, sharePerAssetMonthlySeries] = bassDiffusionNested(ASSET, eve
 % NOTE: this function assumes all dates start on 1st of month
 %       this function also assumes that ASSET.Starting_Share_Date is a member of eventDates (so eventDates must be constructed this way)
 
+    DBG = struct;
     Na = length(ASSET.Assets_Rated);
     daysPerMonth = 30.4;
     daysPerYear = 365.25;
 
-    startDate = max(ASSET.Starting_Share_Date);
+    startDate = max(ASSET.Starting_Share_Date);  % Should be only one value here, but max is just in case
     [yr0, mo0, dy0] = datevec(startDate);
 
     monthCount = ceil(120 + (eventDates(end) - startDate) / daysPerMonth);  % 10 years after last event
@@ -25,7 +26,12 @@ function [dateGrid, sharePerAssetMonthlySeries] = bassDiffusionNested(ASSET, eve
 
     sharePerAssetMonthlySeries = zeros(Na, Nd);
     sharePerAssetMonthlySeries(:,1) = cell2mat(ASSET.Starting_Share) / nansum(cell2mat(ASSET.Starting_Share));
-
+    if doDebug
+        uClass = unique(ASSET.Therapy_Class);
+        Nc = length(uClass);        
+        dbgBassClass = cell(Nc+6, Nd);
+    end
+    
     m0 = find(eventDates == startDate, 1, 'first');  % eventDates must contain startDate
     for m = m0:length(eventDates)
         eventDate = eventDates(m);
@@ -41,14 +47,28 @@ function [dateGrid, sharePerAssetMonthlySeries] = bassDiffusionNested(ASSET, eve
         shareStartVec = sharePerAssetMonthlySeries(:,ixStart);
         shareTargetVec = sharePerAssetEventSeries(:, m); % col index corresponds to eventDate vector
         
-        shareMx = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareStartVec, shareTargetVec);
+        [shareMx, classShareMx, assetShareMx, pClass, qClass, pAsset, qAsset] = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareStartVec, shareTargetVec);
         sharePerAssetMonthlySeries(:, ixStart:ixEnd) = shareMx;
+        if doDebug
+            dbgBassClass(1, ixStart:ixEnd) = repmat({year(eventDate) + month(eventDate)/12}, 1, length(tt));
+            dbgBassClass(2, ixStart:ixEnd) = repmat({year(nextDate) + month(eventDate)/12}, 1, length(tt));
+            dbgBassClass(3, ixStart:ixEnd) = repmat({pClass}, 1, length(tt));
+            dbgBassClass(4, ixStart:ixEnd) = repmat({qClass}, 1, length(tt));
+            dbgBassClass(5, ixStart:ixEnd) = num2cell(sum(classShareMx, 1));
+            dbgBassClass(6, ixStart:ixEnd) = num2cell(year(dateGrid(ixStart:ixEnd)) + month(dateGrid(ixStart:ixEnd))/12);
+            dbgBassClass(7:end, ixStart:ixEnd) = num2cell(classShareMx);
+        end
+    end
+    
+    if doDebug
+        sideHead = [{'eventDate'; 'nextDate'; 'p'; 'q'; 'sum'; 'gridDate'}; uClass(:)];
+        DBG.BassClass = [sideHead, dbgBassClass];
     end
 
 end
 
 
-function shareMx = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareStartVec, shareTargetVec)
+function [shareMx, classShareMx, assetShareMx, pClass, qClass, pAsset, qAsset] = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareStartVec, shareTargetVec)
     
        
     Na = length(shareStartVec);
@@ -68,11 +88,11 @@ function shareMx = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareSt
         tmpDate = max(ASSET.Launch_Date(ASSET.Launch_Date <= eventDate));
         ix0 = find(tmpDate == ASSET.Launch_Date);  
     end
-    [pMaxClass, ix1] = max([ASSET.Class_p{ix0}]);
-    qMaxClass = ASSET.Class_q{ix0(ix1)};
+    [pClass, ix1] = max([ASSET.Class_p{ix0}]);
+    qClass = ASSET.Class_q{ix0(ix1)};
     
-    [pMaxAsset, ix1] = max([ASSET.Product_p{ix0}]);
-    qMaxAsset = ASSET.Class_q{ix0(ix1)};
+    [pAsset, ix1] = max([ASSET.Product_p{ix0}]);
+    qAsset = ASSET.Class_q{ix0(ix1)};
     
     classShareMx = zeros(Nc, length(tt));
     assetShareMx = zeros(Na, length(tt)); 
@@ -81,7 +101,7 @@ function shareMx = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareSt
     % ASSET DIFFUSION -----------------------------------------------------
     % Find p and q for assets, from most recent asset event
     for m = 1:Na
-        share = bassDiffusion(tt, pMaxAsset, qMaxAsset, shareStartVec(m), shareTargetVec(m), false);
+        share = bassDiffusion(tt, pAsset, qAsset, shareStartVec(m), shareTargetVec(m), false);
         assetShareMx(m, :) = share;
     end    
 
@@ -91,7 +111,7 @@ function shareMx = bassDiffusionOneEvent(ASSET, tt, eventDate, nextDate, shareSt
         ix = find(strcmpi(uClass(m), ASSET.Therapy_Class));
         s0 = sum(shareStartVec(ix));
         s1 = sum(shareTargetVec(ix));
-        classShareMx(m,:) = bassDiffusion(tt, pMaxClass, qMaxClass, s0, s1, false);
+        classShareMx(m,:) = bassDiffusion(tt, pClass, qClass, s0, s1, false);
         
         % COMBINED DIFFUSION -----------------------------------------------------
         % Scale asset shares within a class to sum to class shares in classShareMx
