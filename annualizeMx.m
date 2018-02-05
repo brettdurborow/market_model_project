@@ -2,7 +2,7 @@ function [annualDates, annualMx] = annualizeMx(monthlyDates, monthlyMx, method)
 % Given a monthly time series matrix, computes yearly Sum or Average, as desired.
 %
 
-    yr = year(monthlyDates);
+    [yr, ~, ~] = datevec(monthlyDates);
     annualDates = unique(yr, 'sorted');
     annualMx = nan(size(monthlyMx,1), length(annualDates));
     if strcmpi(method, 'mean')

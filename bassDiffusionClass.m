@@ -78,7 +78,8 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
         end
         
         if doDebug
-            dbgBassClassPrep{1, m} = year(eventDate) + month(eventDate)/12;
+            [yr, mo, ~] = datevec(eventDate);
+            dbgBassClassPrep{1, m} = yr + mo/12;
             dbgBassClassPrep{2, m} = classPVec(m);
             dbgBassClassPrep{3, m} = classQVec(m);           
         end
