@@ -1,14 +1,20 @@
 function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
 
 
+    fileInfo = dir(fileName);
+
     sheetName1 = 'Assets';
     [~,~,raw]  = xlsread(fileName, sheetName1);
-    sheetName2 = 'ChangeEvents';
-    [~,~,raw2] = xlsread(fileName, sheetName2);
-    
     raw = removeEmptyTrailing(raw);
-    raw2 = removeEmptyTrailing(raw2);
-
+    
+    try
+    sheetName2 = 'ChangeEvents';
+        [~,~,raw2] = xlsread(fileName, sheetName2);
+        raw2 = removeEmptyTrailing(raw2);
+    catch
+        raw2 = {};
+    end
+    
     ixHeader = find(strcmpi('Country', raw(:,1)));  % Find header row for big Asset table
 
     
@@ -17,6 +23,8 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     [ixRow, ~] = find(strcmpi('Scenario Selected >>', raw));
 
     MODEL = struct;
+    MODEL.FileName = fileName;
+    MODEL.FileDate = fileInfo.date;
     MODEL.CountrySelected = raw{ixRow, 3};
     MODEL.ScenarioSelected = raw{ixRow, 11};
     MODEL.ProfileWeight = raw{ixRow+1, 3};
@@ -53,6 +61,7 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     ASSET = struct;
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Country');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Assets Rated');
+    ASSET = parseColumn(ASSET, raw, ixHeader, 'Company1');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'FORCE', 'Force', false);
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Phase');
     ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share');
@@ -111,45 +120,56 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     
     %% Change Events
 
-    [ixHeader, ~] = find(strcmpi('Country', raw2));
-
     CHANGE = struct;
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Country');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Asset');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Event');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Company');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Phase');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Benchmark PTRS');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Branded Access Barriers');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Therapy Class');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Year');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Month');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Year');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Month');
-    CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Total Preference Score');
-    
-    ix = strcmpi(MODEL.CountrySelected, CHANGE.Country);
-    CHANGE = structSelect(CHANGE, ix, 1);  % Return only the country being modeled
-    Nrows = length(CHANGE.Country);
 
-    ix = ~cellisempty(CHANGE.Asset) & ~cellisnan(CHANGE.Asset);  % remove empty rows
-    CHANGE = structSelect(CHANGE, ix, 1);    
-    
-    fieldsToCheck = {'Country', 'Asset', 'Scenario_PTRS', 'Patient_Barriers', ...
-        'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
-        'LOE_Year', 'LOE_Month', 'Total_Preference_Score'};
-    
-    validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
-    
+    if isempty(raw2)
+        CHANGE.Asset = {};
+        CHANGE.Scenario_PTRS = {};        
+        CHANGE.Launch_Year = {};  
+        CHANGE.Launch_Month = {};  
+        CHANGE.LOE_Year = {};  
+        CHANGE.LOE_Month = {};          
+    else
+        [ixHeader, ~] = find(strcmpi('Country', raw2));
 
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Country');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Asset');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Event');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Company');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Phase');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Benchmark PTRS');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Branded Access Barriers');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Therapy Class');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Year');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Month');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Year');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Month');
+        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Total Preference Score');
+
+        ix = strcmpi(MODEL.CountrySelected, CHANGE.Country);
+        CHANGE = structSelect(CHANGE, ix, 1);  % Return only the country being modeled
+        Nrows = length(CHANGE.Country);
+
+        ix = ~cellisempty(CHANGE.Asset) & ~cellisnan(CHANGE.Asset);  % remove empty rows
+        CHANGE = structSelect(CHANGE, ix, 1);    
+
+        fieldsToCheck = {'Country', 'Asset', 'Scenario_PTRS', 'Patient_Barriers', ...
+            'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
+            'LOE_Year', 'LOE_Month', 'Total_Preference_Score'};
+
+        validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
+    
+    end
     
     %% Remove those assets and change events with FORCE == 'OFF'
     ixF = strcmpi(ASSET.Force, 'OFF');
-    ixCF = ismember(CHANGE.Asset, ASSET.Assets_Rated(ixF));
     ASSET = structSelect(ASSET, ~ixF, 1);
-    CHANGE = structSelect(CHANGE, ~ixCF, 1);
+    if ~isempty(CHANGE.Scenario_PTRS)
+        ixCF = ismember(CHANGE.Asset, ASSET.Assets_Rated(ixF));
+        CHANGE = structSelect(CHANGE, ~ixCF, 1);
+    end
     
     %% Postprocess some DATE fields to get them in the expected datatype
     ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
@@ -159,7 +179,7 @@ function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
     if length(sDates) ~= 1
         error('Expected Starting Share Year and Month to be equal across all assets');
     end    
-            
+        
     CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launch_Month), 1);
     CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
     CHANGE = structSort(CHANGE, {'Launch_Date'});  % sort by launch date in ascending order

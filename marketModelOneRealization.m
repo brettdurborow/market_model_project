@@ -5,6 +5,11 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     %% Run the "Order of Entry" model and "Profile" model.  
     %  Combine them using their respective weights.
 
+    if sum(isLaunch) == 0
+        SIM = [];
+        return;
+    end
+    
     Na = length(ASSET.Scenario_PTRS);
 
     
@@ -51,12 +56,16 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDiffusionClass(ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, doDebug);
 
 %     [dateGrid, sharePerAssetMonthlySeries, DBG] = bassDiffusionNested(ASSET, eventDates, sharePerAssetEventSeries, doDebug);
+    
+    [brandedMonthlyShare, genericMonthlyShare] = bassBrandedShare(dateGrid, sharePerAssetMonthlySeries, ASSET);
 
     SIM = struct;
     SIM.EventDates = eventDates;
     SIM.SharePerAssetEventSeries = sharePerAssetEventSeries;
     SIM.DateGrid = dateGrid;
     SIM.SharePerAssetMonthlySeries = sharePerAssetMonthlySeries;
+    SIM.BrandedMonthlyShare = brandedMonthlyShare;
+    SIM.GenericMonthlyShare = genericMonthlyShare;
     
     if doDebug
         dateHead = num2cell(year(eventDates) + month(eventDates) / 12); 

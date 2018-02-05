@@ -1,4 +1,4 @@
-function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries)
+function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShare)
     
     Nd = length(dateGrid);
 
@@ -9,14 +9,15 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries
     gtnChange = repmat(cell2mat(ASSET.GTN_Change), 1, Nd);
     gtnPct    = repmat(cell2mat(ASSET.GTN_Pct), 1, Nd);
     gtnCeilingOrFloor = repmat(cell2mat(ASSET.GTN_Ceiling_Floor), 1, Nd);
+    unitsPerDot = repmat(cell2mat(ASSET.Units_per_DOT), 1, Nd);
 
     dateMx = repmat(dateGrid, length(ASSET.Launch_Date), 1);
     launchDateMx = repmat(ASSET.Launch_Date, 1, Nd);
     yearsSinceLaunch = (dateMx - launchDateMx) / 365;
 
 
-    OUT.BrandedPointShare = sharePerAssetMonthlySeries;
-    OUT.BrandedPatientShare = sharePerAssetMonthlySeries .* MODEL.Tdays ./ avgTherapyDays;
+    OUT.PointShare = monthlyShare;
+    OUT.PatientShare = monthlyShare .* MODEL.Tdays ./ avgTherapyDays;
 
     OUT.PricePerDayOfTherapy = launchPrice .* (1 + priceChange) .^ yearsSinceLaunch;
     OUT.PricePerDayOfTherapy(yearsSinceLaunch < 0) = 0;
@@ -36,15 +37,8 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries
     OUT.GtnFloorOrCeiling(ixG) = min(OUT.GTN(ixG), gtnCeilingOrFloor(ixG));  % apply a ceiling
     OUT.GtnFloorOrCeiling(ixL) = max(OUT.GTN(ixL), gtnCeilingOrFloor(ixL));  % apply a floor
 
-    OUT.Units = sharePerAssetMonthlySeries * MODEL.Pop * MODEL.SubPop * MODEL.PCP_Factor * MODEL.Tdays;
+    OUT.Units = monthlyShare .* unitsPerDot * MODEL.Pop * MODEL.SubPop * MODEL.PCP_Factor * MODEL.Tdays / 12;
     OUT.NetRevenues = OUT.Units .* OUT.PriceFloorOrCeiling;
-    
-%     CumulativeSales
-%     PeakSales
-%     PeakPointShare
-%     PeakPatientShare
-%     CumulativeUnits
-%     PeakUnits
     
 
 %     tmp = repmat((1:Na)', 1, Nd);

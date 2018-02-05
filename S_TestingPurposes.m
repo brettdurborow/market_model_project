@@ -15,6 +15,7 @@ doPlots = true;
 tStart = tic;
 
 fileName = '.\Data\MATLABv33TEST.xlsb';
+fileName = '.\Data\aMDD MM v1.6-ES (Inputs).xlsb';
 
 [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
 
@@ -58,8 +59,12 @@ doDebug = false;
 
 rng(100);  % set random number seed.  Remove this after debugging
 
-isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Temporary - make it match the Excel sheet
-isChange = true(size(CHANGE.Scenario_PTRS));
+% isLaunch = cell2mat(ASSET.Launch_Simulation) == 1;   % Temporary - make it match the Excel sheet
+% isChange = true(size(CHANGE.Scenario_PTRS));
+Na = length(ASSET.Scenario_PTRS);
+Nchange = length(CHANGE.Scenario_PTRS);
+isLaunch = rand(Na,1) < cell2mat(ASSET.Scenario_PTRS);
+isChange = rand(Nchange,1) < cell2mat(CHANGE.Scenario_PTRS);  
 SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);  % one once to initialize
 dateGrid = SIM.DateGrid;
 Nt = length(dateGrid);
@@ -86,46 +91,48 @@ fprintf('Computed Percentile Statistics, elapsed time = %1.1f sec\n', toc(tStart
 
 %% Produce various outputs for a single realization
 
-        simNum = 1;
+    simNum = 1;
+    sharePerAssetMonthlySeries = squeeze(SimCube(simNum, :, :));
 
-        sharePerAssetMonthlySeries = squeeze(SimCube(simNum, :, :));
+    SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);  % one once to initialize
+    sharePerAssetMonthlySeries = SIM.BrandedMonthlyShare;
 
-        uClass = unique(ASSET.Therapy_Class);
-        Nc = length(uClass);
-        Nt = size(sharePerAssetMonthlySeries, 2);
-        sharePerClassMonthlySeries = zeros(Nc, Nt);
+    uClass = unique(ASSET.Therapy_Class);
+    Nc = length(uClass);
+    Nt = size(sharePerAssetMonthlySeries, 2);
+    sharePerClassMonthlySeries = zeros(Nc, Nt);
 
-        for m = 1:Nc
-            ix = find(strcmpi(uClass(m), ASSET.Therapy_Class));
-            sharePerClassMonthlySeries(m,:) = nansum(sharePerAssetMonthlySeries(ix, :), 1);    
-        end
+    for m = 1:Nc
+        ix = find(strcmpi(uClass(m), ASSET.Therapy_Class));
+        sharePerClassMonthlySeries(m,:) = nansum(sharePerAssetMonthlySeries(ix, :), 1);    
+    end
 
-        OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries);
-        
-        doPlots = true;  %ToDo: remove this
+    OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries);
 
-        if doPlots
-            figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);
-                    title('Sum-To-One Error');
+    doPlots = true;  %ToDo: remove this
 
-            figure; semilogy(dateGrid, sharePerAssetMonthlySeries); datetick; grid on; title('Share Per Asset');
-                    legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+    if doPlots
+        figure; plot(dateGrid, 1-nansum(sharePerAssetMonthlySeries)); datetick; grid on; timeCursor(false);
+                title('Sum-To-One Error');
 
-            figure; hA = area(dateGrid, sharePerAssetMonthlySeries'); datetick; grid on; axis tight;
-                    title('Share Per Asset'); 
-                    legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
+        figure; semilogy(dateGrid, sharePerAssetMonthlySeries); datetick; grid on; title('Share Per Asset');
+                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
-            figure; hA = area(dateGrid, sharePerClassMonthlySeries'); datetick; grid on; axis tight;
-                    title('Share Per Class'); 
-                    legend(hA(end:-1:1), uClass(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);            
+        figure; hA = area(dateGrid, sharePerAssetMonthlySeries'); datetick; grid on; axis tight;
+                title('Share Per Asset'); 
+                legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
 
-            figure; semilogy(dateGrid, OUT.Units); datetick; grid on; title('Units');
-                    legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+        figure; hA = area(dateGrid, sharePerClassMonthlySeries'); datetick; grid on; axis tight;
+                title('Share Per Class'); 
+                legend(hA(end:-1:1), uClass(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);            
 
-            figure; semilogy(dateGrid, OUT.NetRevenues); datetick; grid on; title('Net Revenues');
-                    legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+        figure; semilogy(dateGrid, OUT.Units); datetick; grid on; title('Units');
+                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
-        end
+        figure; semilogy(dateGrid, OUT.NetRevenues); datetick; grid on; title('Net Revenues');
+                legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
+
+    end
 
 %% Plot one Asset
 

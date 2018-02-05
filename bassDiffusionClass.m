@@ -1,4 +1,4 @@
-function [dateGrid, sharePerAssetMonthlySeriesRaw, sharePerClassMonthlySeries, DBG] = bassDiffusionClass(ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, doDebug)
+function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDiffusionClass(ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, doDebug)
 % Find the subset of eventDates corresponding to class launches in the current realization
 % Find the target share for each class on each event date
 % Over dateGrid, Diffuse the class shares toward their target shares
