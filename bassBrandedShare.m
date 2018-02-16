@@ -5,7 +5,7 @@ function [brandedMonthlyShare, genericMonthlyShare] = bassBrandedShare(dateGrid,
 
     for m = 1:length(ASSET.Assets_Rated)
         p_LOE = ASSET.LOE_p{m};
-        q_LOE = ASSET.LOE_p{m};
+        q_LOE = ASSET.LOE_q{m};
         ixLOE = find(dateGrid >= ASSET.LOE_Date(m));
         moleculeShare = sharePerAssetMonthlySeries(m, ixLOE(1));
         brandedShareTarget = (1 - ASSET.LOE_Pct{m}) * moleculeShare;
