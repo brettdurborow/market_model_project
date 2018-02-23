@@ -264,7 +264,8 @@ function marketSimGUI()
         if doPlots
             [annualDates, annualBrandedShare] = annualizeMx(dateGrid, EOUT_Branded.Mean.PointShare, 'mean');
             
-            figure; semilogy(dateGrid, EOUT_Molecule.Mean.PointShare); datetick; grid on; title('Share Per Asset');
+            figure; semilogy(dateGrid, EOUT_Molecule.Mean.PointShare); datetick; grid on; 
+                    title('Share Per Asset - Monthly');
                     legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
             figure; hA = area(dateGrid, EOUT_Molecule.Mean.PointShare'); datetick; grid on; axis tight;

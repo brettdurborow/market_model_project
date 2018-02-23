@@ -153,3 +153,15 @@ end
 
 tElapsed = toc(tStart);
 fprintf('Run complete, elapsed time = %1.2f sec\n', tElapsed);
+
+%% Test Bass diffusion using Michel's example
+
+mathFile = '..\FromMichel\TheMath 2.xlsx';
+[~,~,raw]  = xlsread(mathFile, 'Erosion Example');
+
+ixCol = 8:422;
+tt = cell2mat(raw(2, ixCol));
+
+
+share = bassDiffusion(tt, p_LOE, q_LOE, loeFactorStart, loeFactorTarget, false);
+
