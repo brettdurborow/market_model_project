@@ -52,7 +52,7 @@ function EOUT = writeEnsembleOutputs(outFileName, outSheetName, SimCube, dateGri
     cTab2 = buildCellTable('Units: Mean', ASSET, dateGrid, OUT.Units, 'sum');
     cTab3 = buildCellTable('Point Share: Mean', ASSET, dateGrid, OUT.PointShare, 'mean');
     cTab4 = buildCellTable('Patient Share: Mean', ASSET, dateGrid, OUT.PatientShare, 'mean');
-    cTab5 = buildCellTable('Price: Mean', ASSET, dateGrid, OUT.Price, 'mean');
+    cTab5 = buildCellTable('Price Per DOT: Mean', ASSET, dateGrid, OUT.PricePerDot, 'mean');
     cTab6 = buildCellTable('GTN: Mean', ASSET, dateGrid, OUT.GTN, 'mean');
 
     Nr = size(cTab1, 1) + 1;

@@ -20,10 +20,10 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShare)
     OUT.PointShare = monthlyShare;
     OUT.PatientShare = monthlyShare .* MODEL.Tdays ./ avgTherapyDays;
     
-    OUT.Price = zeros(size(monthlyShare));
+    OUT.PricePerDot = zeros(size(monthlyShare));
     OUT.GTN = zeros(size(monthlyShare));
     for m = 1:length(ASSET.Assets_Rated)
-        OUT.Price(m,:) = cappedGrowth(dateGrid, ASSET.Launch_Year{m}, ASSET.Launch_Price_DOT{m}, ...
+        OUT.PricePerDot(m,:) = cappedGrowth(dateGrid, ASSET.Launch_Year{m}, ASSET.Launch_Price_DOT{m}, ...
             ASSET.Price_Change{m}, ASSET.Price_Ceiling_Floor{m});       
         OUT.GTN(m,:) = cappedGrowth(dateGrid, ASSET.Launch_Year{m}, ASSET.GTN_Pct{m}, ...
             ASSET.GTN_Change{m}, ASSET.GTN_Ceiling_Floor{m});       
@@ -49,7 +49,7 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShare)
 %     OUT.GtnFloorOrCeiling(ixL) = max(OUT.GTN(ixL), gtnCeilingOrFloor(ixL));  % apply a floor
 
     OUT.Units = monthlyShare .* unitsPerDot * MODEL.Pop * MODEL.SubPop * MODEL.PCP_Factor * MODEL.Tdays / 12;
-    OUT.NetRevenues = OUT.Units .* OUT.Price .* OUT.GTN;
+    OUT.NetRevenues = OUT.Units .* OUT.PricePerDot .* OUT.GTN ./ unitsPerDot;
     
 
 %     tmp = repmat((1:Na)', 1, Nd);
