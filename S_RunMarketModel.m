@@ -29,7 +29,7 @@ STAT = computeSimStats(SimCubeBranded);
 
 fprintf('Computed Percentile Statistics, elapsed time = %1.1f sec\n', toc(tStart));
 
-outFileName = sprintf('Output\\ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS'));
+outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS'));
 EOUT_Branded = writeEnsembleOutputs(outFileName, 'Branded', SimCubeBranded, dateGrid, MODEL, ASSET);
 EOUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule', SimCubeMolecule, dateGrid, MODEL, ASSET);
 
