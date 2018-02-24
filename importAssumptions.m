@@ -1,192 +1,95 @@
-function [MODEL, ASSET, CHANGE] = importAssumptions(fileName)
+function [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName)
 
+    
+    [filepath, name, ext] = fileparts(fileName);
+    shortName = [name, ext];
+    hWait = waitbar(0, sprintf('Opening File: %s', shortName));
 
-    fileInfo = dir(fileName);
+    fileInfo = dir(fileName);    
+    [status, sheets, xlFormat] = xlsfinfo(fileName);
 
-    sheetName1 = 'Assets';
+    % Build a list of Asset sheets in this workbook
+    assetSheets = {};
+    for m = 1:length(sheets)
+        ascii = double(sheets{m});
+        if all(ascii >= 48 & ascii <= 57)
+            assetSheets{end + 1} = sheets{m};
+        end    
+    end
+
+    % Check for ChangeEvents for each Asset sheet
+    ceSheets = cell(size(assetSheets));
+    for m = 1:length(assetSheets)
+        ceName = [assetSheets{m}, 'CE'];
+        ix = find(strcmpi(sheets, ceName));
+        if length(ix) == 1
+            ceSheets{m} = sheets{m};
+        end
+    end
+    
+    Nwait = length(assetSheets) + 1;
+
+    
+    %% Read the "Simulation" sheet
+
+    sheetName1 = 'Simulation';
+    waitbar(1/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, sheetName1));
     [~,~,raw]  = xlsread(fileName, sheetName1);
     raw = removeEmptyTrailing(raw);
     
-    try
-    sheetName2 = 'ChangeEvents';
-        [~,~,raw2] = xlsread(fileName, sheetName2);
-        raw2 = removeEmptyTrailing(raw2);
-    catch
-        raw2 = {};
-    end
     
-    ixHeader = find(strcmpi('Country', raw(:,1)));  % Find header row for big Asset table
-
-    
-    %% Model-wide assumptions
-
-    [ixRow, ~] = find(strcmpi('Scenario Selected >>', raw));
-
-    MODEL = struct;
-    MODEL.FileName = fileName;
-    MODEL.FileDate = fileInfo.date;
-    MODEL.CountrySelected = raw{ixRow, 3};
-    MODEL.ScenarioSelected = raw{ixRow, 11};
-    MODEL.ProfileWeight = raw{ixRow+1, 3};
-    MODEL.OrderOfEntryWeight = raw{ixRow+2, 3};
-%     MODEL.WillingToPayForTreatment = raw{ixRow+1, 9};  % No longer used
-    MODEL.ProfileElasticity = raw{ixRow, 26};
-    MODEL.ClassOeElasticity = raw{ixRow+1, 26};
-    MODEL.ProductOeElasticity = raw{ixRow+2, 26};
-    
-    % Find & parse Patient Population stats for the selected country
-    [ixR, ixC] = find(strcmpi('Pop', raw(1:ixHeader,:)));
-    if ~strcmpi(raw{ixR+1, ixC}, 'SubPop') || ~strcmpi(raw{ixR+2, ixC}, 'PCP Factor') || ~strcmpi(raw{ixR+3, ixC}, 'Tdays')
-        error('Expected table with "Pop", "SubPop", "PCP Factor", "Tdays" to appear in Assets sheet');
-    end
-    ixCountryCol = find(strcmpi(MODEL.CountrySelected, raw(ixR-1, ixC+1:end)));
-    if isempty(ixCountryCol)
-        error('Could not find country code: "%s" in patient population stats table on Assets sheet', MODEL.CountrySelected);
-    end
-    MODEL.Pop = raw{ixR, ixC+ixCountryCol};
-    MODEL.SubPop = raw{ixR+1, ixC+ixCountryCol};
-    MODEL.PCP_Factor = raw{ixR+2, ixC+ixCountryCol};
-    MODEL.Tdays = raw{ixR+3, ixC+ixCountryCol};
+    expectedFields1 = {'Pop', 'SubPop', 'PCP Factor', 'Tdays'};
+    expectedFields2 = {'Rest of EMEA Bump Up from EU5', 'Rest of AP Bump Up from EU5', ...
+                        'CA Bump Up from EU5', 'LA Bump Up from EU5'};
         
-    fnames = fieldnames(MODEL);
+    fnames = {'Country'};
+    for row = 2:5
+        fnames{end+1} = cleanFieldName(raw{row, 1});
+    end
+    SIMULATION = struct;
+    ixE = find(~cellisnan(raw(1,:)), 1, 'last');    
     for m = 1:length(fnames)
-        if isnan(MODEL.(fnames{m}))
-            error('Missing value in field: %s.  Please check input worksheet.', fnames{m});
+        SIMULATION.(fnames{m}) = raw(m, 2:ixE);
+    end
+    ixBad = [];
+    for m = 1:length(expectedFields1)
+        if ~ismember(cleanFieldName(expectedFields1{m}), fnames)
+            ixBad(end+1) = m;
+        end       
+    end
+    if ~isempty(ixBad)
+        error('Error in File: %s. Unable to find expected fields: %s', fileName, strjoin(expectedFields1(ixBad), ', '));
+    end
+    
+    for m = 1:length(expectedFields2)
+        [ixR, ixC] = find(strcmpi(expectedFields2{m}, raw));
+        if length(ixR) == 1
+            SIMULATION.(cleanFieldName(expectedFields2{m})) = raw{ixR, ixC+1};
+        else
+            error('Error in file: %s.  Unable to find expected field: %s', fileName, expectedFields2{m})
         end
-    end
-
-    %% Assets
-    
-
-    ASSET = struct;
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Country');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Assets Rated');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Company1');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'FORCE', 'Force', false);
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Phase');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share Year');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Starting Share Month');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Benchmark PTRS');
-    ASSET = parseColumn(ASSET, raw, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
-    
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Simulation');
-
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Branded Access Barriers');
-
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Therapy Class');
-
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Year');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Month');
-
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE Year');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE Month');
-
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Total Preference Score');
-    
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Product p');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Product q');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Class p');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Class q');
-    
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE p');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE q');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'LOE %', 'LOE_Pct');
-    
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Avg Therapy Days');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Launch Price / DOT', 'Launch_Price_DOT');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Price Change');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Price Ceiling / Floor', 'Price_Ceiling_Floor');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN %', 'GTN_Pct');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN Change');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'GTN Ceiling / Floor', 'GTN_Ceiling_Floor');
-    ASSET = parseColumn(ASSET, raw, ixHeader, 'Units per DOT');
-    
-    
-    ix = strcmpi(MODEL.CountrySelected, ASSET.Country);
-    ASSET = structSelect(ASSET, ix, 1);  % Return only the country being modeled
-    
-    Nrows = length(ASSET.Country);
-    
-    fieldsToCheck = {'Country', 'Assets_Rated', 'Starting_Share', 'Starting_Share_Year', ...
-        'Starting_Share_Month', 'Scenario_PTRS', 'Patient_Barriers', ...
-        'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
-        'LOE_Year', 'LOE_Month', 'Total_Preference_Score', ...
-        'Product_p', 'Product_q', 'Class_p', 'Class_q', 'LOE_p', 'LOE_q', 'LOE_Pct'};
-    
-    validateFields(ASSET, sheetName1, fieldsToCheck, Nrows);    
-    
-    
-    %% Change Events
-
-    CHANGE = struct;
-
-    if isempty(raw2)
-        CHANGE.Asset = {};
-        CHANGE.Scenario_PTRS = {};        
-        CHANGE.Launch_Year = {};  
-        CHANGE.Launch_Month = {};  
-        CHANGE.LOE_Year = {};  
-        CHANGE.LOE_Month = {};          
-    else
-        [ixHeader, ~] = find(strcmpi('Country', raw2));
-
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Country');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Asset');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Event');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Company');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Phase');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Benchmark PTRS');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, MODEL.ScenarioSelected, 'Scenario_PTRS');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Patient Barriers', 'Patient_Barriers', false);
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Branded Access Barriers');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Therapy Class');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Year');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Launch Month');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Year');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'LOE Month');
-        CHANGE = parseColumn(CHANGE, raw2, ixHeader, 'Total Preference Score');
-
-        ix = strcmpi(MODEL.CountrySelected, CHANGE.Country);
-        CHANGE = structSelect(CHANGE, ix, 1);  % Return only the country being modeled
-        Nrows = length(CHANGE.Country);
-
-        ix = ~cellisempty(CHANGE.Asset) & ~cellisnan(CHANGE.Asset);  % remove empty rows
-        CHANGE = structSelect(CHANGE, ix, 1);    
-
-        fieldsToCheck = {'Country', 'Asset', 'Scenario_PTRS', 'Patient_Barriers', ...
-            'Branded_Access_Barriers', 'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
-            'LOE_Year', 'LOE_Month', 'Total_Preference_Score'};
-
-        validateFields(CHANGE, sheetName2, fieldsToCheck, Nrows);
-    
-    end
-    
-    %% Remove those assets and change events with FORCE == 'OFF'
-    ixF = strcmpi(ASSET.Force, 'OFF');
-    ASSET = structSelect(ASSET, ~ixF, 1);
-    if ~isempty(CHANGE.Scenario_PTRS)
-        ixCF = ismember(CHANGE.Asset, ASSET.Assets_Rated(ixF));
-        CHANGE = structSelect(CHANGE, ~ixCF, 1);
-    end
-    
-    %% Postprocess some DATE fields to get them in the expected datatype
-    ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
-    ASSET.LOE_Date = datenum(cell2mat(ASSET.LOE_Year), cell2mat(ASSET.LOE_Month), 1);
-    ASSET.Starting_Share_Date = datenum(cell2mat(ASSET.Starting_Share_Year), cell2mat(ASSET.Starting_Share_Month), 1);
-    sDates = unique(ASSET.Starting_Share_Date);
-    if length(sDates) ~= 1
-        error('Expected Starting Share Year and Month to be equal across all assets');
-    end    
         
-    CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launch_Month), 1);
-    CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
-    CHANGE = structSort(CHANGE, {'Launch_Date'});  % sort by launch date in ascending order
-
+    end
+    
+        
+    %% Read and cache the set of Asset and Change Events sheets
+    
+    cASSET = cell(length(assetSheets), 1);
+    cMODEL = cell(length(assetSheets), 1);
+    cCHANGE = cell(length(assetSheets), 1);
+    for m = 1:length(assetSheets)
+        waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}));
+        [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheets{m}, ceSheets{m}, SIMULATION);
+        cASSET{m} = ASSET;
+        cMODEL{m} = MODEL;
+        cCHANGE{m} = CHANGE;        
+    end
+    close(hWait);
+    
 end
 
-%%
+
+%%  Helper functions
 
 function DATA = parseColumn(DATA, xlsRaw, ixHeader, columnName, fieldName, isExact)
     if nargin < 6

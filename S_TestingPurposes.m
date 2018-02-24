@@ -159,9 +159,52 @@ fprintf('Run complete, elapsed time = %1.2f sec\n', tElapsed);
 mathFile = '..\FromMichel\TheMath 2.xlsx';
 [~,~,raw]  = xlsread(mathFile, 'Erosion Example');
 
-ixCol = 8:422;
-tt = cell2mat(raw(2, ixCol));
+ixCol = 9:92;
+tt_raw = cell2mat(raw(5, ixCol));
+loeFactorXLS = cell2mat(raw(2, ixCol));
 
 
-share = bassDiffusion(tt, p_LOE, q_LOE, loeFactorStart, loeFactorTarget, false);
+tt = (tt_raw - tt_raw(1)) + 1/12;
+p_LOE = raw{2,7};
+q_LOE = raw{2,8};
+loeFactorStart = 0;
+loeFactorTarget = 0.96;
+share = bassDiffusion(tt, p_LOE, q_LOE, loeFactorStart, loeFactorTarget, true);
+figure; plot(tt, loeFactorXLS, 'o', tt, share, '-');
+legend('XLSX "Erosion Example"', 'MATLAB calculation');
 
+%% New input file format
+
+inputFileName = '.\Data\TheMath 2b.xlsx';
+[status, sheets, xlFormat] = xlsfinfo(inputFileName);
+
+assetSheets = {};
+for m = 1:length(sheets)
+    ascii = double(sheets{m});
+    if all(ascii >= 48 & ascii <= 57)
+        assetSheets{end + 1} = sheets{m};
+    end    
+end
+
+% Check for ChangeEvents for each Asset sheet
+ceSheets = cell(size(assetSheets));
+for m = 1:length(assetSheets)
+    ceName = [assetSheets{m}, 'CE'];
+    ix = find(strcmpi(sheets, ceName));
+    if length(ix) == 1
+        ceSheets{m} = sheets{m};
+    end
+end
+
+tSheets = {'1CE', '2ce', '123Ce', '123CECE'};
+
+assetSheet = '1';
+ceSheet = '';
+[ASSET, MODEL, CHANGE] = importAssetSheet(inputFileName, assetSheet, ceSheet);
+
+   
+[cMODEL, cASSET, cCHANGE] = importAssumptions(inputFileName)
+    
+    
+    
+    
