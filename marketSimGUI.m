@@ -151,6 +151,31 @@ function marketSimGUI()
         set(hEditStatus, 'String', msgFull);
     end
 
+    function [assetSheets, ceSheets, simuSheet] = checkInputSheets(fileName)
+    % Build a list of Asset sheets in this workbook
+        [~, sheets, ~] = xlsfinfo(fileName);
+        
+        simuSheet = sum(strcmpi(sheets, 'Simulation')) == 1;  % look for a sheet called "Simulation"
+
+        assetSheets = {};
+        for m = 1:length(sheets)
+            ascii = double(sheets{m});
+            if all(ascii >= 48 & ascii <= 57)
+                assetSheets{end + 1} = sheets{m};
+            end    
+        end
+
+        % Check for ChangeEvents for each Asset sheet
+        ceSheets = cell(size(assetSheets));
+        for m = 1:length(assetSheets)
+            ceName = [assetSheets{m}, 'CE'];
+            ix = find(strcmpi(sheets, ceName));
+            if length(ix) == 1
+                ceSheets{m} = sheets{m};
+            end
+        end        
+    end
+
 
 %%  Callbacks for GUI. 
    %  These callbacks automatically have access to component handles
@@ -191,24 +216,24 @@ function marketSimGUI()
             fullFileName = fullfile(folderName, fileName);
             set(hEditInputFile, 'String', fullFileName);
             try
-                [status, sheets, xlFormat] = xlsfinfo(fullFileName);
+                [assetSheets, ceSheets, simuSheet] = checkInputSheets(fullFileName);
             catch
                 addStatusMsg('Unable to open Input file!  Please check file location and Excel installation.');
                 isOkInput = false;
             end
-            if ~ismember('Assets', sheets)
-                msgbox('Found no sheet in this file named "Assets".  Unable to continue.');
+            if isempty(assetSheets)
+                msgbox('Found no "Asset" sheet in this file named "1", "2", etc.  Unable to continue.');
                 isOkInput = false;
             else 
-                if ~ismember('ChangeEvents', sheets)
-                    % ChangeEvents sheet is now optional
-                    msgbox('Found no sheet in this file named "ChangeEvents".  Are you sure?');
-                end
                 tStart = tic;
-                [MODEL, ASSET, CHANGE] = importAssumptions(fullFileName);
+                [cMODEL, cASSET, cCHANGE] = importAssumptions(fullFileName);
                 msg = sprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
                 addStatusMsg(msg);
                 isOkInput = true;
+                % ToDo: This is temporary.  Need to iterate over all input sheets
+                ASSET = cASSET{1};
+                MODEL = cMODEL{1};
+                CHANGE = cCHANGE{1};
             end
         end
     end
@@ -238,20 +263,22 @@ function marketSimGUI()
         if ~isOkInput || ~isOkOutput
             addStatusMsg('Unable to Run Simulation!  Please check Input and Output paths');
             return;
-        end       
-
+        end
+       
         tStart = tic;
-        [dateGrid, SimCube, SimCubeMolecule] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
+        [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
 
-        Nsim = size(SimCube, 1);
+        Nsim = size(SimCubeBranded, 1);
         msg = sprintf('Ran %d simulations, elapsed time = %1.1f sec\n', Nsim, toc(tStart));
+        addStatusMsg(msg);        
+
+        ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
+        msg = sprintf('Computed Ensemble Outputs, elapsed time = %1.1f sec\n', toc(tStart));
         addStatusMsg(msg);
-        
-%         STAT = computeSimStats(SimCube);
 
         outFileName = fullfile(resultsFolderPath, sprintf('ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS')));
-        EOUT_Branded = writeEnsembleOutputs(outFileName, 'Branded', SimCube, dateGrid, MODEL, ASSET);
-        EOUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule', SimCubeMolecule, dateGrid, MODEL, ASSET);
+        OUT_Branded  = writeEnsembleOutputs(outFileName, 'Branded_Mean', ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+        OUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule_Mean', ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
 
         msg = sprintf('Wrote Ensemble Statistics, elapsed time = %1.1f sec\n', toc(tStart));
         addStatusMsg(msg);
@@ -261,25 +288,22 @@ function marketSimGUI()
 
         doPlots = true;
         
-        if doPlots
-            [annualDates, annualBrandedShare] = annualizeMx(dateGrid, EOUT_Branded.Mean.PointShare, 'mean');
-            
-            figure; semilogy(dateGrid, EOUT_Molecule.Mean.PointShare); datetick; grid on; 
+        if doPlots            
+            figure; semilogy(dateGrid, OUT_Molecule.M.PointShare); datetick; grid on; 
                     title('Share Per Asset - Monthly');
                     legend(ASSET.Assets_Rated, 'Location', 'EastOutside'); timeCursor(false);
 
-            figure; hA = area(dateGrid, EOUT_Molecule.Mean.PointShare'); datetick; grid on; axis tight;
+            figure; hA = area(dateGrid, OUT_Molecule.M.PointShare'); datetick; grid on; axis tight;
                     title('Share Per Asset - Molecule Mean Monthly'); 
                     legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
 
-            figure; hA = area(dateGrid, EOUT_Branded.Mean.PointShare'); datetick; grid on; axis tight;
+            figure; hA = area(dateGrid, OUT_Branded.M.PointShare'); datetick; grid on; axis tight;
                     title('Share Per Asset - Branded Mean Monthly'); 
                     legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
 
-            figure; hA = area(annualDates, annualBrandedShare'); grid on; axis tight;
+            figure; hA = area(OUT_Branded.Y.YearVec, OUT_Branded.Y.PointShare'); grid on; axis tight;
                     title('Share Per Asset - Branded Mean Annually'); 
                     legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
-
         end
 
 

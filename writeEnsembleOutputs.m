@@ -1,59 +1,23 @@
-function EOUT = writeEnsembleOutputs(outFileName, outSheetName, SimCube, dateGrid, MODEL, ASSET)
-
-
-%     tmp = squeeze(mean(SimCube, 1));
-%     tmp = squeeze(median(SimCube, 1));
-%     tmp = squeeze(prctile(SimCube, 95, 1));
-%     tmp = squeeze(prctile(SimCube, 65, 1));
-%     tmp = squeeze(prctile(SimCube, 5, 1));
-%         
-%     figure; hA = area(dateGrid, tmp'); datetick; grid on; axis tight;
-%             title('Share Per Asset'); 
-%             legend(hA(end:-1:1), ASSET.Assets_Rated(end:-1:1), 'Location', 'EastOutside'); timeCursor(false);
-
-    
-%     mean(netRev(simCube)) = netRev(mean(simCube))
-    
-%     [Nr, Na, Nd] = size(SimCube); % Realizations, Assets, Dates
-%     NetRevCube = nan(Nr, Na, Nd);
-%     for m = 1:Nr
-%         sharePerAssetMonthlySeries = squeeze(SimCube(m,:,:));
-%         OUT = computeOutputs(MODEL, ASSET, dateGrid, sharePerAssetMonthlySeries);
-%         NetRevCube(m, :, :) = OUT.NetRevenues;        
-%     end
-%     
-%     NetRevP05_a = squeeze(prctile(NetRevCube, 5, 1));
-%     
-%     ShareP05 = squeeze(prctile(SimCube, 5, 1));
-%     OUT = computeOutputs(MODEL, ASSET, dateGrid, ShareP05);
-%     NetRevP05_b = OUT.NetRevenues;
-%             
-%     figure; plot(dateGrid, NetRevP05_a' - NetRevP05_b'); datetick; grid on; axis tight;
-%     figure; plot(dateGrid, sum(NetRevP05_a - NetRevP05_b)); datetick; grid on; axis tight;
-%     
-%     [yearVec, statMx] = annualizeMx(dateGrid, NetRevP05_b, 'sum');
-%     figure; plot(yearVec, statMx); grid on; 
-%     
-%     name = 'Net Revenues 5th Percentile';
-%     cTab = buildCellTable(name, ASSET, yearVec, statMx, 'sum');
-    
+function OUT = writeEnsembleOutputs(outFileName, outSheetName, monthlyShareMx, dateGrid, MODEL, ASSET)  
 
     rowNum = 1;
     cTab0 = [{'InputFile:', MODEL.FileName}; ...
              {'InputSaveDate:', MODEL.FileDate}; ...
+             {'InputAssetSheet:', MODEL.AssetSheet}; ...
+             {'InputChangeEventsSheet:', MODEL.ChangeEventSheet}; ...
+             {'CountrySelected:', MODEL.CountrySelected}; ...
              {'Scenario:', MODEL.ScenarioSelected}];
     xlswrite(outFileName, cTab0, outSheetName, sprintf('A%d', rowNum));         
     rowNum = rowNum + size(cTab0, 1) + 1;
     
-    data = squeeze(mean(SimCube, 1));
-    OUT = computeOutputs(MODEL, ASSET, dateGrid, data);
-    EOUT.Mean = OUT;
-    cTab1 = buildCellTable('Net Revenue: Mean', ASSET, dateGrid, OUT.NetRevenues, 'sum');
-    cTab2 = buildCellTable('Units: Mean', ASSET, dateGrid, OUT.Units, 'sum');
-    cTab3 = buildCellTable('Point Share: Mean', ASSET, dateGrid, OUT.PointShare, 'mean');
-    cTab4 = buildCellTable('Patient Share: Mean', ASSET, dateGrid, OUT.PatientShare, 'mean');
-    cTab5 = buildCellTable('Price Per DOT: Mean', ASSET, dateGrid, OUT.PricePerDot, 'mean');
-    cTab6 = buildCellTable('GTN: Mean', ASSET, dateGrid, OUT.GTN, 'mean');
+    OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx);
+    
+    cTab1 = buildCellTable('Net Revenue: Mean', ASSET, OUT.Y.YearVec, OUT.Y.NetRevenues);
+    cTab2 = buildCellTable('Units: Mean', ASSET, OUT.Y.YearVec, OUT.Y.Units);
+    cTab3 = buildCellTable('Point Share: Mean', ASSET, OUT.Y.YearVec, OUT.Y.PointShare);
+    cTab4 = buildCellTable('Patient Share: Mean', ASSET, OUT.Y.YearVec, OUT.Y.PatientShare);
+    cTab5 = buildCellTable('Price Per DOT: Mean', ASSET, OUT.Y.YearVec, OUT.Y.PricePerDot);
+    cTab6 = buildCellTable('GTN: Mean', ASSET, OUT.Y.YearVec, OUT.Y.GTN);
 
     Nr = size(cTab1, 1) + 1;
     xlswrite(outFileName, cTab1, outSheetName, sprintf('A%d', rowNum)); 
@@ -82,8 +46,7 @@ function EOUT = writeEnsembleOutputs(outFileName, outSheetName, SimCube, dateGri
 end
 
 
-function cTab = buildCellTable(name, ASSET, dateGrid, statMx, method)
-    [yearVec, yearStatMx] = annualizeMx(dateGrid, statMx, method);
+function cTab = buildCellTable(name, ASSET, yearVec, yearStatMx)
 
     [Na, Nd] = size(yearStatMx);
     cTab = cell(Na+2, Nd + 6);

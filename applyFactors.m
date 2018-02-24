@@ -6,11 +6,11 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
 
     loeDate = ASSET.LOE_Date;
 
-    patientBarriers = zeros(size(isLaunch));
-    patientBarriers(isLaunch) = cell2mat(ASSET.Patient_Barriers(isLaunch));
+    barriers = zeros(size(isLaunch));
+    barriers(isLaunch) = cell2mat(ASSET.Barriers(isLaunch));
     
-    brandedAccessBarriers = zeros(size(isLaunch));
-    brandedAccessBarriers(isLaunch) = cell2mat(ASSET.Branded_Access_Barriers(isLaunch));
+    calibration = zeros(size(isLaunch));
+    calibration(isLaunch) = cell2mat(ASSET.Calibration(isLaunch));
     
     %% Handle ChangeEvents if there are any
     
@@ -23,7 +23,7 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
                 error('Asset name: "%s" in ChangeEvents sheet matches multiple rows in "Assets" sheet', CHANGE.Asset{m});
             end
             if isLaunch(ix)  % only apply the change if the product was launched in the first place
-                patientBarriers(ix) = CHANGE.Patient_Barriers{m};
+                barriers(ix) = CHANGE.Barriers{m};
                 loeDate(ix) = CHANGE.LOE_Date(m);
             end
         end
@@ -36,7 +36,7 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
 %     marketAccessFilter = repmat(MODEL.WillingToPayForTreatment, size(isLaunch));
 %     marketAccessFilter(~ixLOE) = cell2mat(ASSET.Branded_Access_Barriers(~ixLOE));
     
-    adjustmentFactor = patientBarriers .* brandedAccessBarriers;
+    adjustmentFactor = barriers .* calibration;
     adjustmentFactor = adjustmentFactor / max(adjustmentFactor);
     
 end

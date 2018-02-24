@@ -6,7 +6,9 @@ function share = profileModel(MODEL, ASSET, CHANGE, CLASS, isLaunch, isChange, e
           & isLaunch ...
           & ASSET.Launch_Date <= eventDate;  % assets in-country, launched and active on eventDate
 
-    score = cell2mat(ASSET.Total_Preference_Score(ixA));
+    score = cell2mat(ASSET.Efficacy(ixA)) + ...
+            cell2mat(ASSET.S_T(ixA)) + ...
+            cell2mat(ASSET.Delivery(ixA));
     therapyClass = ASSET.Therapy_Class(ixA);
     
     
@@ -23,7 +25,8 @@ function share = profileModel(MODEL, ASSET, CHANGE, CLASS, isLaunch, isChange, e
                 error('Asset name: "%s" in ChangeEvents sheet matches multiple rows in "Assets" sheet', CHANGE.Asset{m});
             end
             if isLaunch(ix)  % only apply the change if the product was launched in the first place
-                score(ix) = CHANGE.Total_Preference_Score{m};
+                %score(ix) = CHANGE.Total_Preference_Score{m};
+                score(ix) = CHANGE.Efficacy{m} + CHANGE.S_T{m} + CHANGE.Delivery{m};
                 therapyClass{ix} = CHANGE.Therapy_Class{m};
             end
         end
