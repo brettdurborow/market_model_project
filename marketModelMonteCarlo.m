@@ -19,11 +19,7 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
     dateGrid = SIM.DateGrid;
     Nt = length(dateGrid);
     Na = length(ASSET.Scenario_PTRS);
-    Nchange = length(CHANGE.Scenario_PTRS);
-   
-    probVecAsset = cell2mat(ASSET.Scenario_PTRS);
-    probVecChange = cell2mat(CHANGE.Scenario_PTRS);
-    
+
     D = parallel.pool.DataQueue;
     hW = waitbar(0, 'Monte Carlo Loop: Starting');
     afterEach(D, @myUpdateWaitbar);
@@ -49,8 +45,7 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
         
         tStart = tic;
         parfor m = 1:numIterations
-            isLaunch = rand(Na,1) < probVecAsset;
-            isChange = rand(Nchange,1) < probVecChange;    
+            [isLaunch, isChange] = randomLaunchRealization(ASSET, CHANGE);  
 
             SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, false);
 
@@ -66,8 +61,7 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
         % Single-Threaded Execution ------------------------------------
         tStart = tic;
         for m = 1:numIterations
-            isLaunch = rand(Na,1) < probVecAsset;
-            isChange = rand(Nchange,1) < probVecChange;    
+            [isLaunch, isChange] = randomLaunchRealization(ASSET, CHANGE);
 
             SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, false);
 
@@ -84,7 +78,7 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
     end
     close(hW);
     
-    
+    % Nested Function ---------------------------------------
     function myUpdateWaitbar(~)
         simNum = simNum + 1;
         tElapsed = toc(tStart);
@@ -97,3 +91,27 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
 
 
 end
+
+%% Local Functions -----------------------------------
+function [isLaunch, isChange] = randomLaunchRealization(ASSET, CHANGE)
+
+    % Follow-On Assets have a non-NaN value in the column: ASSET.Follow_On
+    % Its value is the name of the primary Asset to be followed.  
+    isPrimary = cellisnan(ASSET.Follow_On);
+    
+    % First, determine whether Primary assets launch in this realization
+    isLaunchPrimary = false(size(ASSET.Scenario_PTRS));
+    isLaunchPrimary(isPrimary) = rand(sum(isPrimary), 1) < cell2mat(ASSET.Scenario_PTRS(isPrimary));
+   
+    % For each follow-on Asset, learn whether its primary asset has launched.
+    % If so, launch the follow-on asset.
+    ixFollowOn = find(~isPrimary);   
+    ix = ismember(ASSET.Follow_On(ixFollowOn), ASSET.Assets_Rated(isLaunchPrimary));    
+    isLaunchFO = false(size(ASSET.Scenario_PTRS));
+    isLaunchFO(ixFollowOn(ix)) = true;
+
+    isLaunch = isLaunchPrimary | isLaunchFO;
+    isChange = rand(length(CHANGE.Scenario_PTRS), 1) < cell2mat(CHANGE.Scenario_PTRS);      
+    
+end
+
