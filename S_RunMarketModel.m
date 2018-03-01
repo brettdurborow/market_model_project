@@ -7,7 +7,7 @@ tStart = tic;
 % fileName = '.\Data\aMDD MM v1.6-ES (protected).xlsb';
 % fileName = '.\Data\aMDD MM v1.6-ES (Inputs).xlsb';
 % fileName = '.\Data\US-MATLAB.xlsx';
-fileName = '.\Data\TheMath 2b.xlsx';
+fileName = '.\Data\TheMath 2c.xlsx';
 
 [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName);
 
@@ -20,7 +20,7 @@ MODEL = cMODEL{1};
 ASSET = cASSET{1};
 CHANGE = cCHANGE{1};
 
-numIterations = 1000;
+numIterations = 100;
 numWorkers = 3;
 [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
 
@@ -34,7 +34,7 @@ outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd
 OUT_Branded  = writeEnsembleOutputs(outFileName, 'Branded_Mean', ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
 OUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule_Mean', ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
 
-%% Produce various outputs for a single realization
+%% Plot some outputs across all assets
 
 simNum = 1;
 
@@ -89,7 +89,7 @@ if doPlots
 end
 
 
-%% Plot one Asset
+%% Plot one Asset across all realizations
 
 
 if doPlots
