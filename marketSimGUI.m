@@ -2,9 +2,10 @@ function marketSimGUI()
 
 %% Variables Global and Persistent in this GUI instance
    
-    MODEL = [];
-    ASSET = [];
-    CHANGE = [];
+    cMODEL = {};
+    cASSET = {};
+    cCHANGE = {};
+    cESTAT = {};
     simCount = 0;
     isOkInput = false;
     isOkOutput = false;
@@ -230,10 +231,6 @@ function marketSimGUI()
                 msg = sprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
                 addStatusMsg(msg);
                 isOkInput = true;
-                % ToDo: This is temporary.  Need to iterate over all input sheets
-                ASSET = cASSET{1};
-                MODEL = cMODEL{1};
-                CHANGE = cCHANGE{1};
             end
         end
     end
@@ -264,24 +261,46 @@ function marketSimGUI()
             addStatusMsg('Unable to Run Simulation!  Please check Input and Output paths');
             return;
         end
-       
+        
         tStart = tic;
-        [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
-
-        Nsim = size(SimCubeBranded, 1);
-        msg = sprintf('Ran %d simulations, elapsed time = %1.1f sec\n', Nsim, toc(tStart));
-        addStatusMsg(msg);        
-
-        ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
-        msg = sprintf('Computed Ensemble Outputs, elapsed time = %1.1f sec\n', toc(tStart));
-        addStatusMsg(msg);
-
+        fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
+        BENCH = struct;  % intialize the benchmark struct
+        for m = 1:length(fnames)
+            BENCH.(fnames{m}) = nan(size(cMODEL));
+        end
         outFileName = fullfile(resultsFolderPath, sprintf('ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS')));
-        OUT_Branded  = writeEnsembleOutputs(outFileName, 'Branded_Mean', ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-        OUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule_Mean', ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+        
+        cESTAT = cell(size(cMODEL));
+        for m = 1:length(cMODEL)
+            MODEL = cMODEL{m};
+            ASSET = cASSET{m};
+            CHANGE = cCHANGE{m};
 
-        msg = sprintf('Wrote Ensemble Statistics, elapsed time = %1.1f sec\n', toc(tStart));
-        addStatusMsg(msg);
+            [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
+
+            % Parameters of the overall simulation for performance benchmarking
+            BENCH.NumIterations(m) = numIterations;
+            BENCH.NumWorkers(m) = numWorkers;
+            BENCH.ExecutionTime(m) = tExec;  % Tries to exclude time to setup worker pool on first call
+
+            ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
+            cESTAT{m} = ESTAT;
+            
+            OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+            OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+            addStatusMsg(sprintf('Wrote to file: %s\n', outFileName));
+            
+            msg = sprintf('Country:%s, Ran %d iterations, Elapsed time = %1.1f sec, Cume time = %1.1f\n', ...
+                    MODEL.CountrySelected, numIterations, tExec, toc(tStart));
+            addStatusMsg(msg);
+        end
+        endTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime
+        BENCH.RunTime = repmat(endTime, size(BENCH.NumIterations));
+               
+        xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
+        [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
+        addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
+
 
 
         %% Produce various outputs for a single realization

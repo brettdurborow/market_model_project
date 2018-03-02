@@ -27,14 +27,15 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
     MODEL.AssetSheet = assetSheet;
     MODEL.ChangeEventSheet = ceSheet;
     MODEL.CountrySelected = raw{ixRow, 3};
+    MODEL.ScenarioSelected = raw{ixRow, 10};
+
     MODEL.ProfileWeight = raw{ixRow+1, 3};
     MODEL.OrderOfEntryWeight = raw{ixRow+2, 3};
-
-    MODEL.ScenarioSelected = raw{ixRow, 10};
     
     MODEL.ProfileElasticity = raw{ixRow, 24};
     MODEL.ClassOeElasticity = raw{ixRow+1, 24};
     MODEL.ProductOeElasticity = raw{ixRow+2, 24};
+    MODEL.BarrierElasticity = raw{ixRow+3, 24};
     
     % Find & parse Patient Population stats for the selected country
 %     [ixR, ixC] = find(strcmpi('Pop', raw(1:ixHeader,:)));
@@ -79,6 +80,7 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Country');
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Assets Rated');
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Company1');
+    ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Company2');
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'FORCE', 'Force', false);
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Phase');
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Starting Share');

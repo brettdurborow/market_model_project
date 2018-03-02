@@ -68,7 +68,8 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     SIM.GenericMonthlyShare = genericMonthlyShare;
     
     if doDebug
-        dateHead = num2cell(year(eventDates) + month(eventDates) / 12); 
+        %dateHead = num2cell(year(eventDates) + month(eventDates) / 12); 
+        dateHead = num2cell(datenumToYearFraction(eventDates));
         DBG.AssetOrderOfEntry = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetOE);
         DBG.AssetProfile = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetP);
         DBG.AssetAdjFactor = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetAdjFactor);
