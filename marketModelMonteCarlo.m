@@ -1,4 +1,4 @@
-function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers)
+function [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers)
 
     if nargout < 3
         saveMemory = true;
@@ -36,9 +36,11 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
         myPool = gcp('nocreate');
         if isempty(myPool)
             parpool(numWorkers);
+            pause(5); % Don't bias the first run's execution timer 
         elseif myPool.NumWorkers ~= numWorkers
             delete(myPool);
             parpool(numWorkers);
+            pause(5); % Don't bias the first run's execution timer 
         else
             % pool already exists with right number of workers.  Just use it.
         end
@@ -76,6 +78,7 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
         
         
     end
+    tExec = toc(tStart); % Measure just the execution time influenced by numIterations, numWorkers, and Na
     close(hW);
     
     % Nested Function ---------------------------------------
@@ -85,7 +88,13 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MOD
         tRemain = max(1, round((numIterations - simNum) * tElapsed / simNum));
         tRemainVec(simNum) = tRemain;
         tRemainEst = min(tRemainVec(max(1, simNum-2*numWorkers):simNum));
-        msg = sprintf('Monte Carlo Loop: Approx %d seconds remaining', tRemainEst);
+        if tRemainEst < 60
+            msg = sprintf('%s Monte Carlo Loop: Approx %d seconds remaining', MODEL.CountrySelected, tRemainEst);
+        else
+            mins = fix(tRemainEst / 60);
+            secs = tRemainEst - 60 * mins;
+            msg = sprintf('%s Monte Carlo Loop: Approx %d:%02d minutes remaining', MODEL.CountrySelected, mins, secs);
+        end
         waitbar(simNum / numIterations, hW, msg);        
     end
 

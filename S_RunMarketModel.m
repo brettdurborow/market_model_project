@@ -16,23 +16,46 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 %% Run many realizations, collect stats at the end
 
-MODEL = cMODEL{1};
-ASSET = cASSET{1};
-CHANGE = cCHANGE{1};
-
-numIterations = 100;
+numIterations = 10000;
 numWorkers = 3;
-[dateGrid, SimCubeBranded, SimCubeMolecule] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
 
-Nsim = size(SimCubeBranded, 1);
-fprintf('Ran %d simulations, elapsed time = %1.1f sec\n', Nsim, toc(tStart));
+fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
+BENCH = struct;  % intialize the benchmark struct
+for m = 1:length(fnames)
+    BENCH.(fnames{m}) = nan(size(cMODEL));
+end
 
-ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
-fprintf('Computed Ensemble Outputs, elapsed time = %1.1f sec\n', toc(tStart));
+cESTAT = cell(size(cMODEL));
+for m = 1:length(cMODEL)
+    MODEL = cMODEL{m};
+    ASSET = cASSET{m};
+    CHANGE = cCHANGE{m};
 
-outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS'));
-OUT_Branded  = writeEnsembleOutputs(outFileName, 'Branded_Mean', ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-OUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule_Mean', ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+    [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
+
+    % Parameters of the overall simulation for performance benchmarking
+    BENCH.NumIterations(m) = numIterations;
+    BENCH.NumWorkers(m) = numWorkers;
+    BENCH.ExecutionTime(m) = tExec;  % Does not include time to setup worker pool on first call
+
+    Nsim = size(SimCubeBranded, 1);
+    fprintf('Country:%s, Ran %d iterations, elapsed time = %1.1f sec\n', ...
+            MODEL.CountrySelected, Nsim, toc(tStart));
+
+    cESTAT{m} = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
+    fprintf('Country:%s, Computed Ensemble Outputs, elapsed time = %1.1f sec\n', ...
+            MODEL.CountrySelected, toc(tStart));
+end
+endTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime
+BENCH.RunTime = repmat(endTime, size(BENCH.NumIterations));
+
+% outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
+% OUT_Branded  = writeEnsembleOutputs(outFileName, 'Branded_Mean', ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+% OUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule_Mean', ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+
+xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
+[cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
+
 
 %% Plot some outputs across all assets
 

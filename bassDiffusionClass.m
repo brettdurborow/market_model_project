@@ -78,8 +78,7 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
         end
         
         if doDebug
-            [yr, mo, ~] = datevec(eventDate);
-            dbgBassClassPrep{1, m} = yr + mo/12;
+            dbgBassClassPrep{1, m} = datenumToYearFraction(eventDate);
             dbgBassClassPrep{2, m} = classPVec(m);
             dbgBassClassPrep{3, m} = classQVec(m);           
         end
@@ -109,12 +108,12 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
         end
         
         if doDebug        
-            dbgBassClass(1, ixStart:ixEnd) = repmat({year(eventDate) + month(eventDate)/12}, 1, length(tt));
-            dbgBassClass(2, ixStart:ixEnd) = repmat({year(nextDate) + month(eventDate)/12}, 1, length(tt));
+            dbgBassClass(1, ixStart:ixEnd) = repmat({datenumToYearFraction(eventDate)}, 1, length(tt));
+            dbgBassClass(2, ixStart:ixEnd) = repmat({datenumToYearFraction(nextDate)}, 1, length(tt));
             dbgBassClass(3, ixStart:ixEnd) = repmat({classPVec(m)}, 1, length(tt));
             dbgBassClass(4, ixStart:ixEnd) = repmat({classQVec(m)}, 1, length(tt));
             dbgBassClass(5, ixStart:ixEnd) = num2cell(sum(sharePerClassMonthlySeries(:, ixStart:ixEnd), 1));
-            dbgBassClass(6, ixStart:ixEnd) = num2cell(year(dateGrid(ixStart:ixEnd)) + month(dateGrid(ixStart:ixEnd))/12);
+            dbgBassClass(6, ixStart:ixEnd) = num2cell(datenumToYearFraction(dateGrid(ixStart:ixEnd)) / 12);
             dbgBassClass(7:end, ixStart:ixEnd) = num2cell(sharePerClassMonthlySeries(:, ixStart:ixEnd));
         end
         
