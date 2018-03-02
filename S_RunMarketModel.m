@@ -16,7 +16,7 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 %% Run many realizations, collect stats at the end
 
-numIterations = 10000;
+numIterations = 100;
 numWorkers = 3;
 
 fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
