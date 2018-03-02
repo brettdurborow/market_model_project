@@ -298,7 +298,7 @@ function marketSimGUI()
         endTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime
         BENCH.RunTime = repmat(endTime, size(BENCH.NumIterations));
                
-        xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
+        xlsFileName = fullfile(resultsFolderPath, sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
         [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
         addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
 
