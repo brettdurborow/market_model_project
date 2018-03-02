@@ -24,7 +24,7 @@ function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
     for m = 1:length(cASSET)
         MODEL = cMODEL{m};
         ASSET = cASSET{m};
-        runTime = BENCH.RunTime(m);
+        runTime = datestr(BENCH.RunTime(m), 'yyyy-mm-dd HH:MM:SS'); 
         
         launchDates = datenumToYearFraction(ASSET.Launch_Date);
         loeDates = datenumToYearFraction(ASSET.LOE_Date);
@@ -34,7 +34,7 @@ function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
             rr = rr + 1;
             celltab{rr, 1} = ASSET.Country{n};
             celltab{rr, 2} = MODEL.ScenarioSelected;
-            celltab{rr, 3} = datestr(runTime, 'yyyy-mm-dd HH:MM:SS');
+            celltab{rr, 3} = runTime;
             celltab{rr, 4} = ASSET.Assets_Rated{n};
             celltab{rr, 5} = ASSET.Company1{n};
             celltab{rr, 6} = ASSET.Company2{n};

@@ -12,6 +12,9 @@ function [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, 
     cTableau{end+1} = formatTab_CA(cMODEL, cASSET, BENCH);  % Create output tables for Tableau
     cSheetNames{end+1} = 'Asset';
     
+    cTableau{end+1} = formatTab_CAP(cMODEL, cASSET, cESTAT, BENCH);
+    cSheetNames{end+1} = 'Period';
+    
     for m = 1:length(cTableau)
         xlswrite(xlsFileName, cTableau{m}, cSheetNames{m});   
     end
