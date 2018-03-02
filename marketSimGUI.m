@@ -275,6 +275,7 @@ function marketSimGUI()
             MODEL = cMODEL{m};
             ASSET = cASSET{m};
             CHANGE = cCHANGE{m};
+            addStatusMsg(sprintf('Starting to process country: %s on sheet: %s', MODEL.CountrySelected, MODEL.AssetSheet));
 
             [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
 
@@ -288,7 +289,7 @@ function marketSimGUI()
             
             OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
             OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
-            addStatusMsg(sprintf('Wrote to file: %s\n', outFileName));
+            addStatusMsg(sprintf('Wrote to file: %s', outFileName));
             
             msg = sprintf('Country:%s, Ran %d iterations, Elapsed time = %1.1f sec, Cume time = %1.1f\n', ...
                     MODEL.CountrySelected, numIterations, tExec, toc(tStart));
