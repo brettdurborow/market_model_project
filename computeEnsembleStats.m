@@ -4,18 +4,21 @@ function ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid)
 % of Point Shares and then calculating the derived metrics (Units, Revenues, etc)
 % from these summarized shares.
 
-    ESTAT = struct;
-    
+    N = size(SimCubeBranded, 1);
+
+    ESTAT = struct;    
     ESTAT.DateGrid = dateGrid;
     
-    ESTAT.Branded.Mean  = squeeze(mean(SimCubeBranded, 1));      
+    ESTAT.Branded.Mean  = squeeze(mean(SimCubeBranded, 1));
+    ESTAT.Branded.StdErr = squeeze(std(SimCubeBranded, 1)) / sqrt(N);
     ESTAT.Branded.Pct10 = squeeze(prctile(SimCubeBranded, 10, 1));        
     ESTAT.Branded.Pct25 = squeeze(prctile(SimCubeBranded, 25, 1));    
     ESTAT.Branded.Pct50 = squeeze(prctile(SimCubeBranded, 50, 1));        
     ESTAT.Branded.Pct75 = squeeze(prctile(SimCubeBranded, 75, 1));        
     ESTAT.Branded.Pct90 = squeeze(prctile(SimCubeBranded, 90, 1));    
 
-    ESTAT.Molecule.Mean  = squeeze(mean(SimCubeMolecule, 1));      
+    ESTAT.Molecule.Mean  = squeeze(mean(SimCubeMolecule, 1));
+    ESTAT.Molecule.StdErr = squeeze(std(SimCubeMolecule, 1)) / sqrt(N);    
     ESTAT.Molecule.Pct10 = squeeze(prctile(SimCubeMolecule, 10, 1));        
     ESTAT.Molecule.Pct25 = squeeze(prctile(SimCubeMolecule, 25, 1));    
     ESTAT.Molecule.Pct50 = squeeze(prctile(SimCubeMolecule, 50, 1));        

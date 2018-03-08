@@ -43,16 +43,18 @@ for m = 1:length(cMODEL)
     fprintf('Country:%s, Ran %d iterations, elapsed time = %1.1f sec\n', ...
             MODEL.CountrySelected, Nsim, toc(tStart));
 
-    cESTAT{m} = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
+    ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
+    cESTAT{m} = ESTAT;
     fprintf('Country:%s, Computed Ensemble Outputs, elapsed time = %1.1f sec\n', ...
             MODEL.CountrySelected, toc(tStart));
 end
 endTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime
 BENCH.RunTime = repmat(endTime, size(BENCH.NumIterations));
 
-% outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
-% OUT_Branded  = writeEnsembleOutputs(outFileName, 'Branded_Mean', ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-% OUT_Molecule = writeEnsembleOutputs(outFileName, 'Molecule_Mean', ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
+OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
+OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
 
 xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
 [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
