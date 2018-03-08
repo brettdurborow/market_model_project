@@ -33,7 +33,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
         dateGrid = ESTAT.DateGrid;
                 
         for q = 1:length(oMetrics)
-            monthlyShareMx = ESTAT.Branded.Mean;  
+            monthlyShareMx = ESTAT.Branded.(oMetrics{q});  
             OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx);
             ixYear = find(OUT.Y.YearVec >= 2014 & OUT.Y.YearVec <= 2040);  % Ignore years out of this range
             
@@ -54,7 +54,33 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 end
                 
                 % Cume and Peak values for years up to and including the year after LOE
+                rr = rr + 1;
+                celltab(rr,:) = celltab(rr-1,:);
+                celltab{rr,6} = 'Peak';
+                ix = (OUT.Y.YearVec >= 2014) & (OUT.Y.YearVec <= (ASSET.LOE_Year{n} + 1));
+                if sum(ix) > 0
+                    peak7 = nanmax(OUT.Y.NetRevenues(n, ix));
+                    peak8 = nanmax(OUT.Y.PointShare(n, ix));
+                    peak9 = nanmax(OUT.Y.PatientShare(n, ix));
+                    peak10 = nanmax(OUT.Y.Units(n, ix));
+
+                    celltab(rr, 7:10) = {peak7, peak8, peak9, peak10};
+                else
+                    celltab(rr, 7:10) = {0, 0, 0, 0};                    
+                end
                 
+                
+                rr = rr + 1;
+                celltab(rr,:) = celltab(rr-1,:);
+                celltab{rr,6} = 'Cume';
+                if sum(ix) > 0
+                    cume7  = nansum(OUT.Y.NetRevenues(n, ix));
+                    cume10 = nansum(OUT.Y.Units(n, ix));
+
+                    celltab(rr, 7:10) = {cume7, nan, nan, cume10};
+                else
+                    celltab(rr, 7:10) = {0, nan, nan, 0};               
+                end
                 
             end
             
