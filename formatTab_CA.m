@@ -25,10 +25,10 @@ function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
         MODEL = cMODEL{m};
         ASSET = cASSET{m};
         runTime = datestr(BENCH.RunTime(m), 'yyyy-mm-dd HH:MM:SS'); 
-        
-        launchDates = round(datenumToYearFraction(ASSET.Launch_Date) * 100);
-        loeDates = round(datenumToYearFraction(ASSET.LOE_Date) * 100);
-        startingShareDates = round(datenumToYearFraction(ASSET.Starting_Share_Date) * 100);        
+
+        launchDates = datenumToYyyymm(ASSET.Launch_Date);
+        loeDates = datenumToYyyymm(ASSET.LOE_Date);
+        startingShareDates = datenumToYyyymm(ASSET.Starting_Share_Date);        
         
         for n = 1:length(ASSET.Assets_Rated)
             rr = rr + 1;
