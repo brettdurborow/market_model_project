@@ -288,6 +288,7 @@ function marketSimGUI()
             cESTAT{m} = ESTAT;
             
             OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+            OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
             OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
             addStatusMsg(sprintf('Wrote to file: %s', outFileName));
             

@@ -12,12 +12,12 @@ function OUT = writeEnsembleOutputs(outFileName, outSheetName, monthlyShareMx, d
     
     OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx);
     
-    cTab1 = buildCellTable('Net Revenue: Mean', ASSET, OUT.Y.YearVec, OUT.Y.NetRevenues);
-    cTab2 = buildCellTable('Units: Mean', ASSET, OUT.Y.YearVec, OUT.Y.Units);
-    cTab3 = buildCellTable('Point Share: Mean', ASSET, OUT.Y.YearVec, OUT.Y.PointShare);
-    cTab4 = buildCellTable('Patient Share: Mean', ASSET, OUT.Y.YearVec, OUT.Y.PatientShare);
-    cTab5 = buildCellTable('Price Per DOT: Mean', ASSET, OUT.Y.YearVec, OUT.Y.PricePerDot);
-    cTab6 = buildCellTable('GTN: Mean', ASSET, OUT.Y.YearVec, OUT.Y.GTN);
+    cTab1 = buildCellTable('Net Revenue', ASSET, OUT.Y.YearVec, OUT.Y.NetRevenues);
+    cTab2 = buildCellTable('Units', ASSET, OUT.Y.YearVec, OUT.Y.Units);
+    cTab3 = buildCellTable('Point Share', ASSET, OUT.Y.YearVec, OUT.Y.PointShare);
+    cTab4 = buildCellTable('Patient Share', ASSET, OUT.Y.YearVec, OUT.Y.PatientShare);
+    cTab5 = buildCellTable('Price Per DOT', ASSET, OUT.Y.YearVec, OUT.Y.PricePerDot);
+    cTab6 = buildCellTable('GTN', ASSET, OUT.Y.YearVec, OUT.Y.GTN);
 
     Nr = size(cTab1, 1) + 1;
     xlswrite(outFileName, cTab1, outSheetName, sprintf('A%d', rowNum)); 
