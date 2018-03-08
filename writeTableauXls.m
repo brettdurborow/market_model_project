@@ -15,6 +15,9 @@ function [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, 
     cTableau{end+1} = formatTab_CAP(cMODEL, cASSET, cESTAT, BENCH);
     cSheetNames{end+1} = 'Period';
     
+    cTableau{end+1} = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH);
+    cSheetNames{end+1} = 'Outputs';
+    
     for m = 1:length(cTableau)
         xlswrite(xlsFileName, cTableau{m}, cSheetNames{m});   
     end
