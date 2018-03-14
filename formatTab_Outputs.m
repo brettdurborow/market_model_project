@@ -16,7 +16,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
         ASSET = cASSET{m};
         nAsset = nAsset + length(ASSET.Assets_Rated);
     end
-    nStats = length(oStats);
+    nStats = length(oStats) + 2;
     nPeriod = 2040 - 2014 + 1;
     nRows = nAsset * nStats * nPeriod + 1;
     
