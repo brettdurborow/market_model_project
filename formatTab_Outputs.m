@@ -5,11 +5,11 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     colHead = {'Country', 'Scenario Run', 'Run Date', 'Asset', ...
                'Output Metric', 'Period', 'Net Revenues', 'Branded Point Share', ...
                'Branded Patient Share', 'Branded Units', 'PTRS %'};
-
-            
-    oMetrics = {'Pct10', 'Pct25', 'Pct50', 'Pct75', 'Pct90', 'Mean', 'StdErr'};           
-    metNames = {'Percentile 10', 'Percentile 25', 'Percentile 50', ...
-                'Percentile 75', 'Percentile 90', 'Mean', 'Standard Error'};           
+              
+    oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
+              'Pct25', 'Pct30', 'Pct35', 'Pct40', 'Pct45', 'Pct50', 'Pct55', ...
+              'Pct60', 'Pct65', 'Pct70', 'Pct75', 'Pct80', 'Pct85', 'Pct90', ...
+              'Pct95', 'Pct99'};
    
     nAsset = 0;  % Count the number of rows to preallocate
     for m = 1:length(cASSET)
@@ -32,8 +32,8 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
         
         dateGrid = ESTAT.DateGrid;
                 
-        for q = 1:length(oMetrics)
-            monthlyShareMx = ESTAT.Branded.(oMetrics{q});  
+        for q = 1:length(oStats)
+            monthlyShareMx = ESTAT.Branded.(oStats{q});  
             OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx);
             ixYear = find(OUT.Y.YearVec >= 2014 & OUT.Y.YearVec <= 2040);  % Ignore years out of this range
             
@@ -44,7 +44,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     celltab{rr, 2} = MODEL.ScenarioSelected;
                     celltab{rr, 3} = runTime;
                     celltab{rr, 4} = ASSET.Assets_Rated{n};
-                    celltab{rr, 5} = metNames{q};
+                    celltab{rr, 5} = oStats{q};
                     celltab{rr, 6} = OUT.Y.YearVec(ixYear(p));
                     celltab{rr, 7} = OUT.Y.NetRevenues(n, ixYear(p));
                     celltab{rr, 8} = OUT.Y.PointShare(n, ixYear(p));
@@ -67,8 +67,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     celltab(rr, 7:10) = {peak7, peak8, peak9, peak10};
                 else
                     celltab(rr, 7:10) = {0, 0, 0, 0};                    
-                end
-                
+                end                
                 
                 rr = rr + 1;
                 celltab(rr,:) = celltab(rr-1,:);
