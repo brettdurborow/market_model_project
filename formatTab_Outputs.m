@@ -16,9 +16,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
         ASSET = cASSET{m};
         nAsset = nAsset + length(ASSET.Assets_Rated);
     end
-    nMetric = 7;
-    nPeriod = 26;
-    nRows = nAsset * nMetric * nPeriod + 1;
+    nStats = length(oStats);
+    nPeriod = 2040 - 2014 + 1;
+    nRows = nAsset * nStats * nPeriod + 1;
     
     celltab = cell(nRows, length(colHead));
     celltab(1,:) = colHead;
@@ -85,9 +85,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
             
         end
     end
-
-
-
+    celltab = celltab(1:rr, :); % Remove any trailing blanks
 
 
 end    
