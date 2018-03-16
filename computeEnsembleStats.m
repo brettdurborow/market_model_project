@@ -33,14 +33,30 @@ function ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid)
     ESTAT.Branded.Pct95 = squeeze(prctile(SimCubeBranded, 95, 1));
     ESTAT.Branded.Pct99 = squeeze(prctile(SimCubeBranded, 99, 1));
     
-
     ESTAT.Molecule.Mean  = squeeze(mean(SimCubeMolecule, 1));
-    ESTAT.Molecule.StdErr = squeeze(std(SimCubeMolecule, 1)) / sqrt(N);    
+    ESTAT.Molecule.StdErr = squeeze(std(SimCubeMolecule, 1)) / sqrt(N);
+    ESTAT.Molecule.Pct01 = squeeze(prctile(SimCubeMolecule, 1, 1));   
+    ESTAT.Molecule.Pct05 = squeeze(prctile(SimCubeMolecule, 5, 1));   
     ESTAT.Molecule.Pct10 = squeeze(prctile(SimCubeMolecule, 10, 1));        
-    ESTAT.Molecule.Pct25 = squeeze(prctile(SimCubeMolecule, 25, 1));    
-    ESTAT.Molecule.Pct50 = squeeze(prctile(SimCubeMolecule, 50, 1));        
-    ESTAT.Molecule.Pct75 = squeeze(prctile(SimCubeMolecule, 75, 1));        
-    ESTAT.Molecule.Pct90 = squeeze(prctile(SimCubeMolecule, 90, 1));   
+    ESTAT.Molecule.Pct15 = squeeze(prctile(SimCubeMolecule, 15, 1));    
+    ESTAT.Molecule.Pct20 = squeeze(prctile(SimCubeMolecule, 20, 1));    
+    ESTAT.Molecule.Pct25 = squeeze(prctile(SimCubeMolecule, 25, 1));  
+    ESTAT.Molecule.Pct30 = squeeze(prctile(SimCubeMolecule, 30, 1)); 
+    ESTAT.Molecule.Pct35 = squeeze(prctile(SimCubeMolecule, 35, 1));
+    ESTAT.Molecule.Pct40 = squeeze(prctile(SimCubeMolecule, 40, 1));
+    ESTAT.Molecule.Pct45 = squeeze(prctile(SimCubeMolecule, 45, 1));
+    ESTAT.Molecule.Pct50 = squeeze(prctile(SimCubeMolecule, 50, 1));
+    ESTAT.Molecule.Pct55 = squeeze(prctile(SimCubeMolecule, 55, 1));
+    ESTAT.Molecule.Pct60 = squeeze(prctile(SimCubeMolecule, 60, 1));
+    ESTAT.Molecule.Pct65 = squeeze(prctile(SimCubeMolecule, 65, 1));
+    ESTAT.Molecule.Pct70 = squeeze(prctile(SimCubeMolecule, 70, 1));
+    ESTAT.Molecule.Pct75 = squeeze(prctile(SimCubeMolecule, 75, 1));
+    ESTAT.Molecule.Pct80 = squeeze(prctile(SimCubeMolecule, 80, 1));
+    ESTAT.Molecule.Pct85 = squeeze(prctile(SimCubeMolecule, 85, 1));
+    ESTAT.Molecule.Pct90 = squeeze(prctile(SimCubeMolecule, 90, 1));
+    ESTAT.Molecule.Pct95 = squeeze(prctile(SimCubeMolecule, 95, 1));
+    ESTAT.Molecule.Pct99 = squeeze(prctile(SimCubeMolecule, 99, 1));
+
     
     % Variables:  
         % Mean Net Revenues
