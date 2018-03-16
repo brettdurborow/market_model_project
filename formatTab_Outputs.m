@@ -37,7 +37,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 
         for q = 1:length(oStats)
             monthlyShareMxB = ESTAT.Branded.(oStats{q});
-            monthlyShareMxM = ESTAT.Branded.(oStats{q});
+            monthlyShareMxM = ESTAT.Molecule.(oStats{q});
             OUTB = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMxB);
             OUTM = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMxM);
             ixYear = find(OUTB.Y.YearVec >= 2014 & OUTB.Y.YearVec <= 2040);  % Ignore years out of this range
