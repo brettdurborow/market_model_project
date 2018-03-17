@@ -13,11 +13,17 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
               'Pct95', 'Pct99'};
           
     oStatsBrief = {'Mean', 'StdErr', 'Pct10', 'Pct25', 'Pct50', 'Pct75', 'Pct90'};
+    
+    % Produce Regional Revenue-only monthly sims
+    [cMODEL_R, cASSET_R, cESTATREV_R] = bumpUpRegions(cMODEL, cASSET, cESTAT);
    
     nAsset = 0;  % Count the number of rows to preallocate
     for m = 1:length(cASSET)
-        ASSET = cASSET{m};
-        nAsset = nAsset + length(ASSET.Assets_Rated);
+        nAsset = nAsset + length(cASSET{m}.Assets_Rated);
+    end
+    nAsset_R = 0;
+    for m = 1:length(cASSET_R)
+        nAsset_R = nAsset_R + length(cASSET_R{m}.Assets_Rated);        
     end
     nStats = length(oStats) + 2;
     nPeriod = 2040 - 2014 + 1;
