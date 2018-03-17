@@ -1,6 +1,10 @@
-function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx)
+function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx, doAnnual)
 % Calculate derived metrics (Units, Revenues, etc.) from PointShares.  
 % Return both monthly and annualized results.
+
+    if nargin < 5
+        doAnnual = true;
+    end
     
     Nd = length(dateGrid);
 
@@ -27,11 +31,13 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx)
    
     %% Also produce Annualized outputs
     
-    [OUT.Y.YearVec, OUT.Y.PointShare] = annualizeMx(dateGrid, OUT.M.PointShare, 'mean');
-    [~, OUT.Y.PatientShare] = annualizeMx(dateGrid, OUT.M.PatientShare, 'mean');
-    [~, OUT.Y.PricePerDot]  = annualizeMx(dateGrid, OUT.M.PricePerDot, 'mean');
-    [~, OUT.Y.GTN]          = annualizeMx(dateGrid, OUT.M.GTN, 'mean');
-    [~, OUT.Y.Units]        = annualizeMx(dateGrid, OUT.M.Units, 'sum');
-    [~, OUT.Y.NetRevenues]  = annualizeMx(dateGrid, OUT.M.NetRevenues, 'sum');
+    if doAnnual    
+        [OUT.Y.YearVec, OUT.Y.PointShare] = annualizeMx(dateGrid, OUT.M.PointShare, 'mean');
+        [~, OUT.Y.PatientShare] = annualizeMx(dateGrid, OUT.M.PatientShare, 'mean');
+        [~, OUT.Y.PricePerDot]  = annualizeMx(dateGrid, OUT.M.PricePerDot, 'mean');
+        [~, OUT.Y.GTN]          = annualizeMx(dateGrid, OUT.M.GTN, 'mean');
+        [~, OUT.Y.Units]        = annualizeMx(dateGrid, OUT.M.Units, 'sum');
+        [~, OUT.Y.NetRevenues]  = annualizeMx(dateGrid, OUT.M.NetRevenues, 'sum');
+    end
 
 end
