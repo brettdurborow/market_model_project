@@ -1,4 +1,4 @@
-function [cMODEL_R, cASSET_R, cESTATREV_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
+function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
 % Check to see if EU5 countries are all represented in the input cells.
 % If so, compute the "bump-up" estimates for each derived region, and store
 % them in the output cells.  We only need Yearly Branded Revenues
@@ -42,120 +42,118 @@ function [cMODEL_R, cASSET_R, cESTATREV_R] = bumpUpRegions(cMODEL, cASSET, cESTA
         return;
     end
     
-    % Compute a revenue value for each Percentile for each Country
-    cESTATREV = cell(size(cMODEL));
-    fnamesB = fieldnames(cESTAT{1}.Branded);        
-    fnamesM = fieldnames(cESTAT{1}.Molecule);
+    % Compute Revenue and Units for each Percentile for each Country
+    cRESTAT = cell(size(cMODEL));
+    statnames = fieldnames(cESTAT{1}.Branded);        
     dateGrid = cESTAT{1}.DateGrid;
     for m = 1:length(cMODEL)
-        ESTATREV = struct;
-        ESTATREV.DateGrid = dateGrid;
-        for n = 1:length(fnamesB)
-            monthlyShareMx = cESTAT{m}.Branded.(fnamesB{n});
-            OUT = computeOutputs(cMODEL{m}, cASSET{m}, dateGrid, monthlyShareMx, false);
-            ESTATREV.Branded.(fnamesB{n}) = OUT.M.NetRevenues;
+        RESTAT = struct;
+        RESTAT.Branded.M.DateGrid = dateGrid;
+        for n = 1:length(statnames)
+            monthlyShareMx = cESTAT{m}.Branded.(statnames{n});
+            OUT = computeOutputs(cMODEL{m}, cASSET{m}, dateGrid, monthlyShareMx);
+            RESTAT.Branded.M.NetRevenues.(statnames{n}) = OUT.M.NetRevenues;
+            RESTAT.Branded.Y.NetRevenues.(statnames{n}) = OUT.Y.NetRevenues;
+            RESTAT.Branded.M.Units.(statnames{n}) = OUT.M.Units;
+            RESTAT.Branded.Y.Units.(statnames{n}) = OUT.Y.Units;
         end
-        for n = 1:length(fnamesM)
-            monthlyShareMx = cESTAT{m}.Molecule.(fnamesM{n});
-            OUT = computeOutputs(cMODEL{m}, cASSET{m}, dateGrid, monthlyShareMx, false);
-            ESTATREV.Molecule.(fnamesM{n}) = OUT.M.NetRevenues;
-        end
-        cESTATREV{m} = ESTATREV;
+        RESTAT.Branded.Y.YearVec  = OUT.Y.YearVec;
+        cRESTAT{m} = RESTAT;
     end
             
     % We found all the EU5 countries, compute sum of revenues for the EU5
     ASSET_EU5 = cASSET{Locb(1)};
-    ESTATREV_EU5 = cESTATREV{Locb(1)};
+    RESTAT_EU5 = cRESTAT{Locb(1)};
     for m = 2:length(Locb)  % Locb is index into cMODEL, cASSET, cESTAT matching this EU5 country
-        [ASSET_EU5, ESTATREV_EU5] = sumEstat(ASSET_EU5, ESTATREV_EU5, cASSET{Locb(m)}, cESTATREV{Locb(m)});
+        [ASSET_EU5, RESTAT_EU5] = sumRestat(ASSET_EU5, RESTAT_EU5, cASSET{Locb(m)}, cRESTAT{Locb(m)});
     end
     ASSET_EU5.Scenario_PTRS = '';
         
     cMODEL_R = cell(9, 1);
     cASSET_R = cell(9, 1);
-    cESTATREV_R = cell(9, 1);
+    cRESTAT_R = cell(9, 1);
     
     
     rr = 1;
     cMODEL_R{rr} = makeMODEL('EU5');
     cASSET_R{rr} = ASSET_EU5;
-    cESTATREV_R{rr} = ESTATREV_EU5;
+    cRESTAT_R{rr} = RESTAT_EU5;
     
     % Use sum of EU5 revenues to compute "bumped-up" regionals
     SIMULATION = cMODEL{1};  % use values from the "simulation" input sheet
     
     % Canada ----------------------------------
-    ESTATREV_CA = scaleEstat(ESTATREV_EU5, SIMULATION.CA_Bump_Up_from_EU5);
+    RESTAT_CA = scaleRestat(RESTAT_EU5, SIMULATION.CA_Bump_Up_from_EU5);
     
     rr = rr + 1;
     cMODEL_R{rr} = makeMODEL('CA');
     cASSET_R{rr} = ASSET_EU5;    
-    cESTATREV_R{rr} = ESTATREV_CA;
+    cRESTAT_R{rr} = RESTAT_CA;
 
     % Rest of AP ----------------------------------
-    ESTATREV_ROAP = scaleEstat(ESTATREV_EU5, SIMULATION.Rest_of_AP_Bump_Up_from_EU5);
+    RESTAT_ROAP = scaleRestat(RESTAT_EU5, SIMULATION.Rest_of_AP_Bump_Up_from_EU5);
     
     rr = rr + 1;
     cMODEL_R{rr} = makeMODEL('ROAP');
     cASSET_R{rr} = ASSET_EU5;    
-    cESTATREV_R{rr} = ESTATREV_ROAP;
+    cRESTAT_R{rr} = RESTAT_ROAP;
     
     % Rest of EMEA ----------------------------------
-    ESTATREV_ROEMEA = scaleEstat(ESTATREV_EU5, SIMULATION.Rest_of_EMEA_Bump_Up_from_EU5);
+    RESTAT_ROEMEA = scaleRestat(RESTAT_EU5, SIMULATION.Rest_of_EMEA_Bump_Up_from_EU5);
     
     rr = rr + 1;
     cMODEL_R{rr} = makeMODEL('ROEMEA');
     cASSET_R{rr} = ASSET_EU5;    
-    cESTATREV_R{rr} = ESTATREV_ROEMEA;
+    cRESTAT_R{rr} = RESTAT_ROEMEA;
         
     % Latin America ----------------------------------
-    ESTATREV_LA = scaleEstat(ESTATREV_EU5, SIMULATION.LA_Bump_Up_from_EU5);
+    RESTAT_LA = scaleRestat(RESTAT_EU5, SIMULATION.LA_Bump_Up_from_EU5);
     
     rr = rr + 1;
     cMODEL_R{rr} = makeMODEL('LA');
     cASSET_R{rr} = ASSET_EU5;    
-    cESTATREV_R{rr} = ESTATREV_LA;
+    cRESTAT_R{rr} = RESTAT_LA;
     
     % EMEA ----------------------------------
-    [ASSET_EMEA, ESTATREV_EMEA] = sumEstat(ASSET_EU5, ESTATREV_EU5, ASSET_EU5, ESTATREV_ROEMEA);
+    [ASSET_EMEA, ESTATREV_EMEA] = sumRestat(ASSET_EU5, RESTAT_EU5, ASSET_EU5, RESTAT_ROEMEA);
     
     rr = rr + 1;
     cMODEL_R{rr} = makeMODEL('EMEA');
     cASSET_R{rr} = ASSET_EMEA;    
-    cESTATREV_R{rr} = ESTATREV_EMEA;
+    cRESTAT_R{rr} = ESTATREV_EMEA;
         
     % North America ----------------------------------    
     % Canada + US
     ixUS = find(strcmpi('US', strCountries));
     if length(ixUS) == 1
-        [ASSET_NA, ESTATREV_NA] = sumEstat(ASSET_EU5, ESTATREV_CA, cASSET{ixUS}, cESTATREV{ixUS});
+        [ASSET_NA, RESTAT_NA] = sumRestat(ASSET_EU5, RESTAT_CA, cASSET{ixUS}, cRESTAT{ixUS});
         rr = rr + 1;
         cMODEL_R{rr} = makeMODEL('NA');
         cASSET_R{rr} = ASSET_NA;    
-        cESTATREV_R{rr} = ESTATREV_NA;
+        cRESTAT_R{rr} = RESTAT_NA;
     end
     
     % Asia Pacific ----------------------------------    
     % JP + Rest of Asia Pacific
     ixJP = find(strcmpi('JP', strCountries));
     if length(ixJP) == 1
-        [ASSET_AP, ESTATREV_AP] = sumEstat(ASSET_EU5, ESTATREV_ROAP, cASSET{ixJP}, cESTATREV{ixJP});
+        [ASSET_AP, RESTAT_AP] = sumRestat(ASSET_EU5, RESTAT_ROAP, cASSET{ixJP}, cRESTAT{ixJP});
         rr = rr + 1;
         cMODEL_R{rr} = makeMODEL('AP');
         cASSET_R{rr} = ASSET_AP;    
-        cESTATREV_R{rr} = ESTATREV_AP;
+        cRESTAT_R{rr} = RESTAT_AP;
     end
     
     % World Wide --------------------------------------
     % WW = NA + AP + LA + EMEA
     if isOkEu5 && (length(ixUS) == 1) && (length(ixJP) == 1)
-        [ASSET_WW, ESTATREV_WW] = sumEstat(ASSET_NA, ESTATREV_NA, ASSET_AP, ESTATREV_AP);
-        [ASSET_WW, ESTATREV_WW] = sumEstat(ASSET_WW, ESTATREV_WW, ASSET_EU5, ESTATREV_LA);
-        [ASSET_WW, ESTATREV_WW] = sumEstat(ASSET_WW, ESTATREV_WW, ASSET_EU5, ESTATREV_EMEA);
+        [ASSET_WW, RESTAT_WW] = sumRestat(ASSET_NA, RESTAT_NA, ASSET_AP, RESTAT_AP);
+        [ASSET_WW, RESTAT_WW] = sumRestat(ASSET_WW, RESTAT_WW, ASSET_EU5, RESTAT_LA);
+        [ASSET_WW, RESTAT_WW] = sumRestat(ASSET_WW, RESTAT_WW, ASSET_EU5, ESTATREV_EMEA);
         rr = rr + 1;
         cMODEL_R{rr} = makeMODEL('WW');
         cASSET_R{rr} = ASSET_WW;    
-        cESTATREV_R{rr} = ESTATREV_WW;        
+        cRESTAT_R{rr} = RESTAT_WW;        
     end
     
 
