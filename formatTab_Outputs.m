@@ -15,7 +15,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     oStatsBrief = {'Mean', 'StdErr', 'Pct10', 'Pct25', 'Pct50', 'Pct75', 'Pct90'};
     
     % Produce Regional Revenue-only monthly sims
-    [cMODEL_R, cASSET_R, cESTATREV_R] = bumpUpRegions(cMODEL, cASSET, cESTAT);
+    [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT);
    
     nAsset = 0;  % Count the number of rows to preallocate
     for m = 1:length(cASSET)
@@ -25,11 +25,11 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     for m = 1:length(cASSET_R)
         nAsset_R = nAsset_R + length(cASSET_R{m}.Assets_Rated);        
     end
-    nStats = length(oStats) + 2;
     nPeriod = 2040 - 2014 + 1;
-    nRows = nAsset * nStats * nPeriod + 1;
+    nRows = nAsset * length(oStatsBrief) * nPeriod + nAsset * length(oStats) * 2;
+    nRows_R = nAsset_R * length(oStatsBrief) * nPeriod + nAsset_R * length(oStats) * 2;
     
-    celltab = cell(nRows, length(colHead));
+    celltab = cell(nRows + nRows_R + 100, length(colHead));
     celltab(1,:) = colHead;
 
     rr = 1;
@@ -118,8 +118,93 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
             end
             
         end
+    end  % Normal (non-regional) simulation outputs
+    
+    % Now write Regional simulation outputs -------------------------------
+    % RESTAT is different from ESTAT used above.  It's already in terms of revenue and units
+    % Don't need to call computeOutputs() here
+    
+    for m = 1:length(cMODEL_R)        
+        MODEL = cMODEL_R{m};
+        ASSET = cASSET_R{m};
+        RESTAT = cRESTAT_R{m};
+        runTime = datestr(BENCH.RunTime(end), 'yyyy-mm-dd HH:MM:SS'); 
+        
+        yearVec = RESTAT.Branded.Y.YearVec;
+                
+        for q = 1:length(oStats)
+            ixYear = find(yearVec >= 2014 & yearVec <= 2040);  % Ignore years out of this range
+            
+            for n = 1:length(ASSET.Assets_Rated)
+                
+                if ismember(oStats{q}, oStatsBrief)  % For yearly data, write brief stats only
+                    for p = 1:length(ixYear)
+                        rr = rr + 1;
+                        celltab{rr, 1} = MODEL.CountrySelected;
+                        celltab{rr, 2} = MODEL.ScenarioSelected;
+                        celltab{rr, 3} = runTime;
+                        celltab{rr, 4} = ASSET.Assets_Rated{n};
+                        celltab{rr, 5} = oStats{q};
+                        celltab{rr, 6} = yearVec(ixYear(p));
+                        celltab{rr, 7} = 'Year';
+                        celltab{rr, 8} = RESTAT.Branded.Y.NetRevenues.(oStats{q})(n, ixYear(p));
+                        celltab{rr, 9} = nan;
+                        celltab{rr, 10} = nan;
+                        celltab{rr, 11} = RESTAT.Branded.Y.Units.(oStats{q})(n, ixYear(p));
+                        celltab{rr, 12} = nan;
+                        celltab{rr, 13} = nan;
+                        celltab{rr, 14} = nan;
+                    end                
+                end
+                
+                % Cume and Peak values for years up to and including the year after LOE
+                ix = (yearVec >= 2014) & (yearVec <= (ASSET.LOE_Year{n} + 1));
+
+                % Peak Values -----------------------------
+                rr = rr + 1;
+                celltab{rr, 1} = MODEL.CountrySelected;
+                celltab{rr, 2} = MODEL.ScenarioSelected;
+                celltab{rr, 3} = runTime;
+                celltab{rr, 4} = ASSET.Assets_Rated{n};
+                celltab{rr, 5} = oStats{q};
+                celltab{rr, 6} = '';  % no text in a numeric "Year" column
+                celltab{rr, 7} = 'Peak';
+                if sum(ix) > 0
+                    peak8  = nanmax(RESTAT.Branded.Y.NetRevenues.(oStats{q})(n, ix));
+                    peak11 = nanmax(RESTAT.Branded.Y.Units.(oStats{q})(n, ix));                   
+                    celltab(rr, 8:13) = {peak8, nan, nan, peak11, nan, nan};
+                else
+                    celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};                    
+                end
+                celltab{rr, 14} = nan;
+                
+                % Cume Values -----------------------------
+                rr = rr + 1;
+                celltab{rr, 1} = MODEL.CountrySelected;
+                celltab{rr, 2} = MODEL.ScenarioSelected;
+                celltab{rr, 3} = runTime;
+                celltab{rr, 4} = ASSET.Assets_Rated{n};
+                celltab{rr, 5} = oStats{q};
+                celltab{rr, 6} = '';  % no text in a numeric "Year" column               
+                celltab{rr, 7} = 'Cume';
+                if sum(ix) > 0
+                    cume8  = nansum(RESTAT.Branded.Y.NetRevenues.(oStats{q})(n, ix));
+                    cume11 = nansum(RESTAT.Branded.Y.Units.(oStats{q})(n, ix));
+
+                    celltab(rr, 8:13) = {cume8, nan, nan, cume11, nan, nan};
+                else
+                    celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
+                end
+                celltab{rr, 14} = nan;
+                
+                
+            end
+            
+        end
     end
+    
+    
+    
+
     celltab = celltab(1:rr, :); % Remove any trailing blanks
-
-
 end    
