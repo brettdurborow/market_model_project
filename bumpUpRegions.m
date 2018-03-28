@@ -45,8 +45,8 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     % Compute Revenue and Units for each Percentile for each Country
     cRESTAT = cell(size(cMODEL));
     statnames = fieldnames(cESTAT{1}.Branded);        
-    dateGrid = cESTAT{1}.DateGrid;
     for m = 1:length(cMODEL)
+        dateGrid = cESTAT{m}.DateGrid;
         RESTAT = struct;
         RESTAT.Branded.M.DateGrid = dateGrid;
         for n = 1:length(statnames)
