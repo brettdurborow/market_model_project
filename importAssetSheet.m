@@ -130,8 +130,8 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
     
     fieldsToCheck = {'Country', 'Assets_Rated', 'Starting_Share', 'Starting_Share_Year', ...
         'Starting_Share_Month', 'Scenario_PTRS', 'Barriers', 'Calibration', ...
-        'Therapy_Class', 'Launch_Year', 'Launch_Month', ...
-        'LOE_Year', 'LOE_Month', 'Product_p', 'Product_q', ...
+        'Therapy_Class', 'Launch_Year', 'Launch_Month', 'LOE_Year', 'LOE_Month',...
+        'Efficacy', 'S_T', 'Delivery', 'Product_p', 'Product_q', ...
         'Class_p', 'Class_q', 'LOE_p', 'LOE_q', 'LOE_Pct'};
     
     validateFields(ASSET, assetSheet, fieldsToCheck, Nrows);
@@ -255,8 +255,13 @@ end
 
 function validateFields(DATA, sheetName, fieldNames, Nrows)
     validMx = false(Nrows, length(fieldNames));
+    errStrVec = false(1, length(fieldNames));
     for m = 1:length(fieldNames)
         validMx(:,m) = ~cellisnan(DATA.(fieldNames{m}));
+        
+        ixStr = cellfun(@isstr, DATA.(fieldNames{m}));  % find rows that are char data
+        ixErrStr = regexpi(DATA.(fieldNames{m})(ixStr), 'error'); % for those that are, find the ones with the word "error" in them
+        errStrVec(m) = any(~cellfun(@isempty, ixErrStr));
     end
     ixAll = all(validMx, 2);
     ixAny = any(validMx, 2);
@@ -265,6 +270,10 @@ function validateFields(DATA, sheetName, fieldNames, Nrows)
         ixErrCol = any(~validMx(ixErr,:), 1);
         error('Found missing data in sheet: "%s". Please ensure each row is either empty or complete. Problem columns: %s', ...
             sheetName, strjoin(fieldNames(ixErrCol), ', '));
+    end
+    if any(errStrVec)
+        error('Found "ERROR" messages in sheet: "%s".  Please check values in columns: %s', ...
+            sheetName, strjoin(fieldNames(errStrVec), ', '));
     end
 end
 
