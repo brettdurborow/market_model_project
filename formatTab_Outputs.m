@@ -5,7 +5,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     colHead = {'Country', 'Scenario Run', 'Run Date', 'Asset', ...
                'Output Metric', 'Period', 'Period Type', 'Branded Net Revenues', ...
                'Branded Point Share', 'Branded Patient Share', 'Branded Units', ...
-               'Molecule Point Share', 'Molecule Patient Share', 'PTRS %'};
+               'Molecule Point Share', 'Molecule Patient Share', 'PTRS %', 'Constraints'};
               
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
               'Pct25', 'Pct30', 'Pct35', 'Pct40', 'Pct45', 'Pct50', 'Pct55', ...
@@ -67,6 +67,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 12} = OUTM.Y.PointShare(n, ixYear(p));
                         celltab{rr, 13} = OUTM.Y.PatientShare(n, ixYear(p));
                         celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                        celltab{rr, 15} = 'None';
                     end
                 end
                 
@@ -95,6 +96,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     celltab(rr, 8:13) = {0, 0, 0, 0, 0, 0};                    
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                celltab{rr, 15} = 'None';
                 
                 % Cume Values -----------------------------
                 rr = rr + 1;
@@ -114,7 +116,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS{n};
-                
+                celltab{rr, 15} = 'None';
             end
             
         end
@@ -154,6 +156,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 12} = nan;
                         celltab{rr, 13} = nan;
                         celltab{rr, 14} = nan;
+                        celltab{rr, 15} = 'None';
                     end                
                 end
                 
@@ -177,6 +180,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};                    
                 end
                 celltab{rr, 14} = nan;
+                celltab{rr, 15} = 'None';
                 
                 % Cume Values -----------------------------
                 rr = rr + 1;
@@ -196,7 +200,7 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
                 end
                 celltab{rr, 14} = nan;
-                
+                celltab{rr, 15} = 'None';
                 
             end
             
