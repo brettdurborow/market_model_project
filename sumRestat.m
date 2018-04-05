@@ -19,7 +19,16 @@ function [ASSET3, RESTAT3] = sumRestat(ASSET1, RESTAT1, ASSET2, RESTAT2)
     LOE_Year = nan(size(Assets)); % take the latest LOE_Year of the two countries
     LOE_Year(iA1) = cell2mat(ASSET1.LOE_Year(LocA1(iA1)));
     LOE_Year(iA2) = nanmax(LOE_Year(iA2), cell2mat(ASSET2.LOE_Year(LocA2(iA2))));
-    ASSET3.LOE_Year = num2cell(LOE_Year);  
+    ASSET3.LOE_Year = num2cell(LOE_Year);
+    
+    ASSET3.Company1 = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Company1(iA1) = ASSET1.Company1(LocA1(iA1));
+    
+    ASSET3.Company2 = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Company2(iA1) = ASSET1.Company2(LocA1(iA1));
+    
+    ASSET3.Therapy_Class = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Therapy_Class(iA1) = ASSET1.Therapy_Class(LocA1(iA1));
     
     RESTAT3 = struct;
     RESTAT3.Branded.M.DateGrid = RESTAT1.Branded.M.DateGrid;
