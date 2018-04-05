@@ -205,6 +205,57 @@ ceSheet = '';
    
 [cMODEL, cASSET, cCHANGE] = importAssumptions(inputFileName)
     
+%%  
+
+celltab = cTableau{1};
+
+filename = 'junkTest1.csv';
+fid = fopen(filename, 'w');
+fprintf(fid, '%s,%s,%s,%s,%s\n', celltab{1,:});
+for m = 2:size(celltab, 1)  % for each row
+    fprintf(fid, '%s,%s,%s,%s,%s\n', celltab{m,:});
+end
+fclose(fid);
+
+
+%%
+
+celltab = cTableau{2};
+fmt = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%f,%s,%f,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f\n';
+filename = 'junkTest2.csv';
+celltab2csv(filename, celltab, fmt);
+
+%%
+
+celltab = cTableau{3};
+[Nr, Nc] = size(celltab);
+
+filename = 'junkTest3.csv';
+fmt1 = [repmat('%s,', [1, Nc-1]), '%s\n'];
+fmt = '%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,%f,%f,%f\n';
+
+tic;
+fid = fopen(filename, 'w');
+fprintf(fid, fmt1, celltab{1,:});  % write header row
+for m = 2:Nr-1
+    fprintf(fid, fmt, celltab{m,:});
+end
+fclose(fid);
+toc
     
-    
-    
+%%
+
+celltab = cTableau{4};
+[Nr, Nc] = size(celltab);
+
+filename = 'junkTest4.csv';
+fmt = '%s,%s,%s,%s,%s,%d,%s,%f,%f,%f,%f,%f,%f,%f,%s,%s,%s,%s,%f,%f,%f,%f,%f,%f\n';
+
+celltab2csv(filename, celltab, fmt);
+
+celltab2csv(filename, celltab(1:1000,:), fmt);
+
+%%
+
+fmt = '%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,%f,%f,%f\n';
+celltab2csv('junkTest3.csv', cTableau{3}, fmt);

@@ -1,4 +1,4 @@
-function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
+function [celltab, fmt] = formatTab_CA(cMODEL, cASSET, BENCH)
 % format output for Tableau
 % CA = by Country, by Asset
 
@@ -11,6 +11,8 @@ function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
                'PTRS', 'Phase', 'Starting Share', 'Starting Share Date', ...
                'Follow On Asset', 'Asset p', 'Asset q', 'Class p', 'Class q', ...
                'LOE %', 'LOE p', 'LOE q', 'Therapy Days'};
+           
+    fmt = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%f,%s,%f,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV
              
     nRows = 0;
     for m = 1:length(cASSET)
@@ -26,9 +28,9 @@ function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
         ASSET = cASSET{m};
         runTime = datestr(BENCH.RunTime(m), 'yyyy-mm-dd HH:MM:SS'); 
 
-        launchDates = datenumToYyyymm(ASSET.Launch_Date);
-        loeDates = datenumToYyyymm(ASSET.LOE_Date);
-        startingShareDates = datenumToYyyymm(ASSET.Starting_Share_Date);        
+        launchDates = cellstr(datestr(ASSET.Launch_Date, 'yyyy-mm-dd'));
+        loeDates = cellstr(datestr(ASSET.LOE_Date, 'yyyy-mm-dd'));
+        startingShareDates = cellstr(datestr(ASSET.Starting_Share_Date, 'yyyy-mm-dd'));        
         
         for n = 1:length(ASSET.Assets_Rated)
             rr = rr + 1;
@@ -38,13 +40,13 @@ function celltab = formatTab_CA(cMODEL, cASSET, BENCH)
             celltab{rr, 4} = ASSET.Assets_Rated{n};
             celltab{rr, 5} = ASSET.Company1{n};
             celltab{rr, 6} = ASSET.Company2{n};
-            celltab{rr, 7} = sprintf('%d', launchDates(n));
-            celltab{rr, 8} = sprintf('%d', loeDates(n));
+            celltab{rr, 7} = launchDates{n};
+            celltab{rr, 8} = loeDates{n};
             celltab{rr, 9} = ASSET.Therapy_Class{n};
             celltab{rr, 10} = ASSET.Scenario_PTRS{n};
             celltab{rr, 11} = ASSET.Phase{n};
             celltab{rr, 12} = ASSET.Starting_Share{n};
-            celltab{rr, 13} = sprintf('%d', startingShareDates(n));
+            celltab{rr, 13} = startingShareDates{n};
             celltab{rr, 14} = ASSET.Follow_On{n};
             celltab{rr, 15} = ASSET.Product_p{n};
             celltab{rr, 16} = ASSET.Product_q{n};

@@ -1,4 +1,4 @@
-function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
+function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
 % format output for Tableau
 % Outputs of all simulations in the set
 
@@ -10,6 +10,8 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                'Branded Net Revenues (NRA)', 'Branded Point Share (NRA)', ...
                'Braded Patient Share (NRA)', 'Branded Units (NRA)', ...
                'Molecule Point Share (NRA)', 'Molecule Patient Share (NRA)'};
+           
+    fmt = '%s,%s,%s,%s,%s,%d,%s,%f,%f,%f,%f,%f,%f,%f,%s,%s,%s,%s,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV     
               
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
               'Pct25', 'Pct30', 'Pct35', 'Pct40', 'Pct45', 'Pct50', 'Pct55', ...
