@@ -5,7 +5,8 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     colHead = {'Country', 'Scenario Run', 'Run Date', 'Asset', ...
                'Output Metric', 'Period', 'Period Type', 'Branded Net Revenues', ...
                'Branded Point Share', 'Branded Patient Share', 'Branded Units', ...
-               'Molecule Point Share', 'Molecule Patient Share', 'PTRS %', 'Constraints'};
+               'Molecule Point Share', 'Molecule Patient Share', 'PTRS %', ...
+               'Constraints', 'Company1', 'Company2', 'Class'};
               
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
               'Pct25', 'Pct30', 'Pct35', 'Pct40', 'Pct45', 'Pct50', 'Pct55', ...
@@ -68,6 +69,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 13} = OUTM.Y.PatientShare(n, ixYear(p));
                         celltab{rr, 14} = ASSET.Scenario_PTRS{n};
                         celltab{rr, 15} = 'None';
+                        celltab{rr, 16} = ASSET.Company1{n};
+                        celltab{rr, 17} = ASSET.Company2{n};
+                        celltab{rr, 18} = ASSET.Therapy_Class{n};
                     end
                 end
                 
@@ -97,6 +101,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS{n};
                 celltab{rr, 15} = 'None';
+                celltab{rr, 16} = ASSET.Company1{n};
+                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 18} = ASSET.Therapy_Class{n};                
                 
                 % Cume Values -----------------------------
                 rr = rr + 1;
@@ -117,6 +124,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS{n};
                 celltab{rr, 15} = 'None';
+                celltab{rr, 16} = ASSET.Company1{n};
+                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 18} = ASSET.Therapy_Class{n};                
             end
             
         end
@@ -157,6 +167,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 13} = nan;
                         celltab{rr, 14} = nan;
                         celltab{rr, 15} = 'None';
+                        celltab{rr, 16} = ASSET.Company1{n};
+                        celltab{rr, 17} = ASSET.Company2{n};
+                        celltab{rr, 18} = ASSET.Therapy_Class{n};                        
                     end                
                 end
                 
@@ -181,6 +194,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 end
                 celltab{rr, 14} = nan;
                 celltab{rr, 15} = 'None';
+                celltab{rr, 16} = ASSET.Company1{n};
+                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 18} = ASSET.Therapy_Class{n};                
                 
                 % Cume Values -----------------------------
                 rr = rr + 1;
@@ -201,6 +217,9 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 end
                 celltab{rr, 14} = nan;
                 celltab{rr, 15} = 'None';
+                celltab{rr, 16} = ASSET.Company1{n};
+                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 18} = ASSET.Therapy_Class{n};                
                 
             end
             
