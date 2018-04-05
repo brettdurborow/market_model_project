@@ -60,6 +60,9 @@ OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molec
 xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
 [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
 
+outFolder = sprintf('Output\\ModelOut_%s', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
+[cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH);
+
 
 %% Plot some outputs across all assets
 

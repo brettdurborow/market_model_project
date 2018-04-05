@@ -1,10 +1,12 @@
-function celltab = formatTab_CAP(cMODEL, cASSET, cESTAT, BENCH)
+function [celltab, fmt] = formatTab_CAP(cMODEL, cASSET, cESTAT, BENCH)
 % format output for Tableau
 % CAP = by Country, by Asset, by Period
 
     colHead = {'Country', 'Scenario Run', 'Run Date', 'Asset', 'Company1', ...
                 'Period', 'GTN', 'Price', 'Efficacy', 'S&T', 'Delivery', ...
                 'Barrier' 'Acceptability'};
+            
+    fmt = '%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV
 
     nRows = 0;
     for m = 1:length(cASSET)
