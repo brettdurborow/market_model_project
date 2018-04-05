@@ -4,7 +4,8 @@ function [celltab, fmt] = formatTab_C(cMODEL, BENCH)
 % runTime is of type DateTime so we can reference it to the Eastern timzeone
 
     colHead = {'Country', 'Secenario Run', 'Run Date', 'Assumption', 'Number Value'};
-    fmt = '%s,%s,%s,%s,%f\n';  % for writing to CSV
+%     fmt = '%s,%s,%s,%s,%f\n';  % for writing to CSV
+    fmt = '%s,%s,%s,%s,%.8g\n';  % for writing to CSV
     
     mdNames = {'Pop', 'SubPop', 'Tdays', 'ProfileElasticity', 'ClassOeElasticity', ...
               'ProductOeElasticity', 'BarrierElasticity', ...
