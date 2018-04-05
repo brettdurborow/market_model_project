@@ -6,7 +6,10 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                'Output Metric', 'Period', 'Period Type', 'Branded Net Revenues', ...
                'Branded Point Share', 'Branded Patient Share', 'Branded Units', ...
                'Molecule Point Share', 'Molecule Patient Share', 'PTRS %', ...
-               'Constraints', 'Company1', 'Company2', 'Class'};
+               'Constraints', 'Company1', 'Company2', 'Class', ...
+               'Branded Net Revenues (NRA)', 'Branded Point Share (NRA)', ...
+               'Braded Patient Share (NRA)', 'Branded Units (NRA)', ...
+               'Molecule Point Share (NRA)', 'Molecule Patient Share (NRA)'};
               
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
               'Pct25', 'Pct30', 'Pct35', 'Pct40', 'Pct45', 'Pct50', 'Pct55', ...
@@ -225,9 +228,29 @@ function celltab = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
             
         end
     end
-    
-    
-    
 
     celltab = celltab(1:rr, :); % Remove any trailing blanks
+    
+    
+    % Add "Calculated" Columns (NRA or non-risk-adjusted values)
+    ixR = 2:size(celltab, 1);  % skip the header
+    cD = 14; % Denominator column: PTRS%
+    cN = 8; % Numerator column: Branded Net Revenues
+    celltab(ixR,19) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    cN = 9; % Numerator column: Branded Point Share
+    celltab(ixR,20) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    cN = 10; % Numerator column: Branded Patient Share
+    celltab(ixR,21) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    cN = 11; % Numerator column: Branded Units
+    celltab(ixR,22) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    cN = 12; % Numerator column: Molecule Point Share
+    celltab(ixR,23) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    cN = 13; % Numerator column: Molecule Patient Share
+    celltab(ixR,24) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
 end    
