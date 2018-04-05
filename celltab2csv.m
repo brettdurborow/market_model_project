@@ -9,10 +9,11 @@ function celltab2csv(filename, celltab, fmt)
     
     cFmt = strsplit(fmt, ',');
     for m = 1:length(cFmt)
-        if ~isempty(strfind(cFmt{m}, 'f'))  % Remove NaN values so they write as empty
-            ix = cellisnan(celltab(:, m));
-            celltab(ix,m) = cell(sum(ix),1);
-        elseif ~isempty(strfind(cFmt{m}, 's'))  % Remove commas so they don't break the format
+        % Remove NaN values so they write as empty
+        ix = cellisnan(celltab(:, m));
+        celltab(ix,m) = cell(sum(ix),1);
+        
+        if ~isempty(strfind(cFmt{m}, 's'))  % Remove commas so they don't break the format
             ix = cellfun(@ischar,celltab(:,m));
             celltab(ix,m) = strrep(celltab(ix,m), ',', '');           
         end

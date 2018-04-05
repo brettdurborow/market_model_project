@@ -6,7 +6,8 @@ function [celltab, fmt] = formatTab_CAP(cMODEL, cASSET, cESTAT, BENCH)
                 'Period', 'GTN', 'Price', 'Efficacy', 'S&T', 'Delivery', ...
                 'Barrier' 'Acceptability'};
             
-    fmt = '%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV
+%     fmt = '%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV
+    fmt = '%s,%s,%s,%s,%s,%d,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g\n';  % for writing to CSV
 
     nRows = 0;
     for m = 1:length(cASSET)

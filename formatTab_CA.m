@@ -12,8 +12,9 @@ function [celltab, fmt] = formatTab_CA(cMODEL, cASSET, BENCH)
                'Follow On Asset', 'Asset p', 'Asset q', 'Class p', 'Class q', ...
                'LOE %', 'LOE p', 'LOE q', 'Therapy Days'};
            
-    fmt = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%f,%s,%f,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV
-             
+%     fmt = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%f,%s,%f,%s,%s,%f,%f,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV
+    fmt = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%.8g,%s,%.8g,%s,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g\n';  % for writing to CSV
+    
     nRows = 0;
     for m = 1:length(cASSET)
         ASSET = cASSET{m};
