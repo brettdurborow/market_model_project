@@ -64,8 +64,10 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     % We found all the EU5 countries, compute sum of revenues for the EU5
     ASSET_EU5 = cASSET{Locb(1)};
     RESTAT_EU5 = cRESTAT{Locb(1)};
+    MODEL_EU5 = cMODEL{Locb(1)};
     for m = 2:length(Locb)  % Locb is index into cMODEL, cASSET, cESTAT matching this EU5 country
         [ASSET_EU5, RESTAT_EU5] = sumRestat(ASSET_EU5, RESTAT_EU5, cASSET{Locb(m)}, cRESTAT{Locb(m)});
+        MODEL_EU5 = makeMODEL('EU5', MODEL_EU5, cMODEL{Locb(m)});
     end
         
     cMODEL_R = cell(9, 1);
@@ -74,7 +76,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     
     
     rr = 1;
-    cMODEL_R{rr} = makeMODEL('EU5');
+    cMODEL_R{rr} = MODEL_EU5;
     cASSET_R{rr} = ASSET_EU5;
     cRESTAT_R{rr} = RESTAT_EU5;
     
@@ -85,7 +87,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     RESTAT_CA = scaleRestat(RESTAT_EU5, SIMULATION.CA_Bump_Up_from_EU5);
     
     rr = rr + 1;
-    cMODEL_R{rr} = makeMODEL('CA');
+    cMODEL_R{rr} = makeMODEL('CA', MODEL_EU5);
     cASSET_R{rr} = ASSET_EU5;    
     cRESTAT_R{rr} = RESTAT_CA;
 
@@ -93,7 +95,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     RESTAT_ROAP = scaleRestat(RESTAT_EU5, SIMULATION.Rest_of_AP_Bump_Up_from_EU5);
     
     rr = rr + 1;
-    cMODEL_R{rr} = makeMODEL('ROAP');
+    cMODEL_R{rr} = makeMODEL('ROAP', MODEL_EU5);
     cASSET_R{rr} = ASSET_EU5;    
     cRESTAT_R{rr} = RESTAT_ROAP;
     
@@ -101,7 +103,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     RESTAT_ROEMEA = scaleRestat(RESTAT_EU5, SIMULATION.Rest_of_EMEA_Bump_Up_from_EU5);
     
     rr = rr + 1;
-    cMODEL_R{rr} = makeMODEL('ROEMEA');
+    cMODEL_R{rr} = makeMODEL('ROEMEA', MODEL_EU5);
     cASSET_R{rr} = ASSET_EU5;    
     cRESTAT_R{rr} = RESTAT_ROEMEA;
         
@@ -109,7 +111,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     RESTAT_LA = scaleRestat(RESTAT_EU5, SIMULATION.LA_Bump_Up_from_EU5);
     
     rr = rr + 1;
-    cMODEL_R{rr} = makeMODEL('LA');
+    cMODEL_R{rr} = makeMODEL('LA', MODEL_EU5);
     cASSET_R{rr} = ASSET_EU5;    
     cRESTAT_R{rr} = RESTAT_LA;
     
@@ -117,7 +119,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     [ASSET_EMEA, ESTATREV_EMEA] = sumRestat(ASSET_EU5, RESTAT_EU5, ASSET_EU5, RESTAT_ROEMEA);
     
     rr = rr + 1;
-    cMODEL_R{rr} = makeMODEL('EMEA');
+    cMODEL_R{rr} = makeMODEL('EMEA', MODEL_EU5);
     cASSET_R{rr} = ASSET_EMEA;    
     cRESTAT_R{rr} = ESTATREV_EMEA;
         
@@ -127,7 +129,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     if length(ixUS) == 1
         [ASSET_NA, RESTAT_NA] = sumRestat(ASSET_EU5, RESTAT_CA, cASSET{ixUS}, cRESTAT{ixUS});
         rr = rr + 1;
-        cMODEL_R{rr} = makeMODEL('NA');
+        cMODEL_R{rr} = makeMODEL('NA', MODEL_EU5, cMODEL{ixUS});
         cASSET_R{rr} = ASSET_NA;    
         cRESTAT_R{rr} = RESTAT_NA;
     end
@@ -138,7 +140,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     if length(ixJP) == 1
         [ASSET_AP, RESTAT_AP] = sumRestat(ASSET_EU5, RESTAT_ROAP, cASSET{ixJP}, cRESTAT{ixJP});
         rr = rr + 1;
-        cMODEL_R{rr} = makeMODEL('AP');
+        cMODEL_R{rr} = makeMODEL('AP', MODEL_EU5, cMODEL{ixJP});
         cASSET_R{rr} = ASSET_AP;    
         cRESTAT_R{rr} = RESTAT_AP;
     end
@@ -150,7 +152,9 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
         [ASSET_WW, RESTAT_WW] = sumRestat(ASSET_WW, RESTAT_WW, ASSET_EU5, RESTAT_LA);
         [ASSET_WW, RESTAT_WW] = sumRestat(ASSET_WW, RESTAT_WW, ASSET_EU5, ESTATREV_EMEA);
         rr = rr + 1;
-        cMODEL_R{rr} = makeMODEL('WW');
+        MODEL_WW = makeMODEL('WW', MODEL_EU5, cMODEL{ixUS});
+        MODEL_WW = makeMODEL('WW', MODEL_WW, cMODEL{ixJP});
+        cMODEL_R{rr} = MODEL_WW;
         cASSET_R{rr} = ASSET_WW;    
         cRESTAT_R{rr} = RESTAT_WW;        
     end
@@ -158,10 +162,22 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
 
 end
 
-function MODEL = makeMODEL(countryName)
+function MODEL = makeMODEL(countryName, MODEL1, MODEL2)
     MODEL = struct;
     MODEL.CountrySelected = countryName;
-    MODEL.ScenarioSelected = '';
+    
+    % Make sure scenario selected is consistent across geographies
+    if nargin == 1
+        MODEL.ScenarioSelected = '';
+    elseif nargin == 2
+        MODEL.ScenarioSelected = MODEL1.ScenarioSelected;
+    elseif nargin == 3
+        if strcmp(MODEL1.ScenarioSelected, MODEL2.ScenarioSelected)
+            MODEL.ScenarioSelected = MODEL1.ScenarioSelected;
+        else
+            MODEL.ScenarioSelected = '';
+        end
+    end
 end
 
 
