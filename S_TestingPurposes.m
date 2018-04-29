@@ -249,9 +249,10 @@ celltab = cTableau{4};
 [Nr, Nc] = size(celltab);
 
 filename = 'junkTest4.csv';
-fmt = '%s,%s,%s,%s,%s,%d,%s,%f,%f,%f,%f,%f,%f,%f,%s,%s,%s,%s,%f,%f,%f,%f,%f,%f\n';
+% fmt = '%s,%s,%s,%s,%s,%d,%s,%f,%f,%f,%f,%f,%f,%f,%s,%s,%s,%s,%f,%f,%f,%f,%f,%f\n';
+fmt = '%s,%s,%s,%s,%s,%d,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g\n';
 
-celltab2csv(filename, celltab, fmt);
+% celltab2csv(filename, celltab, fmt);
 
 celltab2csv(filename, celltab(1:1000,:), fmt);
 

@@ -67,7 +67,6 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     for m = 2:length(Locb)  % Locb is index into cMODEL, cASSET, cESTAT matching this EU5 country
         [ASSET_EU5, RESTAT_EU5] = sumRestat(ASSET_EU5, RESTAT_EU5, cASSET{Locb(m)}, cRESTAT{Locb(m)});
     end
-    ASSET_EU5.Scenario_PTRS = '';
         
     cMODEL_R = cell(9, 1);
     cASSET_R = cell(9, 1);

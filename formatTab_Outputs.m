@@ -172,7 +172,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 11} = RESTAT.Branded.Y.Units.(oStats{q})(n, ixYear(p));
                         celltab{rr, 12} = nan;
                         celltab{rr, 13} = nan;
-                        celltab{rr, 14} = nan;
+                        celltab{rr, 14} = ASSET.Scenario_PTRS{n};
                         celltab{rr, 15} = 'None';
                         celltab{rr, 16} = ASSET.Company1{n};
                         celltab{rr, 17} = ASSET.Company2{n};
@@ -199,7 +199,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 else
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};                    
                 end
-                celltab{rr, 14} = nan;
+                celltab{rr, 14} = ASSET.Scenario_PTRS{n};
                 celltab{rr, 15} = 'None';
                 celltab{rr, 16} = ASSET.Company1{n};
                 celltab{rr, 17} = ASSET.Company2{n};
@@ -222,7 +222,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 else
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
                 end
-                celltab{rr, 14} = nan;
+                celltab{rr, 14} = ASSET.Scenario_PTRS{n};
                 celltab{rr, 15} = 'None';
                 celltab{rr, 16} = ASSET.Company1{n};
                 celltab{rr, 17} = ASSET.Company2{n};
