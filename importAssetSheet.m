@@ -135,7 +135,7 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
         'Class_p', 'Class_q', 'LOE_p', 'LOE_q', 'LOE_Pct'};
     
     validateFields(ASSET, assetSheet, fieldsToCheck, Nrows);
-    validateFollowOn(ASSET, assetSheet);
+    ASSET = validateFollowOn(ASSET, assetSheet);
     
     
 %% Change Events
@@ -277,14 +277,16 @@ function validateFields(DATA, sheetName, fieldNames, Nrows)
     end
 end
 
-function validateFollowOn(DATA, sheetName)
-    followOn = DATA.Follow_On(~cellisnan(DATA.Follow_On));
+function DATA = validateFollowOn(DATA, sheetName)
+    ixFO = ~cellisnan(DATA.Follow_On);
+    followOn = DATA.Follow_On(ixFO);
     assetNames = DATA.Assets_Rated;
-    ix = find(~ismember(followOn, assetNames));
-    if ~isempty(ix)
+    [Lia, Locb] = ismember(followOn, assetNames);   
+    if ~all(Lia)
         error('Found a problem in sheet: "%s".  Follow-on name does not exist in the "Assets Rated" column: %s', ...
-            sheetName, strjoin(followOn(ix), ', '));
+            sheetName, strjoin(followOn(~Lia), ', '));
     end
+    DATA.Scenario_PTRS(ixFO) = DATA.Scenario_PTRS(Locb);
 end
 
 function textOut = cleanFieldName(textIn) % create a valid struct field name
