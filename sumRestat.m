@@ -30,6 +30,15 @@ function [ASSET3, RESTAT3] = sumRestat(ASSET1, RESTAT1, ASSET2, RESTAT2)
     ASSET3.Therapy_Class = cell(size(ASSET3.Assets_Rated));
     ASSET3.Therapy_Class(iA1) = ASSET1.Therapy_Class(LocA1(iA1));
     
+    ASSET3.Scenario_PTRS = cell(size(ASSET3.Assets_Rated));
+    ixBoth = iA1 & iA2;
+    ixEq = false(size(ixBoth));
+    ixEq(ixBoth) = cell2mat(ASSET1.Scenario_PTRS(LocA1(ixBoth))) == ...
+                   cell2mat(ASSET2.Scenario_PTRS(LocA2(ixBoth)));
+    ASSET3.Scenario_PTRS(ixEq) = ASSET1.Scenario_PTRS(LocA1(ixEq));
+    ASSET3.Scenario_PTRS(~ixEq) = {nan};
+    
+    % ---------------------------------------------------
     RESTAT3 = struct;
     RESTAT3.Branded.M.DateGrid = RESTAT1.Branded.M.DateGrid;
     RESTAT3.Branded.Y.YearVec = RESTAT1.Branded.Y.YearVec;
