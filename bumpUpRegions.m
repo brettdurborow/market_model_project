@@ -46,9 +46,16 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
     cRESTAT = cell(size(cMODEL));
     statnames = fieldnames(cESTAT{1}.Branded);        
     for m = 1:length(cMODEL)
-        dateGrid = cESTAT{m}.DateGrid;
+        dateGrid = cESTAT{m}.DateGrid;        
+        OUT = computeOutputs(cMODEL{m}, cASSET{m}, dateGrid, cESTAT{m}.Branded.(statnames{1}));  % Just to get the YearVec
+        yearVec = OUT.Y.YearVec;
+        
         RESTAT = struct;
         RESTAT.Branded.M.DateGrid = dateGrid;
+        RESTAT.Branded.Y.YearVec = yearVec;        
+        scenario_PTRS_M = repmat(cell2mat(cASSET{m}.Scenario_PTRS), 1, length(dateGrid));
+        scenario_PTRS_Y = repmat(cell2mat(cASSET{m}.Scenario_PTRS), 1, length(yearVec));
+
         for n = 1:length(statnames)
             monthlyShareMx = cESTAT{m}.Branded.(statnames{n});
             OUT = computeOutputs(cMODEL{m}, cASSET{m}, dateGrid, monthlyShareMx);
@@ -56,8 +63,11 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
             RESTAT.Branded.Y.NetRevenues.(statnames{n}) = OUT.Y.NetRevenues;
             RESTAT.Branded.M.Units.(statnames{n}) = OUT.M.Units;
             RESTAT.Branded.Y.Units.(statnames{n}) = OUT.Y.Units;
+            
+            RESTAT.Branded.M.NetRevenuesNRA.(statnames{n}) = OUT.M.NetRevenues ./ scenario_PTRS_M;            
+            RESTAT.Branded.Y.NetRevenuesNRA.(statnames{n}) = OUT.Y.NetRevenues ./ scenario_PTRS_Y;            
         end
-        RESTAT.Branded.Y.YearVec  = OUT.Y.YearVec;
+
         cRESTAT{m} = RESTAT;
     end
             

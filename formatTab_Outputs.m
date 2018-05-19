@@ -177,7 +177,11 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 15} = 'None';
                         celltab{rr, 16} = ASSET.Company1{n};
                         celltab{rr, 17} = ASSET.Company2{n};
-                        celltab{rr, 18} = ASSET.Therapy_Class{n};                        
+                        celltab{rr, 18} = ASSET.Therapy_Class{n}; 
+                        celltab{rr, 19} = RESTAT.Branded.Y.NetRevenuesNRA.(oStats{q})(n, ixYear(p));
+                        if isnan(ASSET.Scenario_PTRS{n})
+                            celltab{rr, 14} = celltab{rr, 8} / celltab{rr, 19};  % back into PTRS for regions
+                        end
                     end                
                 end
                 
@@ -238,7 +242,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     
     
     % Add "Calculated" Columns (NRA or non-risk-adjusted values)
-    ixR = 2:size(celltab, 1);  % skip the header
+    ixR = find(cellisempty(celltab(:,19)));  % Regions already have a value for RevenuesNRA.  
     cD = 14; % Denominator column: PTRS%
     cN = 8; % Numerator column: Branded Net Revenues
     celltab(ixR,19) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
