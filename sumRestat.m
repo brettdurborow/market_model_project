@@ -44,7 +44,7 @@ function [ASSET3, RESTAT3] = sumRestat(ASSET1, RESTAT1, ASSET2, RESTAT2)
     RESTAT3.Branded.M.DateGrid = RESTAT1.Branded.M.DateGrid;
     RESTAT3.Branded.Y.YearVec = RESTAT1.Branded.Y.YearVec;
     
-    metricnames = {'NetRevenues', 'Units', 'NetRevenuesNRA'};
+    metricnames = {'NetRevenues', 'Units', 'NetRevenuesNRA', 'UnitsNRA'};
     statnames = fieldnames(RESTAT1.Branded.M.NetRevenues);
     
     for m = 1:length(metricnames)
