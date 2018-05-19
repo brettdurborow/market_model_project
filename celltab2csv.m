@@ -22,7 +22,7 @@ function celltab2csv(filename, celltab, fmt)
 
     fid = fopen(filename, 'w');
     fprintf(fid, fmt1, celltab{1,:});  % write header row
-    for m = 2:Nr-1
+    for m = 2:Nr
         fprintf(fid, fmt, celltab{m,:});
     end
     fclose(fid);
