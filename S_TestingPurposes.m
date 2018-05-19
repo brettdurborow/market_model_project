@@ -260,3 +260,15 @@ celltab2csv(filename, celltab(1:1000,:), fmt);
 
 fmt = '%s,%s,%s,%s,%s,%d,%f,%f,%f,%f,%f,%f,%f\n';
 celltab2csv('junkTest3.csv', cTableau{3}, fmt);
+
+%%
+[cTable, cFormat] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH);
+cFileName = fullfile(outFolder, 'Outputs_Test.csv');
+
+if ~exist(outFolder, 'dir')
+    mkdir(outFolder)
+end
+
+for m = 1:length(cTables)
+    celltab2csv(cFileName, cTable, cFormat);   
+end
