@@ -179,6 +179,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 17} = ASSET.Company2{n};
                         celltab{rr, 18} = ASSET.Therapy_Class{n}; 
                         celltab{rr, 19} = RESTAT.Branded.Y.NetRevenuesNRA.(oStats{q})(n, ixYear(p));
+                        celltab{rr, 22} = RESTAT.Branded.Y.UnitsNRA.(oStats{q})(n, ixYear(p));
                         if isnan(ASSET.Scenario_PTRS{n})
                             celltab{rr, 14} = celltab{rr, 8} / celltab{rr, 19};  % back into PTRS for regions
                         end
