@@ -12,7 +12,8 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                'Molecule Point Share (NRA)', 'Molecule Patient Share (NRA)'};
            
     %fmt = '%s,%s,%s,%s,%s,%d,%s,%f,%f,%f,%f,%f,%f,%f,%s,%s,%s,%s,%f,%f,%f,%f,%f,%f\n';  % for writing to CSV     
-    fmt = '%s,%s,%s,%s,%s,%d,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g\n';
+    %fmt = '%s,%s,%s,%s,%s,%d,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.8g,%.8g,%.8g,%.8g,%.8g,%.8g\n';
+    fmt = '%s,%s,%s,%s,%s,%d,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g\n';
       
     
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
