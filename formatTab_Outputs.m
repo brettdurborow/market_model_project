@@ -263,4 +263,9 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     cN = 13; % Numerator column: Molecule Patient Share
     celltab(ixR,24) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
     
+    % Blank-out the NRA values for Percentiles and StdErr (they only make sense for Mean)
+    ixOk = strcmpi(celltab(:,5), 'Mean');
+    ixOk(1) = true; % keep header row
+    celltab(~ixOk, 19:24) = {[]};
+    
 end    
