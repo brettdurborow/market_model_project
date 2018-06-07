@@ -38,7 +38,7 @@ function cCNSTR = getConstraints(cASSET)
         end
         riskyProb(n) = num / den;
     end
-    [riskyProb, ix] = sort(riskyProb, 'descend');
+    [riskyProb, ix] = sort(riskyProb, 'ascend');
     riskyAssets = riskyAssets(ix);
     ixIsRisky = find(ismember(ASSET.Assets_Rated, riskyAssets));
 
@@ -54,7 +54,7 @@ function cCNSTR = getConstraints(cASSET)
     cCNSTR = cell(conSetLen, 0);
     cCNSTR{1,1} = makeConstraint(1, riskyAssets, zeros(size(riskyAssets)));
     nn = 1;
-    for m = 1:length(riskyAssets)
+    for m = length(riskyAssets):-1:1
         constraintValues = zeros(size(riskyAssets));
         constraintValues(m) = ON;
         prob = riskyProb(m);
@@ -80,17 +80,22 @@ end
 
 function name = makeConstraintName(constraintAssets, constraintValues)
     NONE = 0;  ON = 1;  OFF = 2;  % possible constraint values
-    name = '';
-    for n = 1:length(constraintAssets)
-        if constraintValues(n) == ON
-            name = [name, '+', upper(constraintAssets{n}(1:3))];
-        elseif constraintValues(n) == OFF
-            name = [name, '-', upper(constraintAssets{n}(1:3))];
-        end
-    end
-    if isempty(name)
+    if all(constraintValues == 0)
         name = 'None';
+    else
+        name = sprintf('CNSTR_%d', base2num(constraintValues, 3));
     end
+%     name = '';
+%     for n = 1:length(constraintAssets)
+%         if constraintValues(n) == ON
+%             name = [name, '+', upper(constraintAssets{n}(1:4))];
+%         elseif constraintValues(n) == OFF
+%             name = [name, '-', upper(constraintAssets{n}(1:4))];
+%         end
+%     end
+%     if isempty(name)
+%         name = 'None';
+%     end
 end
 
 %%

@@ -180,27 +180,27 @@ function MODEL = makeMODEL(countryName, MODEL1, MODEL2)
     
     % Handle ConstraintName.  Make sure they match
     if nargin == 1
-        MODEL.ConstraintName = '';
+        error('makeMODEL() must have at least two inputs');
     elseif nargin == 2
         MODEL.ConstraintName = MODEL1.ConstraintName;
     elseif nargin == 3
         if strcmp(MODEL1.ConstraintName, MODEL2.ConstraintName)
             MODEL.ConstraintName = MODEL1.ConstraintName;
         else
-            MODEL.ConstraintName = '';
+            MODEL.ConstraintName = 'INCONSISTENT';
         end
-    end    
+    end
     
     % Make sure scenario selected is consistent across geographies
     if nargin == 1
-        MODEL.ScenarioSelected = '';
+        error('makeMODEL() must have at least two inputs');
     elseif nargin == 2
         MODEL.ScenarioSelected = MODEL1.ScenarioSelected;
     elseif nargin == 3
         if strcmp(MODEL1.ScenarioSelected, MODEL2.ScenarioSelected)
             MODEL.ScenarioSelected = MODEL1.ScenarioSelected;
         else
-            MODEL.ScenarioSelected = '';
+            MODEL.ScenarioSelected = 'INCONSISTENT';
         end
     end
 end

@@ -13,6 +13,7 @@ function marketSimGUI()
     numWorkers = numCores-1;
     numIterations = 1000;
     resultsFolderPath = '';
+    isCancel = false;
     
     
 %% Create and Size the GUI
@@ -139,7 +140,10 @@ function marketSimGUI()
     set(hF, 'Visible', 'on'); % Make the GUI visible
     set(hF, 'MenuBar', 'none', ...
             'ToolBar', 'none');
-        
+    jhEditStatus = findjobj(hEditStatus);   % Find underlying Java control peer for edit box
+    jEditStatus = jhEditStatus.getComponent(0).getComponent(0); % get the scroll-pane's internal edit control
+    jEditScroll = jhEditStatus.getVerticalScrollBar;
+    
 %% Helper Functions
 
     function addStatusMsg(msg)
@@ -150,6 +154,10 @@ function marketSimGUI()
             msgFull = [oldMsg; msg];
         end
         set(hEditStatus, 'String', msgFull);
+        drawnow;
+        jEditStatus.setCaretPosition(jEditStatus.getDocument.getLength);  % set to last line in the box
+        jEditScroll.setValue(jEditScroll.getMaximum);
+        jhEditStatus.repaint;        
     end
 
     function [assetSheets, ceSheets, simuSheet] = checkInputSheets(fileName)
@@ -256,7 +264,7 @@ function marketSimGUI()
     end
 
     function cb_RunSim(source, eventdata)
-        
+        isCancel = false;        
         if ~isOkInput || ~isOkOutput
             addStatusMsg('Unable to Run Simulation!  Please check Input and Output paths');
             return;
@@ -270,17 +278,22 @@ function marketSimGUI()
             BENCH.(fnames{m}) = nan(size(cMODEL));
         end
         
+        warning('off', 'MATLAB:xlswrite:AddSheet'); % Suppress the annoying warnings
         runTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime       
         outFolder = fullfile(resultsFolderPath, sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
         if ~exist(outFolder, 'dir')
             mkdir(outFolder)
         end
-        outFileName = fullfile(outFolder, sprintf('ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+%         outFileName = fullfile(outFolder, sprintf('ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
         
         ccMODEL = cell(length(cMODEL), length(cCNSTR));
         ccASSET = cell(length(cMODEL), length(cCNSTR));
         ccESTAT = cell(length(cMODEL), length(cCNSTR));
         for m = 1:length(cMODEL)
+            if isCancel
+                isCancel = false;
+                return;
+            end
             MODEL = cMODEL{m};
             ASSET = cASSET{m};
             CHANGE = cCHANGE{m};
@@ -300,14 +313,13 @@ function marketSimGUI()
                 ccESTAT{m,n} = c;
             end
             
-            MODEL = ccMODEL{m,1};  % First column is the simulation without constraints
-            ASSET = ccASSET{m,1};
-            ESTAT = ccESTAT{m,1};
-            
-            OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-            OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
-            OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
-            addStatusMsg(sprintf('Wrote to file: %s', outFileName));
+%             MODEL = ccMODEL{m,1};  % First column is the simulation without constraints
+%             ASSET = ccASSET{m,1};
+%             ESTAT = ccESTAT{m,1};            
+%             OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+%             OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
+%             OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+%             addStatusMsg(sprintf('Wrote to file: %s', outFileName));
             
             msg = sprintf('Country:%s, Ran %d iterations, Elapsed time = %1.1f sec, Cume time = %1.1f\n', ...
                     MODEL.CountrySelected, numIterations, tExec, toc(tStart));
@@ -315,31 +327,37 @@ function marketSimGUI()
         end
         BENCH.RunTime = repmat(runTime, size(BENCH.NumIterations));
               
-        cMODEL = ccMODEL(:,1);  % First column is the unconstrained simulation
-        cASSET = ccASSET(:,1);
-        cESTAT = ccESTAT(:,1);
-        xlsFileName = fullfile(resultsFolderPath, sprintf('TableauData_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
-        [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
-        addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
+%         cMODEL = ccMODEL(:,1);  % First column is the unconstrained simulation
+%         cASSET = ccASSET(:,1);
+%         cESTAT = ccESTAT(:,1);
+%         xlsFileName = fullfile(resultsFolderPath, sprintf('TableauData_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+%         [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
+%         addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
 
         
         for n = 1:length(cCNSTR)
+            if isCancel
+                isCancel = false;
+                return;
+            end
             cMODEL = ccMODEL(:,n);
             cASSET = ccASSET(:,n);
             cESTAT = ccESTAT(:,n);
             cname = cCNSTR{n}.ConstraintName;
             if strcmpi(cname, 'None')
-                outFolder = fullfile('Output', sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+                outFolderSub = outFolder;
             else
-                outFolder = fullfile('Output', sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')), cname);
+                outFolderSub = fullfile(outFolder, cname);
             end
-            [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH);
+            msg = sprintf('Writing outputs for Constraints: %s, Cume time = %1.1f sec', cname, toc(tStart));
+            addStatusMsg(msg);
+            [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
         end
 
 
         %% Produce various outputs for a single realization
 
-        doPlots = true;
+        doPlots = false;
         
         if doPlots            
             figure; semilogy(dateGrid, OUT_Molecule.M.PointShare); datetick; grid on; 
@@ -362,14 +380,15 @@ function marketSimGUI()
 
 
         tElapsed = toc(tStart);
-        msg = sprintf('Run complete, elapsed time = %1.2f sec\n', tElapsed);
+        msg = sprintf('\nRun complete, elapsed time = %1.2f sec\n', tElapsed);
         addStatusMsg(msg);
         
     end
 
     function cb_Cancel(source, eventdata)
-        msg = 'User manually canceled operation by pressing the "Cancel" button.';
+        msg = sprintf('User manually canceled operation by pressing the "Cancel" button.\n');
         addStatusMsg(msg);
+        isCancel = true;
         myPool = gcp('nocreate');
         try
             delete(myPool);

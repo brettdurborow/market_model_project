@@ -18,7 +18,7 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 %% Run many realizations, collect stats at the end
 
-numIterations = 10;
+numIterations = 100;
 numWorkers = 3;
 
 fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
@@ -87,11 +87,11 @@ for n = 1:length(cCNSTR)
     cESTAT = ccESTAT(:,n);
     cname = cCNSTR{n}.ConstraintName;
     if strcmpi(cname, 'None')
-        outFolder = fullfile('Output', sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+        outFolderSub = outFolder;
     else
-        outFolder = fullfile('Output', sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')), cname);
+        outFolderSub = fullfile(outFolder, cname);
     end
-    [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH);
+    [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
 end
 
 

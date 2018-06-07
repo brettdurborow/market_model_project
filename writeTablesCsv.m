@@ -1,4 +1,4 @@
-function [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH)
+function [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, cCNSTR, BENCH)
 % Produces several output tables from the simulation results.
 % Creates a new folder, then writes a CSV file for each table.
 
@@ -17,6 +17,9 @@ function [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTA
     
     [cTables{end+1}, cFormats{end+1}] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH);
     cFileNames{end+1} = fullfile(outFolder, 'Outputs.csv');
+    
+    [cTables{end+1}, cFormats{end+1}] = formatTab_CNSTR(cCNSTR);  % Create output tables for Tableau
+    cFileNames{end+1} = fullfile(outFolder, 'Constraints.csv');
     
     if ~exist(outFolder, 'dir')
         mkdir(outFolder)
