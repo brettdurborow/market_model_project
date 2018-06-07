@@ -263,14 +263,23 @@ function marketSimGUI()
         end
         
         tStart = tic;
+        cCNSTR = getConstraints(cASSET);
         fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
         BENCH = struct;  % intialize the benchmark struct
         for m = 1:length(fnames)
             BENCH.(fnames{m}) = nan(size(cMODEL));
         end
-        outFileName = fullfile(resultsFolderPath, sprintf('ModelOutputs_%s.xlsx', datestr(now, 'yyyy-mm-dd_HHMMSS')));
         
-        cESTAT = cell(size(cMODEL));
+        runTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime       
+        outFolder = fullfile(resultsFolderPath, sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+        if ~exist(outFolder, 'dir')
+            mkdir(outFolder)
+        end
+        outFileName = fullfile(outFolder, sprintf('ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+        
+        ccMODEL = cell(length(cMODEL), length(cCNSTR));
+        ccASSET = cell(length(cMODEL), length(cCNSTR));
+        ccESTAT = cell(length(cMODEL), length(cCNSTR));
         for m = 1:length(cMODEL)
             MODEL = cMODEL{m};
             ASSET = cASSET{m};
@@ -284,8 +293,16 @@ function marketSimGUI()
             BENCH.NumWorkers(m) = numWorkers;
             BENCH.ExecutionTime(m) = tExec;  % Tries to exclude time to setup worker pool on first call
 
-            ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
-            cESTAT{m} = ESTAT;
+            for n = 1:length(cCNSTR)
+                [a, b, c] = applyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid);
+                ccMODEL{m,n} = a;
+                ccASSET{m,n} = b;
+                ccESTAT{m,n} = c;
+            end
+            
+            MODEL = ccMODEL{m,1};  % First column is the simulation without constraints
+            ASSET = ccASSET{m,1};
+            ESTAT = ccESTAT{m,1};
             
             OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
             OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
@@ -296,13 +313,28 @@ function marketSimGUI()
                     MODEL.CountrySelected, numIterations, tExec, toc(tStart));
             addStatusMsg(msg);
         end
-        endTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime
-        BENCH.RunTime = repmat(endTime, size(BENCH.NumIterations));
-               
-        xlsFileName = fullfile(resultsFolderPath, sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
+        BENCH.RunTime = repmat(runTime, size(BENCH.NumIterations));
+              
+        cMODEL = ccMODEL(:,1);  % First column is the unconstrained simulation
+        cASSET = ccASSET(:,1);
+        cESTAT = ccESTAT(:,1);
+        xlsFileName = fullfile(resultsFolderPath, sprintf('TableauData_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
         [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
         addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
 
+        
+        for n = 1:length(cCNSTR)
+            cMODEL = ccMODEL(:,n);
+            cASSET = ccASSET(:,n);
+            cESTAT = ccESTAT(:,n);
+            cname = cCNSTR{n}.ConstraintName;
+            if strcmpi(cname, 'None')
+                outFolder = fullfile('Output', sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+            else
+                outFolder = fullfile('Output', sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')), cname);
+            end
+            [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH);
+        end
 
 
         %% Produce various outputs for a single realization

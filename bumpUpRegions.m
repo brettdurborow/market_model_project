@@ -178,6 +178,19 @@ function MODEL = makeMODEL(countryName, MODEL1, MODEL2)
     MODEL = struct;
     MODEL.CountrySelected = countryName;
     
+    % Handle ConstraintName.  Make sure they match
+    if nargin == 1
+        MODEL.ConstraintName = '';
+    elseif nargin == 2
+        MODEL.ConstraintName = MODEL1.ConstraintName;
+    elseif nargin == 3
+        if strcmp(MODEL1.ConstraintName, MODEL2.ConstraintName)
+            MODEL.ConstraintName = MODEL1.ConstraintName;
+        else
+            MODEL.ConstraintName = '';
+        end
+    end    
+    
     % Make sure scenario selected is consistent across geographies
     if nargin == 1
         MODEL.ScenarioSelected = '';
