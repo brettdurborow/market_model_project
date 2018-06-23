@@ -64,6 +64,7 @@ for m = 1:length(cMODEL)
     ESTAT = ccESTAT{m,1};
 
     outFileName = fullfile(outFolder, sprintf('S_ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+    warning('off', 'MATLAB:xlswrite:AddSheet'); % Suppress the annoying warnings
     OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
     OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
     OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
@@ -86,11 +87,8 @@ for n = 1:length(cCNSTR)
     cASSET = ccASSET(:,n);
     cESTAT = ccESTAT(:,n);
     cname = cCNSTR{n}.ConstraintName;
-    if strcmpi(cname, 'None')
-        outFolderSub = outFolder;
-    else
-        outFolderSub = fullfile(outFolder, cname);
-    end
+    outFolderSub = fullfile(outFolder, cname);
+    
     [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
 end
 
