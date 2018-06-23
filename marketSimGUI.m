@@ -344,11 +344,8 @@ function marketSimGUI()
             cASSET = ccASSET(:,n);
             cESTAT = ccESTAT(:,n);
             cname = cCNSTR{n}.ConstraintName;
-            if strcmpi(cname, 'None')
-                outFolderSub = outFolder;
-            else
-                outFolderSub = fullfile(outFolder, cname);
-            end
+            outFolderSub = fullfile(outFolder, cname);
+            
             msg = sprintf('Writing outputs for Constraints: %s, Cume time = %1.1f sec', cname, toc(tStart));
             addStatusMsg(msg);
             [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);

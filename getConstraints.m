@@ -78,22 +78,7 @@ end
 
 function name = makeConstraintName(constraintAssets, constraintValues)
     NONE = 0;  ON = 1;  OFF = 2;  % possible constraint values
-    if all(constraintValues == 0)
-        name = 'None';
-    else
-        name = sprintf('CNSTR_%d', base2num(constraintValues, 3));
-    end
-%     name = '';
-%     for n = 1:length(constraintAssets)
-%         if constraintValues(n) == ON
-%             name = [name, '+', upper(constraintAssets{n}(1:4))];
-%         elseif constraintValues(n) == OFF
-%             name = [name, '-', upper(constraintAssets{n}(1:4))];
-%         end
-%     end
-%     if isempty(name)
-%         name = 'None';
-%     end
+    name = sprintf('CNSTR_%d', base2num(constraintValues, 3));
 end
 
 %%
