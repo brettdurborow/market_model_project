@@ -14,7 +14,7 @@ function celltab2csv(filename, celltab, fmt)
         celltab(ix,m) = cell(sum(ix),1);
         
         if ~isempty(strfind(cFmt{m}, 's'))  % Remove commas so they don't break the format
-            ix = cellfun(@ischar,celltab(:,m));
+            ix = cellfun(@ischar, celltab(:,m));
             celltab(ix,m) = strrep(celltab(ix,m), ',', '');           
         end
     end

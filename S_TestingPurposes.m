@@ -272,3 +272,9 @@ end
 for m = 1:length(cTables)
     celltab2csv(cFileName, cTable, cFormat);   
 end
+
+%%
+
+sz = cellfun(@(C) subsref(structFieldBytes(C), substruct('.', 'Total')), ccESTAT);
+figure; bar(sz);
+memoryPerConstraint = sum(sz(:,1));

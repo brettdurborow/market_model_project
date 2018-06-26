@@ -18,7 +18,7 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 %% Run many realizations, collect stats at the end
 
-numIterations = 100;
+numIterations = 1000;
 numWorkers = 3;
 
 fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
@@ -81,6 +81,8 @@ cESTAT = ccESTAT(:,1);
 
 xlsFileName = fullfile(outFolder, sprintf('TableauData_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
 [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
+
+%% Write out the constraints
 
 for n = 1:length(cCNSTR)
     cMODEL = ccMODEL(:,n);

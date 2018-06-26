@@ -18,10 +18,11 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx, doAnnual)
     
     OUT.M.PricePerDot = zeros(size(monthlyShareMx));
     OUT.M.GTN = zeros(size(monthlyShareMx));
+    [dateGridYear, ~, ~] = datevec(dateGrid);
     for m = 1:length(ASSET.Assets_Rated)
-        OUT.M.PricePerDot(m,:) = cappedGrowth(dateGrid, ASSET.Launch_Year{m}, ASSET.Launch_Price_DOT{m}, ...
+        OUT.M.PricePerDot(m,:) = cappedGrowth(dateGridYear, ASSET.Launch_Year{m}, ASSET.Launch_Price_DOT{m}, ...
                                             ASSET.Price_Change{m}, ASSET.Price_Ceiling_Floor{m});       
-        OUT.M.GTN(m,:) = cappedGrowth(dateGrid, ASSET.Launch_Year{m}, ASSET.GTN_Pct{m}, ...
+        OUT.M.GTN(m,:) = cappedGrowth(dateGridYear, ASSET.Launch_Year{m}, ASSET.GTN_Pct{m}, ...
                                     ASSET.GTN_Change{m}, ASSET.GTN_Ceiling_Floor{m});       
     end
     
