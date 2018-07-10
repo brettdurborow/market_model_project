@@ -1,11 +1,12 @@
 function [MODEL, ASSET, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET, ...
-                                SimCubeBranded, SimCubeMolecule, dateGrid)                                                       
+                                                    SimCubeBranded, SimCubeMolecule, dateGrid)                                                       
     % for a given constraint, compute the ensemble stats from just those rows of
     % the SimCubeBranded and SimCubeMolecule that satisfy the constraint.  
 
     NONE = 0;  ON = 1;  OFF = 2;  % possible constraint values
     
     MODEL.ConstraintName = CNSTR.ConstraintName;  % goes to output
+    MODEL.ConstraintProbability = CNSTR.Probability;
 
     Nrealizations = size(SimCubeBranded, 1);  % first dimension is the # of realizations
     ixExclude = false(Nrealizations, 1);
@@ -13,6 +14,7 @@ function [MODEL, ASSET, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET, ...
     
     if isempty(ixA)  % There were no constraints
         ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid);
+        MODEL.ConstraintRealizationCount = Nrealizations; % goes to output
     else
         for m = 1:length(ixA)
             ixRow = find(strcmpi(CNSTR.ConstraintAssets{ixA(m)}, ASSET.Assets_Rated));
@@ -40,6 +42,7 @@ function [MODEL, ASSET, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET, ...
     
         ESTAT = computeEnsembleStats(SimCubeBranded(~ixExclude,:,:), ...
                                      SimCubeMolecule(~ixExclude,:,:), dateGrid);
+        MODEL.ConstraintRealizationCount = sum(~ixExclude); % goes to output
     end
     
 end

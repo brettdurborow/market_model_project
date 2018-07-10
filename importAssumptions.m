@@ -91,21 +91,6 @@ end
 
 %%  Helper functions
 
-function DATA = parseColumn(DATA, xlsRaw, ixHeader, columnName, fieldName, isExact)
-    if nargin < 6
-        isExact = true;
-    end
-    if isExact
-        ixCol = find(strcmpi(columnName, xlsRaw(ixHeader, :)));
-    else
-        ixCol = find(strncmpi(columnName, xlsRaw(ixHeader, :), length(columnName)));
-    end
-    colOut = xlsRaw(ixHeader+1:end, ixCol);
-    if ~exist('fieldName', 'var') || isempty(fieldName)
-        fieldName = cleanFieldName(cleanFieldName(xlsRaw{ixHeader, ixCol}));
-    end
-    DATA.(fieldName) = colOut;
-end
 
 function raw = removeEmptyTrailing(raw)
     [Nr, Nc] = size(raw);
@@ -126,21 +111,6 @@ function raw = removeEmptyTrailing(raw)
         end        
     end
     raw = raw(~ixNullRow, ~ixNullCol);
-end
-
-function validateFields(DATA, sheetName, fieldNames, Nrows)
-    validMx = false(Nrows, length(fieldNames));
-    for m = 1:length(fieldNames)
-        validMx(:,m) = ~cellisnan(DATA.(fieldNames{m}));
-    end
-    ixAll = all(validMx, 2);
-    ixAny = any(validMx, 2);
-    ixErr = ixAny & ~ixAll;
-    if any(ixErr)
-        ixErrCol = any(~validMx(ixErr,:), 1);
-        error('Found missing data in sheet: "%s". Please ensure each row is either empty or complete. Problem columns: %s', ...
-            sheetName, strjoin(fieldNames(ixErrCol), ', '));
-    end
 end
 
 function textOut = cleanFieldName(textIn) % create a valid struct field name
