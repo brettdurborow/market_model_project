@@ -18,7 +18,7 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 %% Run many realizations, collect stats at the end
 
-numIterations = 1000;
+numIterations = 100;
 numWorkers = 3;
 
 fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
@@ -63,11 +63,11 @@ for m = 1:length(cMODEL)
     ASSET = ccASSET{m,1};
     ESTAT = ccESTAT{m,1};
 
-    outFileName = fullfile(outFolder, sprintf('S_ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
-    warning('off', 'MATLAB:xlswrite:AddSheet'); % Suppress the annoying warnings
-    OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-    OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
-    OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+%     outFileName = fullfile(outFolder, sprintf('S_ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+%     warning('off', 'MATLAB:xlswrite:AddSheet'); % Suppress the annoying warnings
+%     OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+%     OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
+%     OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
         
     fprintf('Country:%s, Computed Ensemble Outputs, elapsed time = %1.1f sec\n', ...
             MODEL.CountrySelected, toc(tStart));
