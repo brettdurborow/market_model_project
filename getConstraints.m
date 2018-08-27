@@ -75,12 +75,13 @@ function cCNSTR = getConstraints(cASSET)
     end
     
     % For just the Ph3 and Ph2b assets, find ALL combinations with prob > 0.1
-    ixPhase2b3 = find(contains(riskyPhase, '3') | contains(riskyPhase, '2b'));
-    Len2b3 = length(ixPhase2b3);
+    ixPhase2b3Reg = find(contains(riskyPhase, '3') | contains(riskyPhase, '2b') ...
+                 | contains(upper(riskyPhase), 'REG'));
+    Len2b3 = length(ixPhase2b3Reg);
     Mmax = base2num(2 * ones(1, Len2b3), 3);
     for m = 1:Mmax
         constraintValues = zeros(size(riskyAssets));
-        constraintValues(ixPhase2b3) = num2base(m, 3, Len2b3);
+        constraintValues(ixPhase2b3Reg) = num2base(m, 3, Len2b3);
         prob = prod([riskyProb(constraintValues == ON); 1-riskyProb(constraintValues == OFF)]);
         if prob >= p0
             nn = nn + 1;

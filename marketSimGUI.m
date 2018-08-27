@@ -306,7 +306,7 @@ function marketSimGUI()
             BENCH.NumWorkers(m) = numWorkers;
             BENCH.ExecutionTime(m) = tExec;  % Tries to exclude time to setup worker pool on first call
 
-            for n = 1:length(cCNSTR)
+            parfor n = 1:length(cCNSTR)
                 [a, b, c] = applyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid);
                 ccMODEL{m,n} = a;
                 ccASSET{m,n} = b;
