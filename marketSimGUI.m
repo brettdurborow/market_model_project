@@ -335,20 +335,50 @@ function marketSimGUI()
 %         addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
 
         
-        for n = 1:length(cCNSTR)
-            if isCancel
-                isCancel = false;
-                return;
+%         for n = 1:length(cCNSTR)
+%             if isCancel
+%                 isCancel = false;
+%                 return;
+%             end
+%             cMODEL = ccMODEL(:,n);
+%             cASSET = ccASSET(:,n);
+%             cESTAT = ccESTAT(:,n);
+%             cname = cCNSTR{n}.ConstraintName;
+%             outFolderSub = fullfile(outFolder, cname);
+%             
+%             msg = sprintf('Writing outputs for Constraints: %s, Cume time = %1.1f sec', cname, toc(tStart));
+%             addStatusMsg(msg);
+%             [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
+%         end
+        
+        
+        clear cESTAT SimCubeBranded SimCubeMolecule
+
+        % Reorganize the memory to reduce interprocess communication
+        cESTATc = cell(size(cCNSTR));
+        cMODELc = cell(size(cCNSTR));
+        cASSETc = cell(size(cCNSTR));
+        for n = 1:length(cESTATc)
+           cESTATc{n} = ccESTAT(:,n); 
+           cMODELc{n} = ccMODEL(:,n);
+           cASSETc{n} = ccASSET(:,n);
+        end
+
+        % Break into smaller parfor loops, again to reduce IPC
+        startVec =  1:numWorkers:length(cCNSTR);
+        endVec = startVec + numWorkers - 1;
+        endVec(end) = length(cCNSTR);
+        for m = 1:length(startVec)
+            cname1 = cCNSTR{startVec(m)}.ConstraintName;
+            cname2 = cCNSTR{endVec(m)}.ConstraintName;
+            msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
+            addStatusMsg(msg);            
+            parfor n = startVec(m):endVec(m)
+                cname = cCNSTR{n}.ConstraintName;
+                outFolderSub = fullfile(outFolder, cname);
+
+                [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
             end
-            cMODEL = ccMODEL(:,n);
-            cASSET = ccASSET(:,n);
-            cESTAT = ccESTAT(:,n);
-            cname = cCNSTR{n}.ConstraintName;
-            outFolderSub = fullfile(outFolder, cname);
-            
-            msg = sprintf('Writing outputs for Constraints: %s, Cume time = %1.1f sec', cname, toc(tStart));
-            addStatusMsg(msg);
-            [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
         end
 
 

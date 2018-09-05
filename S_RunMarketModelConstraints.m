@@ -80,20 +80,35 @@ cASSET = ccASSET(:,1);
 cESTAT = ccESTAT(:,1);
 
 xlsFileName = fullfile(outFolder, sprintf('TableauData_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
-[cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
+[~, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
 
 %% Write out the constraints
 
-for n = 1:length(cCNSTR)
-    cMODEL = ccMODEL(:,n);
-    cASSET = ccASSET(:,n);
-    cESTAT = ccESTAT(:,n);
-    cname = cCNSTR{n}.ConstraintName;
-    outFolderSub = fullfile(outFolder, cname);
-    
-    [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
+clear cESTAT SimCubeBranded SimCubeMolecule
+
+cESTATc = cell(size(cCNSTR));
+cMODELc = cell(size(cCNSTR));
+cASSETc = cell(size(cCNSTR));
+for n = 1:length(cESTATc)
+   cESTATc{n} = ccESTAT(:,n); 
+   cMODELc{n} = ccMODEL(:,n);
+   cASSETc{n} = ccASSET(:,n);
 end
 
+ticBytes(gcp);
+nWork = 3;
+startVec =  1:nWork:length(cCNSTR);
+endVec = startVec + nWork - 1;
+endVec(end) = length(cCNSTR);
+for m = 1:length(startVec)
+    parfor n = startVec(m):endVec(m)
+        cname = cCNSTR{n}.ConstraintName;
+        outFolderSub = fullfile(outFolder, cname);
+
+        [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
+    end
+end
+tocBytes(gcp)
 
 tElapsed = toc(tStart);
 fprintf('Run complete, elapsed time = %1.2f sec\n', tElapsed);
