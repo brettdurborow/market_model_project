@@ -194,10 +194,11 @@ function marketSimGUI()
     function cb_Exit(source, eventdata)
         strAnswer = questdlg('Are you sure you want to exit?', 'Exit the application?', 'OK', 'Cancel', 'OK');
 
+        cb_Cancel(source, eventdata);
         if strcmp(strAnswer, 'OK')
             delete(hF);
         end
-    end   
+    end
 
     function cb_BrowseOutput(source, eventdata)
         foldername = uigetdir(); 
@@ -373,11 +374,11 @@ function marketSimGUI()
             cname2 = cCNSTR{endVec(m)}.ConstraintName;
             msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
             addStatusMsg(msg);            
-            parfor n = startVec(m):endVec(m)
+            parfor n = startVec(m):endVec(m)  
                 cname = cCNSTR{n}.ConstraintName;
                 outFolderSub = fullfile(outFolder, cname);
 
-                [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
+                [~, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
             end
         end
 

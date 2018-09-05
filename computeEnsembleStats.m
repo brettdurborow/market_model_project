@@ -14,7 +14,7 @@ function ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid)
     prctile_cube_m = prctile(SimCubeMolecule, prctile_list, 1);
     
     ESTAT.Branded.Mean  = shiftdim(mean(SimCubeBranded, 1));
-    ESTAT.Branded.StdErr = shiftdim(std(SimCubeBranded, 1)) / sqrt(N);
+    ESTAT.Branded.StdErr = shiftdim(std(SimCubeBranded, 0, 1)) / sqrt(N);
     ESTAT.Branded.Pct01 = shiftdim(prctile_cube_b(1,:,:));   
     ESTAT.Branded.Pct05 = shiftdim(prctile_cube_b(2,:,:));  
     ESTAT.Branded.Pct10 = shiftdim(prctile_cube_b(3,:,:)); 
@@ -38,7 +38,7 @@ function ESTAT = computeEnsembleStats(SimCubeBranded, SimCubeMolecule, dateGrid)
     ESTAT.Branded.Pct99 = shiftdim(prctile_cube_b(21,:,:)); 
         
     ESTAT.Molecule.Mean  = shiftdim(mean(SimCubeMolecule, 1));
-    ESTAT.Molecule.StdErr = shiftdim(std(SimCubeMolecule, 1)) / sqrt(N);
+    ESTAT.Molecule.StdErr = shiftdim(std(SimCubeMolecule, 0, 1)) / sqrt(N);
     ESTAT.Molecule.Pct01 = shiftdim(prctile_cube_m(1,:,:));   
     ESTAT.Molecule.Pct05 = shiftdim(prctile_cube_m(2,:,:));   
     ESTAT.Molecule.Pct10 = shiftdim(prctile_cube_m(3,:,:));   
