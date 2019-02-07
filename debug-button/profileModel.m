@@ -1,14 +1,14 @@
 function share = profileModel(MODEL, ASSET, CHANGE, CLASS, isLaunch, isChange, eventDate)
 
     %% for each active Asset within a Therapy Class
-    
-    ixA = strcmp(MODEL.CountrySelected, ASSET.Country) ...
+    % Replaces strcmp(MODEL.CountrySelected, ASSET.Country)
+    ixA = MODEL.CountrySelected == ASSET.Country ...
           & isLaunch ...
           & ASSET.Launch_Date <= eventDate;  % assets in-country, launched and active on eventDate
 
-    score = cell2mat(ASSET.Efficacy(ixA)) + ...
-            cell2mat(ASSET.S_T(ixA)) + ...
-            cell2mat(ASSET.Delivery(ixA));
+    score = ASSET.Efficacy(ixA) + ...
+            ASSET.S_T(ixA) + ...
+            ASSET.Delivery(ixA);
     therapyClass = ASSET.Therapy_Class(ixA);
     
     
@@ -41,10 +41,12 @@ function share = profileModel(MODEL, ASSET, CHANGE, CLASS, isLaunch, isChange, e
     bestInClass = nan(size(CLASS.Therapy_Class));
     shareWithinClass = nan(size(elasticScore));
     for m = 1:length(bestInClass)
-        thisClass = CLASS.Therapy_Class{m};
-        ixClass = strcmp(thisClass, therapyClass);
+        thisClass = CLASS.Therapy_Class(m);
+        ixClass = thisClass == therapyClass;
         if sum(ixClass) > 0
-            bestInClass(m) = nanmax(elasticScore(ixClass));
+            eScoreRaw=elasticScore(ixClass);
+            bestInClass(m) = max(eScoreRaw(~isnan(eScoreRaw)));
+            %bestInClass(m) = nanmax(elasticScore(ixClass));
             if all(elasticScore(ixClass) == 0)
                 shareWithinClass(ixClass) = 0;
             else
@@ -57,8 +59,8 @@ function share = profileModel(MODEL, ASSET, CHANGE, CLASS, isLaunch, isChange, e
     
     productShare = nan(size(elasticScore));
     for m = 1:length(CLASS.Therapy_Class)
-        thisClass = CLASS.Therapy_Class{m};
-        ixClass = strcmp(thisClass, therapyClass);
+        thisClass = CLASS.Therapy_Class(m);
+        ixClass = thisClass == therapyClass;
         productShare(ixClass) = classShare(m) * shareWithinClass(ixClass);        
     end
     

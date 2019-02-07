@@ -11,25 +11,27 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     end
     
     Na = length(ASSET.Scenario_PTRS);
-
     
     % Elasticity assumptions
     elastClass = MODEL.ClassOeElasticity;  % 0.2 
     elastAsset = MODEL.ProductOeElasticity;  % -0.5
 
     CLASS = therapyClassRank(MODEL, ASSET, isLaunch);
-
+    nClasses=length(CLASS.Therapy_Class);
     eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; ASSET.Starting_Share_Date; CHANGE.Launch_Date; CHANGE.LOE_Date]);
-    sharePerAssetEventSeries = zeros(Na, length(eventDates));  % row for each asset, col for each date
+    nEvents = length(eventDates);
 
+    sharePerAssetEventSeries = zeros(Na,nEvents);  % row for each asset, col for each date
+    
     if doDebug
-        dbgAssetOE = zeros(Na, length(eventDates));
-        dbgAssetP = zeros(Na, length(eventDates));
-        dbgAssetAdjFactor = zeros(Na, length(eventDates));
-        dbgAssetTargetShare = zeros(Na, length(eventDates));
+        dbgAssetOE = zeros(Na,nEvents);
+        dbgAssetP = zeros(Na,nEvents);
+        dbgAssetAdjFactor = zeros(Na,nEvents);
+        dbgAssetTargetShare = zeros(Na,nEvents);
+        dbgAssetUnadjTargetShare = zeros(Na,nEvents);
     end
     
-    for m = 1:length(eventDates)
+    for m = 1:nEvents
 
         eventDate = eventDates(m);
         sharePerAssetOE = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventDate, elastClass, elastAsset);
@@ -48,6 +50,7 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
             dbgAssetP(:,m) = sharePerAssetP;
             dbgAssetAdjFactor(:,m) = adjustmentFactor;
             dbgAssetTargetShare(:,m) = newSharePerAsset;
+            dbgAssetUnadjTargetShare(:,m) = sharePerAsset;
         end
     end
 
@@ -68,36 +71,53 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
     SIM.GenericMonthlyShare = genericMonthlyShare;
     
     if doDebug
+        % all of the following arrays hacve their first row the event date
+        % converted to a fractional year. Thus, we can convert this data to
+        % a 
+       
         %dateHead = num2cell(year(eventDates) + month(eventDates) / 12); 
-        dateHead = num2cell(datenumToYearFraction(eventDates));
-        DBG.AssetOrderOfEntry = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetOE);
-        DBG.AssetProfile = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetP);
-        DBG.AssetAdjFactor = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetAdjFactor);
-        DBG.AssetTargetShare = mx2celltab(dateHead, ASSET.Assets_Rated, dbgAssetTargetShare);
+        dateHead = datenumToYearFraction(eventDates);
         
-        dbgClassOE = zeros(length(CLASS.Therapy_Class), length(eventDates));
-        dbgClassP = zeros(length(CLASS.Therapy_Class), length(eventDates));
-        dbgClassAdjFactor = zeros(length(CLASS.Therapy_Class), length(eventDates));
-        dbgClassTargetShare = zeros(length(CLASS.Therapy_Class), length(eventDates));
-        for m = 1:length(CLASS.Therapy_Class)
-            ix = strcmpi(CLASS.Therapy_Class{m}, ASSET.Therapy_Class);
+        % Store everything in table for writing
+        %DBG.Asset=table(dbgAssetOE,dbgAssetP,dbgAssetAdjFactor,dbgAssetTargetShare,dbgAssetUnadjdbgAssetOE(:,ix)TargetShare,'RowNames',ASSET.Assets_Rated);
+        DBG.EventDates=dateHead';
+        DBG.AssetOrderOfEntry = dbgAssetOE;
+        DBG.AssetProfile = dbgAssetP;
+        DBG.AssetAdjFactor = dbgAssetAdjFactor;
+        DBG.AssetTargetShare = dbgAssetTargetShare;
+        DBG.AssetUnadjTargetShare = dbgAssetUnadjTargetShare;
+        
+        dbgClassOE = zeros(nClasses,nEvents);
+        dbgClassP = zeros(nClasses,nEvents);
+        dbgClassAdjFactor = zeros(nClasses,nEvents);
+        dbgClassTargetShare = zeros(nClasses,nEvents);
+        dbgClassUnadjTargetShare = zeros(nClasses,nEvents);
+        for m = 1:nClasses
+            ix = CLASS.Therapy_Class(m) == ASSET.Therapy_Class;
             if sum(ix) > 0
                 dbgClassOE(m,:) = nansum(dbgAssetOE(ix,:), 1);
                 dbgClassP(m,:) = nansum(dbgAssetP(ix,:), 1);
-                dbgClassAdjFactor(m,:) = nansum(dbgAssetAdjFactor(ix,:), 1);
                 dbgClassTargetShare(m,:) = nansum(dbgAssetTargetShare(ix,:), 1);
+                
+                %Possible removal
+                dbgClassAdjFactor(m,:) = nanmean(dbgAssetAdjFactor(ix,:), 1);
+                dbgClassUnadjTargetShare(m,:) = nansum(dbgAssetUnadjTargetShare(ix,:), 1);
             end
         end
-        DBG.ClassOrderOfEntry = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassOE);
-        DBG.ClassProfile = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassP);
-        DBG.ClassAdjFactor = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassAdjFactor);
-        DBG.ClassTargetShare = mx2celltab(dateHead, CLASS.Therapy_Class, dbgClassTargetShare);
         
+        %DBG.Class=table(dbgClassOE,dbgClassP,dbgClassAdjFactor,dbgClassTargetShare,dbgClassUnadjTargetShare,'RowNames',CLASS.Therapy_Class);
+        DBG.ClassNames = CLASS.Therapy_Class;
+        DBG.ClassOrderOfEntry = dbgClassOE;
+        DBG.ClassProfile = dbgClassP;
+        DBG.ClassAdjFactor = nan*dbgClassAdjFactor;
+        DBG.ClassTargetShare = dbgClassTargetShare;
+        DBG.ClassUnadjTargetShare =  dbgClassUnadjTargetShare;
         SIM.DBG = DBG;
     end
     
 end
 
-function celltab = mx2celltab(colHead, rowHead, dataMx)
-    celltab = [[{''}, colHead(:)']; [rowHead(:), num2cell(dataMx)]];
+function tab = mx2tab(colHead, rowHead, dataMx)
+    tab = struct('colNames',colHead,'rowNames',rowHead,'data',dataMx);
+    %[[{''}, colHead(:)']; [rowHead(:), num2cell(dataMx)]];
 end

@@ -73,16 +73,16 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 11} = OUTB.Y.Units(n, ixYear(p));
                         celltab{rr, 12} = OUTM.Y.PointShare(n, ixYear(p));
                         celltab{rr, 13} = OUTM.Y.PatientShare(n, ixYear(p));
-                        celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                        celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                         celltab{rr, 15} = MODEL.ConstraintName;
-                        celltab{rr, 16} = ASSET.Company1{n};
-                        celltab{rr, 17} = ASSET.Company2{n};
+                        celltab{rr, 16} = ASSET.Company1(n);
+                        celltab{rr, 17} = ASSET.Company2(n);
                         celltab{rr, 18} = ASSET.Therapy_Class{n};
                     end
                 end
                 
                 % Cume and Peak values for years up to and including the year after LOE
-                ix = (OUTB.Y.YearVec >= 2014) & (OUTB.Y.YearVec <= (ASSET.LOE_Year{n} + 1));
+                ix = (OUTB.Y.YearVec >= 2014) & (OUTB.Y.YearVec <= (ASSET.LOE_Year(n) + 1));
 
                 % Peak Values -----------------------------
                 rr = rr + 1;
@@ -105,10 +105,10 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 else
                     celltab(rr, 8:13) = {0, 0, 0, 0, 0, 0};                    
                 end
-                celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
-                celltab{rr, 16} = ASSET.Company1{n};
-                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 16} = ASSET.Company1(n);
+                celltab{rr, 17} = ASSET.Company2(n);
                 celltab{rr, 18} = ASSET.Therapy_Class{n};                
                 
                 % Cume Values -----------------------------
@@ -128,10 +128,10 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 else
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
                 end
-                celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
-                celltab{rr, 16} = ASSET.Company1{n};
-                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 16} = ASSET.Company1(n);
+                celltab{rr, 17} = ASSET.Company2(n);
                 celltab{rr, 18} = ASSET.Therapy_Class{n};                
             end
             
@@ -171,21 +171,21 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 11} = RESTAT.Branded.Y.Units.(oStats{q})(n, ixYear(p));
                         celltab{rr, 12} = nan;
                         celltab{rr, 13} = nan;
-                        celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                        celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                         celltab{rr, 15} = MODEL.ConstraintName;
-                        celltab{rr, 16} = ASSET.Company1{n};
-                        celltab{rr, 17} = ASSET.Company2{n};
+                        celltab{rr, 16} = ASSET.Company1(n);
+                        celltab{rr, 17} = ASSET.Company2(n);
                         celltab{rr, 18} = ASSET.Therapy_Class{n}; 
                         celltab{rr, 19} = RESTAT.Branded.Y.NetRevenuesNRA.(oStats{q})(n, ixYear(p));
                         celltab{rr, 22} = RESTAT.Branded.Y.UnitsNRA.(oStats{q})(n, ixYear(p));
-                        if isnan(ASSET.Scenario_PTRS{n})
+                        if isnan(ASSET.Scenario_PTRS(n))
                             celltab{rr, 14} = celltab{rr, 8} / celltab{rr, 19};  % back into PTRS for regions
                         end
                     end                
                 end
                 
                 % Cume and Peak values for years up to and including the year after LOE
-                ix = (yearVec >= 2014) & (yearVec <= (ASSET.LOE_Year{n} + 1));
+                ix = (yearVec >= 2014) & (yearVec <= (ASSET.LOE_Year(n) + 1));
 
                 % Peak Values -----------------------------
                 rr = rr + 1;
@@ -203,10 +203,10 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 else
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};                    
                 end
-                celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
-                celltab{rr, 16} = ASSET.Company1{n};
-                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 16} = ASSET.Company1(n);
+                celltab{rr, 17} = ASSET.Company2(n);
                 celltab{rr, 18} = ASSET.Therapy_Class{n};                
                 
                 % Cume Values -----------------------------
@@ -226,10 +226,10 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 else
                     celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
                 end
-                celltab{rr, 14} = ASSET.Scenario_PTRS{n};
+                celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
-                celltab{rr, 16} = ASSET.Company1{n};
-                celltab{rr, 17} = ASSET.Company2{n};
+                celltab{rr, 16} = ASSET.Company1(n);
+                celltab{rr, 17} = ASSET.Company2(n);
                 celltab{rr, 18} = ASSET.Therapy_Class{n};                
                 
             end

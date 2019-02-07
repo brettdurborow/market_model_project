@@ -1,4 +1,4 @@
-function [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName)
+function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
 
     
     [filepath, name, ext] = fileparts(fileName);
@@ -8,27 +8,50 @@ function [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName)
     fileInfo = dir(fileName);    
     [status, sheets, xlFormat] = xlsfinfo(fileName);
 
-    % Build a list of Asset sheets in this workbook
-    assetSheets = {};
-    for m = 1:length(sheets)
-        ascii = double(sheets{m});
-        if all(ascii >= 48 & ascii <= 57)
-            assetSheets{end + 1} = sheets{m};
-        end    
-    end
-
-    % Check for ChangeEvents for each Asset sheet
-    ceSheets = cell(size(assetSheets));
-    for m = 1:length(assetSheets)
-        ceName = [assetSheets{m}, 'CE'];
-        ix = find(strcmpi(sheets, ceName));
-        if length(ix) == 1
-            ceSheets{m} = sheets{m};
-        end
-    end
+    %!RC
+    % Find sheets matching a single string digit in range 1 thru 7
+    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'[1-7]'));
+    assetSheets=sheets(ind_assetSheets);
     
-    Nwait = length(assetSheets) + 1;
+    % Find sheets matching strings '[1-7]CE'
+    ceSheets = cell(size(assetSheets));
+    ind_ceSheets=cellfun(@(s) ~isempty(s) && length(s)==3,regexp(sheets,'[1-7]CE'));
+    
+    % This part needs to be checked, so that we have the right
+    % correspondences. Q: if any change event sheet occurs, then to all
+    % asset sheets need change events.
+    if(sum(ind_assetSheets)==sum(ind_ceSheets)) % only populate if we have all corresponding change events??
+        ceSheets=sheets(ind_ceSheets);
+    end
+    %!RC
 
+    % This is the old code to find these sheets.
+    %fprintf('Timing assetSheets\n')
+    %tic
+    % Build a list of Asset sheets in this workbook
+    %assetSheets = {};
+    %for m = 1:length(sheets)
+    %    ascii = double(sheets{m});
+    %    if all(ascii >= 48 & ascii <= 57)
+    %        assetSheets{end + 1} = sheets{m};
+    %    end    
+    %end
+    %toc
+    %fprintf('Timing ceSheets\n')
+    %tic
+    % Check for ChangeEvents for each Asset sheet
+    %ceSheets = cell(size(assetSheets));
+    %     for m = 1:length(assetSheets)
+    %         ceName = [assetSheets{m}, 'CE'];
+    %         ix = find(strcmpi(sheets, ceName));
+    %         if length(ix) == 1
+    %             ceSheets{m} = sheets{m};
+    %         end
+    %     end
+    %     toc
+    %tic
+        
+    Nwait = length(assetSheets) + 1;
     
     %% Read the "Simulation" sheet
 
@@ -40,8 +63,7 @@ function [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName)
     
     expectedFields1 = {'Pop', 'SubPop', 'PCP Factor', 'Tdays'};
     expectedFields2 = {'Rest of EMEA Bump Up from EU5', 'Rest of AP Bump Up from EU5', ...
-                        'CA Bump Up from EU5', 'LA Bump Up from EU5'};
-        
+        'CA Bump Up from EU5', 'LA Bump Up from EU5'};
     fnames = {'Country'};
     for row = 2:5
         fnames{end+1} = cleanFieldName(raw{row, 1});
@@ -50,7 +72,7 @@ function [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName)
     ixE = find(~cellisnan(raw(1,:)), 1, 'last');    
     for m = 1:length(fnames)
         SIMULATION.(fnames{m}) = raw(m, 2:ixE);
-    end
+    end    
     ixBad = [];
     for m = 1:length(expectedFields1)
         if ~ismember(cleanFieldName(expectedFields1{m}), fnames)
@@ -77,13 +99,18 @@ function [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName)
     cASSET = cell(length(assetSheets), 1);
     cMODEL = cell(length(assetSheets), 1);
     cCHANGE = cell(length(assetSheets), 1);
+    cDEBUG = cell(length(assetSheets), 1);
+    %fprintf('timing asset sheets\n')
+    %tic
     for m = 1:length(assetSheets)
         waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}));
-        [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheets{m}, ceSheets{m}, SIMULATION);
-        cASSET{m} = ASSET;
+        [ASSET, MODEL, CHANGE,DEBUG] = importAssetSheet(fileName, assetSheets{m}, ceSheets{m}, SIMULATION);
+        cASSET{m} = convert_asset(ASSET);
         cMODEL{m} = MODEL;
-        cCHANGE{m} = CHANGE;        
+        cCHANGE{m} = CHANGE;       
+        cDEBUG{m} = DEBUG;
     end
+    %toc
     close(hWait);
     
 end

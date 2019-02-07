@@ -5,16 +5,18 @@ function marketSimGUI()
     cMODEL = {};
     cASSET = {};
     cCHANGE = {};
+
+    cDEBUG = {};
     cESTAT = {};
     simCount = 0;
     isOkInput = false;
     isOkOutput = false;
     numCores = feature('numcores');  % Number of physical cores on this machine
     numWorkers = numCores-1;
-    numIterations = 1000;
+    numIterations = 100;
     resultsFolderPath = '';
     isCancel = false;
-    
+    tmpdir=strings(7,1);
     
 %% Create and Size the GUI
 
@@ -129,6 +131,11 @@ function marketSimGUI()
          'Position', [380, fh-570, 90, 30], ...
          'Callback', {@cb_RunSim}, ...
          'Parent', hF);
+    
+    hBtnDebugSimulation = uicontrol('Style', 'pushbutton', 'String', 'Debug Simulation', ...
+         'Position', [16, fh-570, 90, 30], ...
+         'Callback', {@cb_DebugSim}, ...
+         'Parent', hF);
      
     hBtnCancel = uicontrol('Style', 'pushbutton', 'String', 'Cancel', ...
          'Position', [480, fh-570, 90, 30], ...
@@ -140,24 +147,27 @@ function marketSimGUI()
     set(hF, 'Visible', 'on'); % Make the GUI visible
     set(hF, 'MenuBar', 'none', ...
             'ToolBar', 'none');
-    jhEditStatus = findjobj(hEditStatus);   % Find underlying Java control peer for edit box
-    jEditStatus = jhEditStatus.getComponent(0).getComponent(0); % get the scroll-pane's internal edit control
-    jEditScroll = jhEditStatus.getVerticalScrollBar;
+    %jhEditStatus = findjobj(hEditStatus);   % Find underlying Java control peer for edit box
+    %jEditStatus = jhEditStatus.getComponent(0).getComponent(0); % get the scroll-pane's internal edit control
+    %jEditScroll = jhEditStatus.getVerticalScrollBar;
+    %jEditStatus = get(get(jhEditStatus,'Viewport'),'View');% get the scroll-pane's internal edit control
+    %jEditScroll = get(jhEditStatus,'VerticalScrollBar');
+    
     
 %% Helper Functions
 
     function addStatusMsg(msg)
         oldMsg = get(hEditStatus, 'String');
         if ischar(msg)
-            msgFull = [oldMsg; {msg}];
+            msgFull = [{msg};oldMsg];
         else
-            msgFull = [oldMsg; msg];
+            msgFull = [msg;oldMsg];
         end
         set(hEditStatus, 'String', msgFull);
         drawnow;
-        jEditStatus.setCaretPosition(jEditStatus.getDocument.getLength);  % set to last line in the box
-        jEditScroll.setValue(jEditScroll.getMaximum);
-        jhEditStatus.repaint;        
+        %jEditStatus.setCaretPosition(jEditStatus.getDocument.getLength);  % set to last line in the box
+        %jEditScroll.setValue(jEditScroll.getMaximum);
+        %jhEditStatus.repaint;        
     end
 
     function [assetSheets, ceSheets, simuSheet] = checkInputSheets(fileName)
@@ -167,6 +177,7 @@ function marketSimGUI()
         simuSheet = sum(strcmpi(sheets, 'Simulation')) == 1;  % look for a sheet called "Simulation"
 
         assetSheets = {};
+        %Needs Replacement
         for m = 1:length(sheets)
             ascii = double(sheets{m});
             if all(ascii >= 48 & ascii <= 57)
@@ -183,6 +194,7 @@ function marketSimGUI()
                 ceSheets{m} = sheets{m};
             end
         end        
+        %end NR
     end
 
 
@@ -197,6 +209,7 @@ function marketSimGUI()
         cb_Cancel(source, eventdata);
         if strcmp(strAnswer, 'OK')
             delete(hF);
+            clear;
         end
     end
 
@@ -236,7 +249,7 @@ function marketSimGUI()
                 isOkInput = false;
             else 
                 tStart = tic;
-                [cMODEL, cASSET, cCHANGE] = importAssumptions(fullFileName);
+                [cMODEL, cASSET, cCHANGE, cDEBUG] = importAssumptions(fullFileName);
                 msg = sprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
                 addStatusMsg(msg);
                 isOkInput = true;
@@ -264,6 +277,15 @@ function marketSimGUI()
         end
     end
 
+    function myRMdir
+        for jj=1:7
+            if exist(tmpdir(jj))
+                fprintf('Removing temporary dir: %s\n',tmpdir(jj));
+                rmdir(tmpdir(jj),'s');
+            end
+        end
+    end
+
     function cb_RunSim(source, eventdata)
         isCancel = false;        
         if ~isOkInput || ~isOkOutput
@@ -271,6 +293,9 @@ function marketSimGUI()
             return;
         end
         
+        % Cleanup function to remove temporary files
+        cup=onCleanup(@()myRMdir);
+              
         tStart = tic;
         cCNSTR = getConstraints(cASSET);
         fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
@@ -285,102 +310,94 @@ function marketSimGUI()
         if ~exist(outFolder, 'dir')
             mkdir(outFolder)
         end
-%         outFileName = fullfile(outFolder, sprintf('ModelOutputs_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
         
-        ccMODEL = cell(length(cMODEL), length(cCNSTR));
-        ccASSET = cell(length(cMODEL), length(cCNSTR));
-        ccESTAT = cell(length(cMODEL), length(cCNSTR));
         for m = 1:length(cMODEL)
+            % Quick return if cancel button is pressed
             if isCancel
                 isCancel = false;
                 return;
             end
+            
             MODEL = cMODEL{m};
             ASSET = cASSET{m};
             CHANGE = cCHANGE{m};
             addStatusMsg(sprintf('Starting to process country: %s on sheet: %s', MODEL.CountrySelected, MODEL.AssetSheet));
-
+            
+            % This is where the magic happens, and we generate the
+            % simulation cubes.
             [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
-
-            % Parameters of the overall simulation for performance benchmarking
+            
+            % ParamapplyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid,tmpdir(m));eters of the overall simulation for performance benchmarking
             BENCH.NumIterations(m) = numIterations;
             BENCH.NumWorkers(m) = numWorkers;
             BENCH.ExecutionTime(m) = tExec;  % Tries to exclude time to setup worker pool on first call
-
-            parfor n = 1:length(cCNSTR)
-                [a, b, c] = applyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid);
-                ccMODEL{m,n} = a;
-                ccASSET{m,n} = b;
-                ccESTAT{m,n} = c;
+            
+            tCnstrExec=tic;
+            tmpdir(m)=tempname();
+            mkdir(tmpdir(m))
+                        
+            if  numWorkers>1       % Run parallel code on already initialized parallel pool
+                % Now apply constraints
+                for n=1:length(cCNSTR)
+                    applyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid,tmpdir(m));
+                end
+ 
+            else % Otherwise sequential code
+                for n=1:length(cCNSTR)
+                    applyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid,tmpdir(m));
+                end
             end
+            tCnstrExec=toc(tCnstrExec);
             
-%             MODEL = ccMODEL{m,1};  % First column is the simulation without constraints
-%             ASSET = ccASSET{m,1};
-%             ESTAT = ccESTAT{m,1};            
-%             OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-%             OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
-%             OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
-%             addStatusMsg(sprintf('Wrote to file: %s', outFileName));
-            
-            msg = sprintf('Country:%s, Ran %d iterations, Elapsed time = %1.1f sec, Cume time = %1.1f\n', ...
-                    MODEL.CountrySelected, numIterations, tExec, toc(tStart));
+            % By this point, we have written all constraints to disk and
+            % later we will have to reread them (but this should be 7 at a
+            % time, so in the long run, should be more efficient.
+            msg = sprintf('Country:%s, Ran %d iterations, Monte Carlo = %1.1f sec, Constraint Writing: %1.1f sec, Cume time = %1.1f\n', ...
+                    MODEL.CountrySelected, numIterations, tCnstrExec,tExec, toc(tStart));
             addStatusMsg(msg);
         end
+        
         BENCH.RunTime = repmat(runTime, size(BENCH.NumIterations));
               
-%         cMODEL = ccMODEL(:,1);  % First column is the unconstrained simulation
-%         cASSET = ccASSET(:,1);
-%         cESTAT = ccESTAT(:,1);
-%         xlsFileName = fullfile(resultsFolderPath, sprintf('TableauData_%s.xlsx', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
-%         [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
-%         addStatusMsg(sprintf('Wrote to file: %s\n', xlsFileName));
-
+        %% Now we will re-read the previous data written to file, 
+        % looping over each constraint (in parallel)
         
-%         for n = 1:length(cCNSTR)
-%             if isCancel
-%                 isCancel = false;
-%                 return;
-%             end
-%             cMODEL = ccMODEL(:,n);
-%             cASSET = ccASSET(:,n);
-%             cESTAT = ccESTAT(:,n);
-%             cname = cCNSTR{n}.ConstraintName;
-%             outFolderSub = fullfile(outFolder, cname);
-%             
-%             msg = sprintf('Writing outputs for Constraints: %s, Cume time = %1.1f sec', cname, toc(tStart));
-%             addStatusMsg(msg);
-%             [cTables, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
+        parfor n=1:length(cCNSTR)
+            msg = sprintf('Writing outputs for Constraints: %s , Cume time = %1.1f sec', cCNSTR{n}.ConstraintName, toc(tStart));
+            fprintf(msg);
+            %addStatusMsg(msg);
+            read_constraint_write_csv(tmpdir,cCNSTR{n},cCNSTR,outFolder,BENCH)         
+        end
+        
+%% This block Needs to be reorganized! So that the writing can take place independently of the MonteCarlo Runs
+%         clear cESTAT SimCubeBranded SimCubeMolecule
+% 
+%         % Reorganize the memory to reduce interprocess communication
+%         cESTATc = cell(size(cCNSTR));
+%         cMODELc = cell(size(cCNSTR));
+%         cASSETc = cell(size(cCNSTR));
+%         for n = 1:length(cESTATc)
+%            cESTATc{n} = ccESTAT(:,n); 
+%            cMODELc{n} = ccMODEL(:,n);
+%            cASSETc{n} = ccASSET(:,n);
 %         end
-        
-        
-        clear cESTAT SimCubeBranded SimCubeMolecule
-
-        % Reorganize the memory to reduce interprocess communication
-        cESTATc = cell(size(cCNSTR));
-        cMODELc = cell(size(cCNSTR));
-        cASSETc = cell(size(cCNSTR));
-        for n = 1:length(cESTATc)
-           cESTATc{n} = ccESTAT(:,n); 
-           cMODELc{n} = ccMODEL(:,n);
-           cASSETc{n} = ccASSET(:,n);
-        end
-
-        % Break into smaller parfor loops, again to reduce IPC
-        startVec =  1:numWorkers:length(cCNSTR);
-        endVec = startVec + numWorkers - 1;
-        endVec(end) = length(cCNSTR);
-        for m = 1:length(startVec)
-            cname1 = cCNSTR{startVec(m)}.ConstraintName;
-            cname2 = cCNSTR{endVec(m)}.ConstraintName;
-            msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
-            addStatusMsg(msg);            
-            parfor n = startVec(m):endVec(m)  
-                cname = cCNSTR{n}.ConstraintName;
-                outFolderSub = fullfile(outFolder, cname);
-
-                [~, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
-            end
-        end
+% 
+%         % Break into smaller for loops, again to reduce IPC
+%         startVec =  1:numWorkers:length(cCNSTR);
+%         endVec = startVec + numWorkers - 1;
+%         endVec(end) = length(cCNSTR);
+%         for m = 1:length(startVec)
+%             cname1 = cCNSTR{startVec(m)}.ConstraintName;
+%             cname2 = cCNSTR{endVec(m)}.ConstraintName;
+%             msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
+%             addStatusMsg(msg);            
+%             for n = startVec(m):endVec(m)  
+%                 cname = cCNSTR{n}.ConstraintName;
+%                 outFolderSub = fullfile(outFolder, cname);
+% 
+%                 [~, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
+%             end
+%         end
 
 
         %% Produce various outputs for a single realization
@@ -412,6 +429,130 @@ function marketSimGUI()
         addStatusMsg(msg);
         
     end
+
+    function cb_DebugSim(source,eventdata)
+        isCancel = false;
+        if ~isOkInput || ~isOkOutput
+            addStatusMsg('Unable to Run Simulation!  Please check Input and Output paths');
+            return;
+        end
+        
+        tStart = tic;
+        cCNSTR = getConstraints(cASSET);
+        fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
+        BENCH = struct;  % intialize the benchmark struct
+        for m = 1:length(fnames)
+            BENCH.(fnames{m}) = nan(size(cMODEL));
+        end
+        
+        warning('off', 'MATLAB:xlswrite:AddSheet'); % Suppress the annoying warnings
+        
+        % Set up output folder
+        runTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime       
+        outFolder = string(fullfile(resultsFolderPath, sprintf('DebugOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS'))));
+        if ~exist(outFolder, 'dir')
+            mkdir(outFolder)
+        end
+        tExec=toc(tStart);
+        dASSET=cell(size(cASSET));
+        
+        doDebug=true;
+        
+        isChange=[];
+  
+        % Initializations
+        tableVarNames=["Scenario","Country","Class","Asset","Time",...
+            "Profile_Model_Target_Share","OE_Target_Share",...
+            "Unadj_Combined_Target_Share","Adjustment_Factor","Adjusted_Target_Share"];
+        
+        debugFilename=outFolder+filesep+"Debug_output.csv";
+        T=table;
+        tic;
+        % Loop over Countries then Scenarios, then assets.
+        for m = 1:length(cMODEL)
+            % Quick return if cancel is pressed
+            if isCancel
+                isCancel = false;
+                return;
+            end
+            MODEL = cMODEL{m};
+            ASSET = cDEBUG{m}.asset;
+            CHANGE = cCHANGE{m};
+            DEBUG = cDEBUG{m};
+            dASSET{m}=ASSET;
+            cMODEL{m}.ConstraintRealizationCount=1;
+            cMODEL{m}.ConstraintProbability=1;
+            cMODEL{m}.ConstraintName='DEBUG';
+            
+            fprintf('Processing: country %s\n',MODEL.CountrySelected);
+            Scenarios=DEBUG.Scenario_names;
+            % Then we loop over each scenario
+            for k=1:length(Scenarios)
+                
+                % Run simulation based on a fixed launch vector (No Monte Carlo)
+                isLaunch=DEBUG.Scenario_PTRS(:,k);
+                SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);
+                       
+                cESTAT{m,k} = computeEnsembleStats( SIM.BrandedMonthlyShare, SIM.SharePerAssetMonthlySeries, SIM.DateGrid);
+
+                
+                % Shapes to use
+                Na=length(ASSET.Assets_Rated);
+                nEvents=length(SIM.DBG.EventDates);
+                
+                Therapy_class=categorical(ASSET.Therapy_Class);
+                Asset_Names=categorical(ASSET.Assets_Rated);
+                Country=categorical(ASSET.Country);
+                                
+                % Data for the Assets
+                TAsset=table(repmat(categorical(Scenarios(k)),nEvents*Na,1),... % Scenario
+                    repmat(Country,nEvents,1),... % Country
+                    repmat(Therapy_class,nEvents,1),... %Class
+                    repmat(Asset_Names,nEvents,1),... %Asset
+                    reshape(repmat(SIM.DBG.EventDates,Na,1),[],1),... %Time
+                    SIM.DBG.AssetProfile(:),... % Profile_model_Target_Share
+                    SIM.DBG.AssetOrderOfEntry(:),... % OE_Target_Share
+                    SIM.DBG.AssetUnadjTargetShare(:),... % Unadjusted_Combined_Target_share
+                    SIM.DBG.AssetAdjFactor(:),... % Adjustment_Factor
+                    SIM.DBG.AssetTargetShare(:),... % Adjusted_Target_Share
+                    'VariableNames',tableVarNames);
+                
+                Nc=size(SIM.DBG.ClassProfile,1);
+                Therapy_class=categorical(SIM.DBG.ClassNames);
+                Country=categorical(repmat(string(MODEL.CountrySelected),Nc,1));
+                Asset_Names=categorical(strings(Nc,1));
+                % Data for the classes
+                TClass=table(repmat(categorical(Scenarios(k)),nEvents*Nc,1),... % Scenario
+                    repmat(Country,nEvents,1),... % Country
+                    repmat(Therapy_class,nEvents,1),... %Class
+                    repmat(Asset_Names,nEvents,1),... %Asset
+                    reshape(repmat(SIM.DBG.EventDates,Nc,1),[],1),... %Time
+                    SIM.DBG.ClassProfile(:),... % Profile_model_Target_Share
+                    SIM.DBG.ClassOrderOfEntry(:),... % OE_Target_Share
+                    SIM.DBG.ClassUnadjTargetShare(:),... % Unadjusted_Combined_Target_share
+                    SIM.DBG.ClassAdjFactor(:),... % Adjustment_Factor
+                    SIM.DBG.ClassTargetShare(:),... % Adjusted_Target_Share
+                    'VariableNames',tableVarNames);
+                T=[T;TAsset;TClass];
+            end
+            BENCH.ExecutionTime(m) = tExec;
+        end
+        BENCH.RunTime = repmat(1,m);
+        toc;
+        
+        fprintf('Writing output files\n')
+        tic;
+        parfor k=1:length(Scenarios)
+            msg=sprintf('Writing Scenario %s\n',Scenarios(k));
+            fprintf(msg);
+            [~, cFileNames] = writeTablesCsv(outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT(:,k), cCNSTR, BENCH);
+        end
+        toc;
+        
+        tic;
+        writetable(T,debugFilename);
+        toc
+    end % cb_DebugSim
 
     function cb_Cancel(source, eventdata)
         msg = sprintf('User manually canceled operation by pressing the "Cancel" button.\n');

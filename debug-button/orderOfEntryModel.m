@@ -12,7 +12,7 @@ function sharePerAsset = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventD
     
     %% for each Asset within a Therapy Class, compute the per-Asset-within-Class share
     
-    ixA = strcmp(MODEL.CountrySelected, ASSET.Country) ...
+    ixA = MODEL.CountrySelected == ASSET.Country ...
           & isLaunch ...
           & ASSET.Launch_Date <= eventDate;  % assets in-country, launched and active on eventDate
       
@@ -21,10 +21,10 @@ function sharePerAsset = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventD
         
     fxC = find(ixC);
     for m = 1:length(fxC)
-        thisClass = CLASS.Therapy_Class{fxC(m)};
+        thisClass = CLASS.Therapy_Class(fxC(m));
         thisClassShare = sharePerClass(fxC(m));
         
-        ix = strcmp(thisClass, ASSET.Therapy_Class) & ixA;
+        ix = (thisClass == ASSET.Therapy_Class) & ixA;
         if sum(ix) == 0
             error('Unable to find assets belonging to class %s on date %s', thisClass, datestr(eventDate));
         end

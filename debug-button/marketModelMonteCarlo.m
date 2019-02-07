@@ -13,25 +13,27 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCa
 %     isChange = true(size(CHANGE.Scenario_PTRS));  % Temporary - force changes to happen
     Na = length(ASSET.Scenario_PTRS);
     Nchange = length(CHANGE.Scenario_PTRS);
-    isLaunch = rand(Na,1) < cell2mat(ASSET.Scenario_PTRS);
+    isLaunch = rand(Na,1) < ASSET.Scenario_PTRS;
     isChange = rand(Nchange,1) < cell2mat(CHANGE.Scenario_PTRS);     
     SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, false);  % one once to initialize
     dateGrid = SIM.DateGrid;
     Nt = length(dateGrid);
     Na = length(ASSET.Scenario_PTRS);
 
-    D = parallel.pool.DataQueue;
     hW = waitbar(0, 'Monte Carlo Loop: Starting');
-    afterEach(D, @myUpdateWaitbar);
 
     simNum = 0;
     tRemainVec = zeros(numIterations, 1);
-    SimCubeBranded = zeros(numIterations, Na, Nt);  % 3D data cube for percentile calcs
+    SimCubeBranded = zeros(Na, Nt,numIterations);  % 3D data cube for percentile calcs
     if ~saveMemory
-        SimCubeMolecule = zeros(numIterations, Na, Nt);
+        SimCubeMolecule = zeros(Na, Nt,numIterations);
     end
     
     if numWorkers > 1
+        % Only do parallel sends if in parallel mode #PL
+        D = parallel.pool.DataQueue;
+        afterEach(D, @myUpdateWaitbar);
+        
         % Setup parallel execution ------------------------------------
         myPool = gcp('nocreate');
         if isempty(myPool)
@@ -52,9 +54,9 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCa
             SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, false);
 
             if ~isempty(SIM)
-                SimCubeBranded(m, :, :) = SIM.BrandedMonthlyShare;
+                SimCubeBranded(:, :,m) = SIM.BrandedMonthlyShare;
                 if ~saveMemory
-                    SimCubeMolecule(m, :, :) = SIM.SharePerAssetMonthlySeries;
+                    SimCubeMolecule(:, :,m) = SIM.SharePerAssetMonthlySeries;
                 end
             end
             send(D, 0);
@@ -68,12 +70,14 @@ function [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCa
             SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, false);
 
             if ~isempty(SIM)
-                SimCubeBranded(m, :, :) = SIM.BrandedMonthlyShare;
+                SimCubeBranded(:, :,m) = SIM.BrandedMonthlyShare;
                 if ~saveMemory
-                    SimCubeMolecule(m, :, :) = SIM.SharePerAssetMonthlySeries;
+                    SimCubeMolecule(:, :,m) = SIM.SharePerAssetMonthlySeries;
                 end
             end
-            send(D, 0);
+            % Omit any calls to parallel code #PL
+            myUpdateWaitbar();
+            %send(D, 0);
         end
         
         
@@ -106,11 +110,12 @@ function [isLaunch, isChange] = randomLaunchRealization(ASSET, CHANGE)
 
     % Follow-On Assets have a non-NaN value in the column: ASSET.Follow_On
     % Its value is the name of the primary Asset to be followed.  
-    isPrimary = cellisnan(ASSET.Follow_On);
+    isPrimary = ismissing(ASSET.Follow_On);
+    % replaces: isPrimary = cellisnan(ASSET.Follow_On);
     
     % First, determine whether Primary assets launch in this realization
     isLaunchPrimary = false(size(ASSET.Scenario_PTRS));
-    isLaunchPrimary(isPrimary) = rand(sum(isPrimary), 1) < cell2mat(ASSET.Scenario_PTRS(isPrimary));
+    isLaunchPrimary(isPrimary) = rand(sum(isPrimary), 1) < ASSET.Scenario_PTRS(isPrimary);
    
     % For each follow-on Asset, learn whether its primary asset has launched.
     % If so, launch the follow-on asset.

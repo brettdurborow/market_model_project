@@ -15,12 +15,13 @@ function cCNSTR = getConstraints(cASSET)
     for m = 1:length(cASSET)
         ASSET = cASSET{m};
         ixFollowOn = ~cellfun(@(C) isequaln(C, nan), ASSET.Follow_On);
+        % Needs new code for follow on.
         ixPhase3 = contains(ASSET.Phase, '3');
         ixPhase2b = contains(ASSET.Phase, '2b');
-        ixRisky = cell2mat(ASSET.Scenario_PTRS) >= p0 & cell2mat(ASSET.Scenario_PTRS) < p1 & ~ixFollowOn;
+        ixRisky = ASSET.Scenario_PTRS >= p0 & ASSET.Scenario_PTRS < p1 & ~ixFollowOn;
         ixRisky = ixRisky | ixPhase3 | ixPhase2b;
         cRiskyAssets{m} = ASSET.Assets_Rated(ixRisky);
-        cRiskyProb{m} = cell2mat(ASSET.Scenario_PTRS(ixRisky));
+        cRiskyProb{m} = ASSET.Scenario_PTRS(ixRisky);
     end
     riskyAssets = unique(vertcat(cRiskyAssets{:}));
     riskyProb = zeros(size(riskyAssets));

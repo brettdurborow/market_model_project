@@ -1,8 +1,8 @@
-function [MODEL2, ASSET2, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET, ...
-                                                    SimCubeBranded, SimCubeMolecule, dateGrid)                                                       
+function [MODEL2, ASSET2, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET,SimCubeBranded, SimCubeMolecule, dateGrid,tmpdirName)                                                       
+    %
     % for a given constraint, compute the ensemble stats from just those rows of
     % the SimCubeBranded and SimCubeMolecule that satisfy the constraint.  
-
+    
     NONE = 0;  ON = 1;  OFF = 2;  % possible constraint values
     
     MODEL2 = MODEL;
@@ -11,7 +11,7 @@ function [MODEL2, ASSET2, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET, ...
     
     ASSET2 = ASSET;
 
-    Nrealizations = size(SimCubeBranded, 1);  % first dimension is the # of realizations
+    Nrealizations = size(SimCubeBranded, 3);  % last dimension is the # of realizations
     ixExclude = false(Nrealizations, 1);
     ixA = find(CNSTR.ConstraintValues);
     
@@ -26,28 +26,37 @@ function [MODEL2, ASSET2, ESTAT] = applyConstraints(CNSTR, MODEL, ASSET, ...
             elseif length(ixRow) == 1
                 % OR the constraints, so any constraint violated is enough to exclude the realization
                 if CNSTR.ConstraintValues(ixA(m)) == ON
-                    ASSET2.Scenario_PTRS{ixRow} = 1;
+                    ASSET2.Scenario_PTRS(ixRow) = 1;
+                    %### new code!
+                    ixExclude=ixExclude | squeeze(all(SimCubeBranded(ixRow, :,:) == 0 , 2));
                     % find realizations in cube with this asset OFF, and exclude them
-                    for n = 1:Nrealizations
-                        ixExclude(n) = ixExclude(n) || all(SimCubeBranded(n, ixRow, :) == 0);                
-                    end
+                    %###for n = 1:Nrealizations
+                    %###    ixExclude(n) = ixExclude(n) || all(SimCubeBranded(n, ixRow, :) == 0);                
+                    %###end
                 elseif CNSTR.ConstraintValues(ixA(m)) == OFF
-                    ASSET2.Scenario_PTRS{ixRow} = 0;
+                    ASSET2.Scenario_PTRS(ixRow) = 0;
+                    %### new code!
+                    ixExclude=ixExclude | squeeze(any(SimCubeBranded(ixRow,: , :) >0 , 2));
                     % find realizations in cube with this asset ON, and exclude them
-                    for n = 1:Nrealizations
-                        ixExclude(n) = ixExclude(n) || any(SimCubeBranded(n, ixRow, :) > 0);                
-                    end
+                    %###for n = 1:Nrealizations
+                    %###    ixExclude(n) = ixExclude(n) || any(SimCubeBranded(n, ixRow, :) > 0);                
+                    %###end
                 else
                     error('Unrecognized case');
                 end
             end
         end
-    
-        ESTAT = computeEnsembleStats(SimCubeBranded(~ixExclude,:,:), ...
-                                     SimCubeMolecule(~ixExclude,:,:), dateGrid);
+            
+        ESTAT = computeEnsembleStats(SimCubeBranded(:,:,~ixExclude), ...
+                                     SimCubeMolecule(:,:,~ixExclude), dateGrid);
         MODEL2.ConstraintRealizationCount = sum(~ixExclude); % goes to output
     end
+    % Finally write computed to disk
+    if(exist('tmpdirName','var'))
+        outFile=tmpdirName+"/"+string(CNSTR.ConstraintName)+".mat";
+        save(outFile,'MODEL2', 'ASSET2', 'ESTAT');
+    end
     
-end
+    end
 
 
