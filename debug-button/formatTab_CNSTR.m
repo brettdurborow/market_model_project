@@ -20,7 +20,7 @@ function [celltab, fmt] = formatTab_CNSTR(cCNSTR)
         celltab(m, ixOFF) = {'OFF'};       
     end    
         
-    colHead = [{'Constraint Name', 'Constraint Probability'}, CNSTR_0.ConstraintAssets'];
+    colHead = {'Constraint Name', 'Constraint Probability',CNSTR_0.ConstraintAssets{:}};
     celltab = [colHead; celltab];
     celltab(:, 3:end) = celltab(:, end:-1:3);  % Reverse column order for Assets
 

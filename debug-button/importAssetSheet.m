@@ -1,4 +1,4 @@
-function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet, SIMULATION)
+function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, ceSheet, SIMULATION)
 
     fileInfo = dir(fileName);
 
@@ -75,7 +75,84 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
 
     %% Assets
     
+    %!RC
+    % MODEL.ScenarioSelected -> "Scenario PTRS"
+    originalFieldNames = ["Country", "Assets Rated","FORCE" "Company1","Company2",...
+        "Phase","Starting Share", "Starting Share Year","Starting Share Month",...
+        "Follow On", "Barriers", "Calibration", ...
+        "Therapy Class", "Launch Year", "Launch Month", "LOE Year", "LOE Month",...
+        "Efficacy", "S&T", "Delivery", "Product p", "Product q", ...
+        "Class p", "Class q", "LOE p", "LOE q", "LOE %",...
+        "Avg Therapy Days","Launch Price / DOT","Price Change","Price Ceiling / Floor",...
+        "GTN %","GTN Change","GTN Ceiling / Floor","Units per DOT"];
+    
+    %Convert the fieldnames to usable struct indices
+    newFieldNames=regexprep(originalFieldNames,...
+        ["/ ","[\s&]","[%]","FORCE"],...
+        ["","_","Pct","Force"]);
+    
+       
+    % Convert the header row to string and check for matches with the fields
+    Header=string(raw(ixHeader,:));
+    ind_Scenario= Header==string(MODEL.ScenarioSelected);
+    ind_Header=find(Header.contains(originalFieldNames));
+    
+    % Extract the data from the cells and convert to struct
+    % Basically, we have a 2d cell array, and we want to convert the string
+    % data into strings and the numeric data into numeric!
+    rawAsset=raw(ixHeader+1:end,ind_Header);
+    
+    asset=struct;
+    asset.Scenario_PTRS=raw(ixHeader+1:end,ind_Scenario);
+    for i=1:length(newFieldNames)
+        asset.(newFieldNames(i))=raw(ixHeader+1:end,ind_Header(i));
+    end
+    
+    % The following selects those columns with the debugging keyword and
+    % will assert that it may only contain PTRS values of either 0 or 1. So
+    % that only 1 iteration is needed.
+    debugKeyword="Scenario";
+    ind_debug=find(Header.startsWith(debugKeyword));
+    debugNames=Header(ind_debug);
+    
+    % Strip out the invalid characters for the name
+    debugFields=regexprep(debugNames,["\s\+\s","\s","[\+=]"],["_","_","_"]);
+    
+    % Select and populate the debug structure
+    debug=struct('Scenario_names',debugFields,'Scenario_PTRS',logical(cell2mat(raw(ixHeader+1:end,ind_debug))));
+    
+%     for i=1:length(ind_debug)
+%         w=vertcat(raw{ixHeader+1:end,ind_debug(i)});
+%         if all((w==1)|(w==0))
+%             debug.(debugFields(i))=w;
+%         else
+%             warning('Column: %s detected with non binary launch probability. Skipping',debugNames(i))
+%         end
+%     end
+    
+    ix = string(asset.Country) == MODEL.CountrySelected;
+    asset = structSelect(asset, ix, 1);  % Return only the country being modeled
+    
+    Nrows = length(asset.Country);
+    
+    fieldsToCheck = {'Country', 'Assets_Rated', 'Starting_Share', 'Starting_Share_Year', ...
+        'Starting_Share_Month', 'Scenario_PTRS', 'Barriers', 'Calibration', ...
+        'Therapy_Class', 'Launch_Year', 'Launch_Month', 'LOE_Year', 'LOE_Month',...
+        'Efficacy', 'S_T', 'Delivery', 'Product_p', 'Product_q', ...
+        'Class_p', 'Class_q', 'LOE_p', 'LOE_q', 'LOE_Pct'};
+    
+    validateFields(asset, assetSheet, fieldsToCheck, Nrows);
+    asset = validateFollowOn(asset, assetSheet);
 
+
+    % The above does the equivalent of selecting the following columns:
+    % (with prefix Scenario)
+    %["Spravato Only", "Spravato + Seltorexant" "Spravato + FAAHi",...
+    %    "Spravato + Seltorexant + FAAHi","Random Iteration 5","Random Iteration 6",...
+    %    "Random Iteration 7", "Random Iteration 8","Random Iteration 9","Random Iteration 10"];
+    
+    
+    %This asset section needs to be replaced completely!!!!
     ASSET = struct;
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Country');
     ASSET = parseColumn(ASSET, raw, ixHeader, assetSheet, fileName, 'Assets Rated');
@@ -185,13 +262,6 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
     
     end    
     
-    %% Remove those assets and change events with FORCE == 'OFF'
-    ixF = strcmpi(ASSET.Force, 'OFF');
-    ASSET = structSelect(ASSET, ~ixF, 1);
-    if ~isempty(CHANGE.Scenario_PTRS)
-        ixCF = ismember(CHANGE.Asset, ASSET.Assets_Rated(ixF));
-        CHANGE = structSelect(CHANGE, ~ixCF, 1);
-    end
     
     %% Postprocess some DATE fields to get them in the expected datatype
     ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
@@ -205,6 +275,18 @@ function [ASSET, MODEL, CHANGE] = importAssetSheet(fileName, assetSheet, ceSheet
     CHANGE.Launch_Date = datenum(cell2mat(CHANGE.Launch_Year), cell2mat(CHANGE.Launch_Month), 1);
     CHANGE.LOE_Date = datenum(cell2mat(CHANGE.LOE_Year), cell2mat(CHANGE.LOE_Month), 1);
     CHANGE = structSort(CHANGE, {'Launch_Date'});  % sort by launch date in ascending order
+
+    % Attach the original set of assets to the debug
+    debug.asset=convert_asset(ASSET);
+ 
+    %% Remove those assets and change events with FORCE == 'OFF'
+    ixF = strcmpi(ASSET.Force, 'OFF');
+    ASSET = structSelect(ASSET, ~ixF, 1);
+    %debug.Scenario_PTRS(ixF,:)=[];
+    if ~isempty(CHANGE.Scenario_PTRS)
+        ixCF = ismember(CHANGE.Asset, ASSET.Assets_Rated(ixF));
+        CHANGE = structSelect(CHANGE, ~ixCF, 1);
+    end
 
 end
 

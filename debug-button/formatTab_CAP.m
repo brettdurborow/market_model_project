@@ -40,16 +40,16 @@ function [celltab, fmt] = formatTab_CAP(cMODEL, cASSET, cESTAT, BENCH)
                 celltab{rr, 2} = MODEL.ScenarioSelected;
                 celltab{rr, 3} = runTime;
                 celltab{rr, 4} = ASSET.Assets_Rated{n};
-                celltab{rr, 5} = ASSET.Company1{n};
+                celltab{rr, 5} = ASSET.Company1(n);
                 celltab{rr, 6} = OUT.Y.YearVec(ixYear(p));
                 celltab{rr, 7} = OUT.Y.GTN(n, ixYear(p));
                 celltab{rr, 8} = OUT.Y.PricePerDot(n, ixYear(p));
                 % ToDo: The following fields are subject to ChangeEvents.  Refactor to capture this.
-                celltab{rr, 9}  = ASSET.Efficacy{n};
-                celltab{rr, 10} = ASSET.S_T{n};
-                celltab{rr, 11} = ASSET.Delivery{n};
-                celltab{rr, 12} = ASSET.Barriers{n};
-                celltab{rr, 13} = ASSET.S_T{n} + ASSET.Delivery{n};
+                celltab{rr, 9}  = ASSET.Efficacy(n);
+                celltab{rr, 10} = ASSET.S_T(n);
+                celltab{rr, 11} = ASSET.Delivery(n);
+                celltab{rr, 12} = ASSET.Barriers(n);
+                celltab{rr, 13} = ASSET.S_T(n) + ASSET.Delivery(n);
             end
         end
     end

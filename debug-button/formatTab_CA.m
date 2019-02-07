@@ -39,24 +39,24 @@ function [celltab, fmt] = formatTab_CA(cMODEL, cASSET, BENCH)
             celltab{rr, 2} = MODEL.ScenarioSelected;
             celltab{rr, 3} = runTime;
             celltab{rr, 4} = ASSET.Assets_Rated{n};
-            celltab{rr, 5} = ASSET.Company1{n};
-            celltab{rr, 6} = ASSET.Company2{n};
+            celltab{rr, 5} = ASSET.Company1(n);
+            celltab{rr, 6} = ASSET.Company2(n);
             celltab{rr, 7} = launchDates{n};
             celltab{rr, 8} = loeDates{n};
             celltab{rr, 9} = ASSET.Therapy_Class{n};
-            celltab{rr, 10} = ASSET.Scenario_PTRS{n};
+            celltab{rr, 10} = ASSET.Scenario_PTRS(n);
             celltab{rr, 11} = ASSET.Phase{n};
-            celltab{rr, 12} = ASSET.Starting_Share{n};
+            celltab{rr, 12} = ASSET.Starting_Share(n);
             celltab{rr, 13} = startingShareDates{n};
-            celltab{rr, 14} = ASSET.Follow_On{n};
-            celltab{rr, 15} = ASSET.Product_p{n};
-            celltab{rr, 16} = ASSET.Product_q{n};
-            celltab{rr, 17} = ASSET.Class_p{n};
-            celltab{rr, 18} = ASSET.Class_q{n};
-            celltab{rr, 19} = ASSET.LOE_Pct{n};
-            celltab{rr, 20} = ASSET.LOE_p{n};
-            celltab{rr, 21} = ASSET.LOE_q{n};
-            celltab{rr, 22} = ASSET.Avg_Therapy_Days{n};            
+            celltab{rr, 14} = ASSET.Follow_On(n);
+            celltab{rr, 15} = ASSET.Product_p(n);
+            celltab{rr, 16} = ASSET.Product_q(n);
+            celltab{rr, 17} = ASSET.Class_p(n);
+            celltab{rr, 18} = ASSET.Class_q(n);
+            celltab{rr, 19} = ASSET.LOE_Pct(n);
+            celltab{rr, 20} = ASSET.LOE_p(n);
+            celltab{rr, 21} = ASSET.LOE_q(n);
+            celltab{rr, 22} = ASSET.Avg_Therapy_Days(n);            
         end
     end
 

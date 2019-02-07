@@ -16,8 +16,13 @@ tStart = tic;
 
 fileName = '.\Data\MATLABv33TEST.xlsb';
 fileName = '.\Data\aMDD MM v1.6-ES (Inputs).xlsb';
+fileName = 'Data/aMDD_Dec2018.xlsm';
 
 [MODEL, ASSET, CHANGE] = importAssumptions(fileName);
+
+ASSET=ASSET{1};
+MODEL=MODEL{1};
+CHANGE=CHANGE{1};
 
 fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 

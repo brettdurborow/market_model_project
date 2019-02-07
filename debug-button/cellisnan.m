@@ -9,7 +9,7 @@ ix = false(RR, CC);
 
 for rr = 1:RR
     for cc = 1:CC
-        if length(cellarray{rr, cc}) == 1 && isnan(cellarray{rr, cc})
+        if length(cellarray{rr, cc}) == 1 && ismissing(cellarray{rr, cc})
             ix(rr, cc) = true;
         end
     end

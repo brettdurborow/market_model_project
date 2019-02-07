@@ -53,8 +53,8 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
         RESTAT = struct;
         RESTAT.Branded.M.DateGrid = dateGrid;
         RESTAT.Branded.Y.YearVec = yearVec;        
-        scenario_PTRS_M = repmat(cell2mat(cASSET{m}.Scenario_PTRS), 1, length(dateGrid));
-        scenario_PTRS_Y = repmat(cell2mat(cASSET{m}.Scenario_PTRS), 1, length(yearVec));
+        scenario_PTRS_M = repmat(cASSET{m}.Scenario_PTRS, 1, length(dateGrid));
+        scenario_PTRS_Y = repmat(cASSET{m}.Scenario_PTRS, 1, length(yearVec));
 
         for n = 1:length(statnames)
             monthlyShareMx = cESTAT{m}.Branded.(statnames{n});

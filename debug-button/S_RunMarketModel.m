@@ -1,6 +1,6 @@
 
 %% Read assumptions from Excel file on disk
-doPlots = true;
+doPlots = false;
 tStart = tic;
 
 % fileName = '.\Data\MATLABv33_ps1.xlsb';
@@ -10,6 +10,7 @@ tStart = tic;
 % fileName = '.\Data\MDD MM LRFP2018.xlsx';
 fileName = '.\Data\MDD MM LRFP2018.xlsm';
 % fileName = '.\Data\TheMath 2c.xlsx';
+fileName = 'Data/aMDD_Dec2018.xlsm';
 
 [cMODEL, cASSET, cCHANGE] = importAssumptions(fileName);
 
@@ -18,8 +19,8 @@ fprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
 
 %% Run many realizations, collect stats at the end
 
-numIterations = 100;
-numWorkers = 3;
+numIterations = 1000;
+numWorkers = 1;
 
 fnames = {'NumIterations', 'NumWorkers', 'ExecutionTime', 'RunTime'};
 BENCH = struct;  % intialize the benchmark struct
@@ -52,17 +53,20 @@ end
 endTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime
 BENCH.RunTime = repmat(endTime, size(BENCH.NumIterations));
 
-outFileName = sprintf('Output\\S_ModelOutputs_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
-OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
-OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
-OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+% outFileName = sprintf('Output/S_ModelOutputs_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
+% OUT_Branded  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_Mean'], ESTAT.Branded.Mean, ESTAT.DateGrid, MODEL, ASSET);
+% OUT_BrStdEr  = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Branded_StdErr'], ESTAT.Branded.StdErr, ESTAT.DateGrid, MODEL, ASSET);
+% OUT_Molecule = writeEnsembleOutputs(outFileName, [MODEL.CountrySelected, '_Molecule_Mean'], ESTAT.Molecule.Mean, ESTAT.DateGrid, MODEL, ASSET);
+% 
+% xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
+% [cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
+% 
+% outFolder = sprintf('Output\\ModelOut_%s', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
+% [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH);
 
-xlsFileName = fullfile('Output', sprintf('TableauData_%s.xlsx', datestr(endTime, 'yyyy-mm-dd_HHMMSS')));
-[cTableau, cSheetNames] = writeTableauXls(xlsFileName, cMODEL, cASSET, cESTAT, BENCH);
-
-outFolder = sprintf('Output\\ModelOut_%s', datestr(endTime, 'yyyy-mm-dd_HHMMSS'));
-[cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTAT, BENCH);
-
+OUT_Branded = computeOutputs(MODEL, ASSET, ESTAT.DateGrid, ESTAT.Branded.Mean);
+OUT_BrStdEr = computeOutputs(MODEL, ASSET, ESTAT.DateGrid, ESTAT.Branded.StdErr);
+OUT_Molecule = computeOutputs(MODEL, ASSET, ESTAT.DateGrid, ESTAT.Molecule.Mean);
 
 %% Plot some outputs across all assets
 
@@ -131,7 +135,7 @@ if doPlots
     datetick; grid on; timeCursor(false);
         
     figure; cdfplot(SimCubeBranded(:, aNum, Nt)); 
-    title(sprintf('CDF of final share over %d sims for Asset %d.  PTRS=%1.1f%%', Nsim, aNum, ASSET.Scenario_PTRS{aNum} * 100));
+    title(sprintf('CDF of final share over %d sims for Asset %d.  PTRS=%1.1f%%', Nsim, aNum, ASSET.Scenario_PTRS(aNum) * 100));
    
 end
 

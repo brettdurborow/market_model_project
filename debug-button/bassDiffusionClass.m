@@ -27,15 +27,15 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
     nClass = 0;
     
     for m = 1:Nc
-        ixC = find(strcmpi(CLASS.Therapy_Class{m}, ASSET.Therapy_Class) & isLaunch);  % Assets in this class that launched
+        ixC = find((CLASS.Therapy_Class(m) == ASSET.Therapy_Class) & isLaunch);  % Assets in this class that launched
         if ~isempty(ixC)
             [firstDate, ixD] = min(ASSET.Launch_Date(ixC));  % Initial launch date of this class
             nClass = nClass + 1;
             classEventDates(nClass) = firstDate;
-            classPVec(nClass) = ASSET.Class_p{ixC(ixD)};
-            classQVec(nClass) = ASSET.Class_q{ixC(ixD)};
+            classPVec(nClass) = ASSET.Class_p(ixC(ixD));
+            classQVec(nClass) = ASSET.Class_q(ixC(ixD));
             % Initialize starting value for mothly class share series
-            sharePerClassMonthlySeries(m,1) = sum(cell2mat(ASSET.Starting_Share(ixC))) / nansum(cell2mat(ASSET.Starting_Share(isLaunch)));  
+            sharePerClassMonthlySeries(m,1) = sum(ASSET.Starting_Share(ixC)) / nansum(ASSET.Starting_Share(isLaunch));  
         end        
     end
     
@@ -65,8 +65,8 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
         
     %% Run the class Bass-Diffusion loop
     if doDebug
-        dbgBassClass = cell(Nc+6, Nd);
-        dbgBassClassPrep = cell(2*Nc+5, Nc);
+        dbgBassClass = zeros(Nc+6, Nd);
+        dbgBassClassPrep = zeros(2*Nc+5, Nc);
     end
     
     for m = 1:length(classEventDates)
@@ -78,9 +78,9 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
         end
         
         if doDebug
-            dbgBassClassPrep{1, m} = datenumToYearFraction(eventDate);
-            dbgBassClassPrep{2, m} = classPVec(m);
-            dbgBassClassPrep{3, m} = classQVec(m);           
+            dbgBassClassPrep(1, m) = datenumToYearFraction(eventDate);
+            dbgBassClassPrep(2, m) = classPVec(m);
+            dbgBassClassPrep(3, m) = classQVec(m);           
         end
 
         % compute monthly time vector for bass diffusion
@@ -90,7 +90,7 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
         
         % compute target shares for each asset in this class on this event date
         for n = 1:Nc     
-            ixC = find(strcmpi(CLASS.Therapy_Class{n}, ASSET.Therapy_Class) & isLaunch);  % Assets in this class that launched
+            ixC = find((CLASS.Therapy_Class(n) == ASSET.Therapy_Class) & isLaunch);  % Assets in this class that launched
             if ~isempty(ixC)
                 ixE = find(eventDates == classEventDates(m));
                 if length(ixE) ~= 1
@@ -101,34 +101,36 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
                 share = bassDiffusion(tt, classPVec(m), classQVec(m), shareStart, shareTarget, false);
                 sharePerClassMonthlySeries(n, ixStart:ixEnd) = share;
                 if doDebug
-                    dbgBassClassPrep{4+n, m} = shareStart;
-                    dbgBassClassPrep{5+Nc+n, m} = shareTarget;
+                    dbgBassClassPrep(4+n, m) = shareStart;
+                    dbgBassClassPrep(5+Nc+n, m) = shareTarget;
                 end
             end
         end
         
         if doDebug        
-            dbgBassClass(1, ixStart:ixEnd) = repmat({datenumToYearFraction(eventDate)}, 1, length(tt));
-            dbgBassClass(2, ixStart:ixEnd) = repmat({datenumToYearFraction(nextDate)}, 1, length(tt));
-            dbgBassClass(3, ixStart:ixEnd) = repmat({classPVec(m)}, 1, length(tt));
-            dbgBassClass(4, ixStart:ixEnd) = repmat({classQVec(m)}, 1, length(tt));
-            dbgBassClass(5, ixStart:ixEnd) = num2cell(sum(sharePerClassMonthlySeries(:, ixStart:ixEnd), 1));
-            dbgBassClass(6, ixStart:ixEnd) = num2cell(datenumToYearFraction(dateGrid(ixStart:ixEnd)) / 12);
-            dbgBassClass(7:end, ixStart:ixEnd) = num2cell(sharePerClassMonthlySeries(:, ixStart:ixEnd));
+            dbgBassClass(1, ixStart:ixEnd) = datenumToYearFraction(eventDate);
+            dbgBassClass(2, ixStart:ixEnd) = datenumToYearFraction(nextDate);
+            dbgBassClass(3, ixStart:ixEnd) = classPVec(m);
+            dbgBassClass(4, ixStart:ixEnd) = classQVec(m);
+            dbgBassClass(5, ixStart:ixEnd) = sum(sharePerClassMonthlySeries(:, ixStart:ixEnd), 1);
+            dbgBassClass(6, ixStart:ixEnd) = datenumToYearFraction(dateGrid(ixStart:ixEnd)) / 12;
+            dbgBassClass(7:end, ixStart:ixEnd) = sharePerClassMonthlySeries(:, ixStart:ixEnd);
         end
         
     end
     if doDebug
         sideHead = [{'eventDate'; 'nextDate'; 'p'; 'q'; 'sum'; 'gridDate'}; CLASS.Therapy_Class(:)];
-        DBG.BassClass = [sideHead, dbgBassClass];
+        %DBG.rowBassClass=sideHead;
+        DBG.BassClass = table(sideHead,dbgBassClass);
         sideHeadPrep = [{'eventDate'; 'classP'; 'classQ'; '';}; CLASS.Therapy_Class(:); {''}; CLASS.Therapy_Class(:)];
-        DBG.BassClassPrep = [sideHeadPrep, dbgBassClassPrep];
+        %DBG.rowBassClassPrep=sideHeadPrep;
+        DBG.BassClassPrep = table(sideHeadPrep,dbgBassClassPrep);
     end
 
     %% Asset Diffusion
     
     sharePerAssetMonthlySeriesRaw = zeros(Na, Nd);
-    sharePerAssetMonthlySeriesRaw(isLaunch,1) = cell2mat(ASSET.Starting_Share(isLaunch)) / nansum(cell2mat(ASSET.Starting_Share(isLaunch)));  
+    sharePerAssetMonthlySeriesRaw(isLaunch,1) = ASSET.Starting_Share(isLaunch) / nansum(ASSET.Starting_Share(isLaunch));  
         
     % Find Asset event dates
     [assetEventDatesRaw, ix] = sort(ASSET.Launch_Date);
@@ -143,14 +145,14 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
     for m = 1:length(uDates)
         ix = find(uDates(m) == assetEventDatesRaw);
         if length(ix) > 1            
-            [~, ixP] = max(cell2mat(assetPVecRaw(ix)));
+            [~, ixP] = max(assetPVecRaw(ix));
             assetEventDates(m) = uDates(m);
-            assetPVec(m) = assetQVecRaw{ix(ixP)};
-            assetQVec(m) = assetQVecRaw{ix(ixP)};
+            assetPVec(m) = assetQVecRaw(ix(ixP));
+            assetQVec(m) = assetQVecRaw(ix(ixP));
         else
             assetEventDates(m) = assetEventDatesRaw(ix);
-            assetPVec(m) = assetPVecRaw{ix};
-            assetQVec(m) = assetQVecRaw{ix};
+            assetPVec(m) = assetPVecRaw(ix);
+            assetQVec(m) = assetQVecRaw(ix);
         end
     end
     
@@ -206,7 +208,7 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
     
     sharePerAssetMonthlySeries = zeros(Na, Nd);
     for m = 1:Nc
-        ix = find(strcmpi(CLASS.Therapy_Class{m}, ASSET.Therapy_Class));
+        ix = find(CLASS.Therapy_Class(m) == ASSET.Therapy_Class);
         
         % COMBINED DIFFUSION -----------------------------------------------------
         % Scale asset shares within a class to sum to class shares in classShareMx
@@ -224,4 +226,9 @@ function [dateGrid, sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG]
     end
 
 
+end
+
+function tab = mx2tab(colHead, rowHead, dataMx)
+    tab = struct('colNames',colHead,'rowNames',rowHead,'data',dataMx);
+    %[[{''}, colHead(:)']; [rowHead(:), num2cell(dataMx)]];
 end

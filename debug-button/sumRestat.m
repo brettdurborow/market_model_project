@@ -17,27 +17,27 @@ function [ASSET3, RESTAT3] = sumRestat(ASSET1, RESTAT1, ASSET2, RESTAT2)
     ASSET3.Assets_Rated = Assets;
     
     LOE_Year = nan(size(Assets)); % take the latest LOE_Year of the two countries
-    LOE_Year(iA1) = cell2mat(ASSET1.LOE_Year(LocA1(iA1)));
-    LOE_Year(iA2) = nanmax(LOE_Year(iA2), cell2mat(ASSET2.LOE_Year(LocA2(iA2))));
-    ASSET3.LOE_Year = num2cell(LOE_Year);
+    LOE_Year(iA1) = ASSET1.LOE_Year(LocA1(iA1));
+    LOE_Year(iA2) = nanmax(LOE_Year(iA2), ASSET2.LOE_Year(LocA2(iA2)));
+    ASSET3.LOE_Year = LOE_Year;
     
-    ASSET3.Company1 = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Company1 = strings(size(ASSET3.Assets_Rated));
     ASSET3.Company1(iA1) = ASSET1.Company1(LocA1(iA1));
     
-    ASSET3.Company2 = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Company2 = strings(size(ASSET3.Assets_Rated));
     ASSET3.Company2(iA1) = ASSET1.Company2(LocA1(iA1));
     
-    ASSET3.Therapy_Class = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Therapy_Class = strings(size(ASSET3.Assets_Rated));
     ASSET3.Therapy_Class(iA1) = ASSET1.Therapy_Class(LocA1(iA1));
     
     % Populate PTRS only if the values are equal in Asset1 and Asset2
-    ASSET3.Scenario_PTRS = cell(size(ASSET3.Assets_Rated));
+    ASSET3.Scenario_PTRS = zeros(size(ASSET3.Assets_Rated));
     ixBoth = iA1 & iA2;
     ixEq = false(size(ixBoth));
-    ixEq(ixBoth) = cell2mat(ASSET1.Scenario_PTRS(LocA1(ixBoth))) == ...
-                   cell2mat(ASSET2.Scenario_PTRS(LocA2(ixBoth)));
+    ixEq(ixBoth) = ASSET1.Scenario_PTRS(LocA1(ixBoth)) == ...
+                   ASSET2.Scenario_PTRS(LocA2(ixBoth));
     ASSET3.Scenario_PTRS(ixEq) = ASSET1.Scenario_PTRS(LocA1(ixEq));
-    ASSET3.Scenario_PTRS(~ixEq) = {nan};
+    ASSET3.Scenario_PTRS(~ixEq) = nan;
     
     % ---------------------------------------------------
     RESTAT3 = struct;

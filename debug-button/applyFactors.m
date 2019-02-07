@@ -7,10 +7,10 @@ function adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChang
     loeDate = ASSET.LOE_Date;
 
     barriers = zeros(size(isLaunch));
-    barriers(isLaunch) = cell2mat(ASSET.Barriers(isLaunch));
+    barriers(isLaunch) = ASSET.Barriers(isLaunch);
     
     calibration = zeros(size(isLaunch));
-    calibration(isLaunch) = cell2mat(ASSET.Calibration(isLaunch));
+    calibration(isLaunch) = ASSET.Calibration(isLaunch);
     
     %% Handle ChangeEvents if there are any
     
