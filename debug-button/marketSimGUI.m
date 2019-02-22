@@ -324,7 +324,8 @@ function marketSimGUI()
             addStatusMsg(sprintf('Starting to process country: %s on sheet: %s', MODEL.CountrySelected, MODEL.AssetSheet));
             
             % This is where the magic happens, and we generate the
-            % simulation cubes.
+            % simulation cubes. Inside this function we do parallel
+            % excecution.
             [dateGrid, SimCubeBranded, SimCubeMolecule, tExec] = marketModelMonteCarlo(MODEL, ASSET, CHANGE, numIterations, numWorkers);
             
             % ParamapplyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid,tmpdir(m));eters of the overall simulation for performance benchmarking
@@ -336,7 +337,11 @@ function marketSimGUI()
             tmpdir(m)=tempname();
             mkdir(tmpdir(m))
                         
-            if  numWorkers>1       % Run parallel code on already initialized parallel pool
+            if  numWorkers>1       % Run parallel code on already initialized parallel pool                
+                % This part could be run in parallel. However, we need to
+                % avoid a function call so that the SimCubes are not
+                % recreated
+                
                 % Now apply constraints
                 for n=1:length(cCNSTR)
                     applyConstraints(cCNSTR{n}, MODEL, ASSET, SimCubeBranded, SimCubeMolecule, dateGrid,tmpdir(m));
@@ -361,7 +366,7 @@ function marketSimGUI()
               
         %% Now we will re-read the previous data written to file, 
         % looping over each constraint (in parallel)
-        
+        addStatusMsg('Writing outputs for constraints in parallel\nSee console for timing output\n');
         parfor n=1:length(cCNSTR)
             msg = sprintf('Writing outputs for Constraints: %s , Cume time = %1.1f sec', cCNSTR{n}.ConstraintName, toc(tStart));
             fprintf(msg);
@@ -376,7 +381,8 @@ function marketSimGUI()
 %         cESTATc = cell(size(cCNSTR));
 %         cMODELc = cell(size(cCNSTR));
 %         cASSETc = cell(size(cCNSTR));
-%         for n = 1:length(cESTATc)
+%         for n = 1:length(cESTATc)        addStatusMsg('Writing table')
+
 %            cESTATc{n} = ccESTAT(:,n); 
 %            cMODELc{n} = ccMODEL(:,n);
 %            cASSETc{n} = ccASSET(:,n);
@@ -435,6 +441,8 @@ function marketSimGUI()
         if ~isOkInput || ~isOkOutput
             addStatusMsg('Unable to Run Simulation!  Please check Input and Output paths');
             return;
+        else
+            addStatusMsg('Running Debug simultation');
         end
         
         tStart = tic;
@@ -467,35 +475,44 @@ function marketSimGUI()
         
         debugFilename=outFolder+filesep+"Debug_output.csv";
         T=table;
+        
+        % Extract Scenario names from debug cell
+        Scenarios=cDEBUG{1}.Scenario_names;
         tic;
-        % Loop over Countries then Scenarios, then assets.
-        for m = 1:length(cMODEL)
+        % For a fixed scenario, we run all countries
+        for k=1:length(Scenarios)
             % Quick return if cancel is pressed
             if isCancel
                 isCancel = false;
                 return;
             end
-            MODEL = cMODEL{m};
-            ASSET = cDEBUG{m}.asset;
-            CHANGE = cCHANGE{m};
-            DEBUG = cDEBUG{m};
-            dASSET{m}=ASSET;
-            cMODEL{m}.ConstraintRealizationCount=1;
-            cMODEL{m}.ConstraintProbability=1;
-            cMODEL{m}.ConstraintName='DEBUG';
             
-            fprintf('Processing: country %s\n',MODEL.CountrySelected);
-            Scenarios=DEBUG.Scenario_names;
-            % Then we loop over each scenario
-            for k=1:length(Scenarios)
+            msg=sprintf('Debug processing scenario: %s\n',Scenarios(k));
+            addStatusMsg(msg);
+            
+            Tc=cell(length(cMODEL),1);
+            % Loop all countries and simulate 
+            parfor m = 1:length(cMODEL)
+                MODEL = cMODEL{m};
+                ASSET = cDEBUG{m}.asset;
+                CHANGE = cCHANGE{m};
+                DEBUG = cDEBUG{m};
+
+                % Set fixed launch probabilities
+                isLaunch=DEBUG.Scenario_PTRS(:,k);
+
+                dASSET{m}=ASSET;
+                cMODEL{m}.ConstraintRealizationCount=1;
+                cMODEL{m}.ConstraintProbability=1;
+                cMODEL{m}.ConstraintName='CNSTR_0';
+                cMODEL{m}.ScenarioSelected=Scenarios(k);
                 
                 % Run simulation based on a fixed launch vector (No Monte Carlo)
-                isLaunch=DEBUG.Scenario_PTRS(:,k);
                 SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);
-                       
-                cESTAT{m,k} = computeEnsembleStats( SIM.BrandedMonthlyShare, SIM.SharePerAssetMonthlySeries, SIM.DateGrid);
-
                 
+                % Compute statistics from hte simulation
+                cESTAT{m} = computeEnsembleStats( SIM.BrandedMonthlyShare, SIM.SharePerAssetMonthlySeries, SIM.DateGrid);
+
                 % Shapes to use
                 Na=length(ASSET.Assets_Rated);
                 nEvents=length(SIM.DBG.EventDates);
@@ -533,25 +550,35 @@ function marketSimGUI()
                     SIM.DBG.ClassAdjFactor(:),... % Adjustment_Factor
                     SIM.DBG.ClassTargetShare(:),... % Adjusted_Target_Share
                     'VariableNames',tableVarNames);
-                T=[T;TAsset;TClass];
+                Tc{m}=[TAsset;TClass];
+                
             end
-            BENCH.ExecutionTime(m) = tExec;
-        end
-        BENCH.RunTime = repmat(1,m);
-        toc;
-        
-        fprintf('Writing output files\n')
-        tic;
-        for k=1:length(Scenarios)
+            BENCH.ExecutionTime(m) = -1; % Not used
+            
+            % Concatenate table just computed for all countries
+            T=vertcat(T,Tc{:});
+            BENCH.RunTime = repmat(runTime,length(cMODEL),1);
+            % Here, all countries are prepared for this specific scenario
+            % Thus we write them to file
             msg=sprintf('Writing Scenario %s\n',Scenarios(k));
             addStatusMsg(msg);
-            [~, cFileNames] = writeTablesCsv(outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT(:,k), cCNSTR, BENCH);
+            tic;
+            
+            % Testing a new strategy,: Asynchronous execution of the write
+            % table.
+            %parfeval(@writeTablesCsv,0,outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
+            writeTablesCsv(outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
+            tWrite=toc;
+            addStatusMsg(sprintf('Time for writing: %g\n',tWrite));
         end
+       
         toc;
-        
+
         tic;
         writetable(T,debugFilename);
-        toc
+        tWrite=toc;
+        addStatusMsg(sprintf('Time for writing table %g\n',tWrite))
+        
     end % cb_DebugSim
 
     function cb_Cancel(source, eventdata)

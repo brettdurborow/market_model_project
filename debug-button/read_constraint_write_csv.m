@@ -1,4 +1,4 @@
-function read_constraint_write_cvs(tmpdir,CNSTR,cCNSTR,outFolder,BENCH)
+function read_constraint_write_csv(tmpdir,CNSTR,cCNSTR,outFolder,BENCH)
 
 % For this constraint we will load data for all countries and write the
 % output into the output folder
