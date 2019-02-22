@@ -25,7 +25,7 @@ function [cTables, cFileNames] = writeTablesCsv(outFolder, cMODEL, cASSET, cESTA
         mkdir(outFolder)
     end
     
-    for m = 1:length(cTables)
+    parfor m = 1:length(cTables)
         celltab2csv(cFileNames{m}, cTables{m}, cFormats{m});   
     end
 end

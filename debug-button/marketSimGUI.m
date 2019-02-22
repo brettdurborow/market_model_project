@@ -542,9 +542,9 @@ function marketSimGUI()
         
         fprintf('Writing output files\n')
         tic;
-        parfor k=1:length(Scenarios)
+        for k=1:length(Scenarios)
             msg=sprintf('Writing Scenario %s\n',Scenarios(k));
-            fprintf(msg);
+            addStatusMsg(msg);
             [~, cFileNames] = writeTablesCsv(outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT(:,k), cCNSTR, BENCH);
         end
         toc;
