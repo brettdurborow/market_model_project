@@ -487,7 +487,7 @@ function marketSimGUI()
                 return;
             end
             
-            msg=sprintf('Debug processing scenario: %s\n',Scenarios(k));
+            msg=sprintf('Debug processing scenario: %s',Scenarios(k));
             addStatusMsg(msg);
             
             Tc=cell(length(cMODEL),1);
@@ -560,16 +560,16 @@ function marketSimGUI()
             BENCH.RunTime = repmat(runTime,length(cMODEL),1);
             % Here, all countries are prepared for this specific scenario
             % Thus we write them to file
-            msg=sprintf('Writing Scenario %s\n',Scenarios(k));
+            msg=sprintf('Writing csv output for Scenario %s',Scenarios(k));
             addStatusMsg(msg);
             tic;
             
             % Testing a new strategy,: Asynchronous execution of the write
             % table.
             %parfeval(@writeTablesCsv,0,outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
-            writeTablesCsv(outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
+            writeTablesCsv(outFolder+filesep+Scenarios(k)+datestr(runTime, '_yyyy-mm-dd_HHMMSS'),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
             tWrite=toc;
-            addStatusMsg(sprintf('Time for writing: %g\n',tWrite));
+            addStatusMsg(sprintf('\nTime for writing csv output files: %g',tWrite));
         end
        
         toc;
