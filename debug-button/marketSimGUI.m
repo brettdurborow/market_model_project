@@ -358,7 +358,7 @@ function marketSimGUI()
             % later we will have to reread them (but this should be 7 at a
             % time, so in the long run, should be more efficient.
             msg = sprintf('Country:%s, Ran %d iterations, Monte Carlo = %1.1f sec, Constraint Writing: %1.1f sec, Cume time = %1.1f\n', ...
-                    MODEL.CountrySelected, numIterations, tCnstrExec,tExec, toc(tStart));
+                    MODEL.CountrySelected, numIterations, tExec,tCnstrExec, toc(tStart));
             addStatusMsg(msg);
         end
         
@@ -366,7 +366,8 @@ function marketSimGUI()
               
         %% Now we will re-read the previous data written to file, 
         % looping over each constraint (in parallel)
-        addStatusMsg('Writing outputs for constraints in parallel\nSee console for timing output\n');
+        msg=sprintf('Writing outputs for constraints in parallel\nSee console for timing output\n');
+        addStatusMsg(msg);
         parfor n=1:length(cCNSTR)
             msg = sprintf('Writing outputs for Constraints: %s , Cume time = %1.1f sec', cCNSTR{n}.ConstraintName, toc(tStart));
             fprintf(msg);
@@ -463,17 +464,19 @@ function marketSimGUI()
         end
         tExec=toc(tStart);
         dASSET=cell(size(cASSET));
+        dMODEL=cell(size(cMODEL));
+        dESTAT=cell(size(cESTAT));
         
         doDebug=true;
         
         isChange=[];
   
         % Initializations
-        tableVarNames=["Scenario","Country","Class","Asset","Time",...
+        tableVarNames=["Country","Scenario_Run","Run_Date","Class","Asset","Time",...
             "Profile_Model_Target_Share","OE_Target_Share",...
             "Unadj_Combined_Target_Share","Adjustment_Factor","Adjusted_Target_Share"];
         
-        debugFilename=outFolder+filesep+"Debug_output.csv";
+        debugFilename=outFolder+filesep+"Debug_output"+datestr(runTime, '_yyyy-mm-dd_HHMMSS')+".csv";
         T=table;
         
         % Extract Scenario names from debug cell
@@ -502,16 +505,17 @@ function marketSimGUI()
                 isLaunch=DEBUG.Scenario_PTRS(:,k);
 
                 dASSET{m}=ASSET;
-                cMODEL{m}.ConstraintRealizationCount=1;
-                cMODEL{m}.ConstraintProbability=1;
-                cMODEL{m}.ConstraintName='CNSTR_0';
-                cMODEL{m}.ScenarioSelected=Scenarios(k);
+                dMODEL{m}=MODEL;
+                dMODEL{m}.ConstraintRealizationCount=1;
+                dMODEL{m}.ConstraintProbability=1;
+                dMODEL{m}.ConstraintName='CNSTR_0';
+                dMODEL{m}.ScenarioSelected=Scenarios(k);
                 
                 % Run simulation based on a fixed launch vector (No Monte Carlo)
                 SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug);
                 
-                % Compute statistics from hte simulation
-                cESTAT{m} = computeEnsembleStats( SIM.BrandedMonthlyShare, SIM.SharePerAssetMonthlySeries, SIM.DateGrid);
+                % Compute statistics from the simulation
+                dESTAT{m} = computeEnsembleStats( SIM.BrandedMonthlyShare, SIM.SharePerAssetMonthlySeries, SIM.DateGrid);
 
                 % Shapes to use
                 Na=length(ASSET.Assets_Rated);
@@ -522,8 +526,9 @@ function marketSimGUI()
                 Country=categorical(ASSET.Country);
                                 
                 % Data for the Assets
-                TAsset=table(repmat(categorical(Scenarios(k)),nEvents*Na,1),... % Scenario
-                    repmat(Country,nEvents,1),... % Country
+                TAsset=table(repmat(Country,nEvents,1),... % Country
+                    repmat(categorical(Scenarios(k)),nEvents*Na,1),... % Scenario Run
+                    repmat(categorical(runTime),nEvents*Na,1),... % Run Time
                     repmat(Therapy_class,nEvents,1),... %Class
                     repmat(Asset_Names,nEvents,1),... %Asset
                     reshape(repmat(SIM.DBG.EventDates,Na,1),[],1),... %Time
@@ -539,8 +544,9 @@ function marketSimGUI()
                 Country=categorical(repmat(string(MODEL.CountrySelected),Nc,1));
                 Asset_Names=categorical(strings(Nc,1));
                 % Data for the classes
-                TClass=table(repmat(categorical(Scenarios(k)),nEvents*Nc,1),... % Scenario
-                    repmat(Country,nEvents,1),... % Country
+                TClass=table(repmat(Country,nEvents,1),... % Country
+                    repmat(categorical(Scenarios(k)),nEvents*Nc,1),... % Scenario
+                    repmat(categorical(runTime),nEvents*Nc,1),... % Run Time
                     repmat(Therapy_class,nEvents,1),... %Class
                     repmat(Asset_Names,nEvents,1),... %Asset
                     reshape(repmat(SIM.DBG.EventDates,Nc,1),[],1),... %Time
@@ -557,7 +563,7 @@ function marketSimGUI()
             
             % Concatenate table just computed for all countries
             T=vertcat(T,Tc{:});
-            BENCH.RunTime = repmat(runTime,length(cMODEL),1);
+            BENCH.RunTime = repmat(runTime,length(dMODEL),1);
             % Here, all countries are prepared for this specific scenario
             % Thus we write them to file
             msg=sprintf('Writing csv output for Scenario %s',Scenarios(k));
@@ -566,8 +572,8 @@ function marketSimGUI()
             
             % Testing a new strategy,: Asynchronous execution of the write
             % table.
-            %parfeval(@writeTablesCsv,0,outFolder+filesep+Scenarios(k),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
-            writeTablesCsv(outFolder+filesep+Scenarios(k)+datestr(runTime, '_yyyy-mm-dd_HHMMSS'),cMODEL, dASSET, cESTAT, cCNSTR, BENCH);
+            %parfeval(@writeTablesCsv,0,outFolder+filesep+Scenarios(k),dMODEL, dASSET, dESTAT, cCNSTR, BENCH);
+            writeTablesCsv(outFolder+filesep+Scenarios(k)+datestr(runTime, '_yyyy-mm-dd_HHMMSS'),dMODEL, dASSET, dESTAT, cCNSTR, BENCH);
             tWrite=toc;
             addStatusMsg(sprintf('\nTime for writing csv output files: %g',tWrite));
         end
@@ -576,7 +582,18 @@ function marketSimGUI()
 
         tic;
         writetable(T,debugFilename);
+        % Apparently the fastest way to get rid of the NaN and <missing>
+        % values is to re-read the file and using string replacement.
+        f=fopen(debugFilename);
+        raw=char(fread(f)');
+        fclose(f);
+        raw=strrep(raw,'NaN','');
+        raw=strrep(raw,'<undefined>','');
+        f=fopen(debugFilename,'w');
+        fwrite(f,raw);
+        fclose(f);
         tWrite=toc;
+        
         addStatusMsg(sprintf('Time for writing table %g\n',tWrite))
         
     end % cb_DebugSim
