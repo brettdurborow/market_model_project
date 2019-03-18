@@ -250,6 +250,17 @@ function marketSimGUI()
             else 
                 tStart = tic;
                 [cMODEL, cASSET, cCHANGE, cDEBUG] = importAssumptions(fullFileName);
+                % Verify that all sheets contain run the same Scenario
+                scenario_selected=cMODEL{1}.ScenarioSelected;
+                for i=1:length(cMODEL)
+                    if scenario_selected~=cMODEL{i}.ScenarioSelected
+                        msg=sprintf('Scenario selected in Sheet %s does not match other sheets\n',assetSheets{i});
+                        addStatusMsg(msg);
+                        error(msg);
+                    end
+                end
+                msg=sprintf('Scenario selected: %s\n',scenario_selected);
+                addStatusMsg(msg);
                 msg = sprintf('Imported Data, elapsed time = %1.1f sec\n', toc(tStart));
                 addStatusMsg(msg);
                 isOkInput = true;
@@ -306,7 +317,7 @@ function marketSimGUI()
         
         warning('off', 'MATLAB:xlswrite:AddSheet'); % Suppress the annoying warnings
         runTime = datetime('now', 'TimeZone', 'America/New_York');  % Entire run has same RunTime       
-        outFolder = fullfile(resultsFolderPath, sprintf('ModelOut_%s', datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
+        outFolder = fullfile(resultsFolderPath, sprintf('ModelOut_%s_%s',cMODEL{1}.ScenarioSelected, datestr(runTime, 'yyyy-mm-dd_HHMMSS')));
         if ~exist(outFolder, 'dir')
             mkdir(outFolder)
         end
@@ -368,43 +379,31 @@ function marketSimGUI()
         % looping over each constraint (in parallel)
         msg=sprintf('Writing outputs for constraints in parallel\nSee console for timing output\n');
         addStatusMsg(msg);
-        parfor n=1:length(cCNSTR)
-            msg = sprintf('Writing outputs for Constraints: %s , Cume time = %1.1f sec', cCNSTR{n}.ConstraintName, toc(tStart));
-            fprintf(msg);
-            %addStatusMsg(msg);
-            read_constraint_write_csv(tmpdir,cCNSTR{n},cCNSTR,outFolder,BENCH)         
-        end
-        
-%% This block Needs to be reorganized! So that the writing can take place independently of the MonteCarlo Runs
-%         clear cESTAT SimCubeBranded SimCubeMolecule
-% 
-%         % Reorganize the memory to reduce interprocess communication
-%         cESTATc = cell(size(cCNSTR));
-%         cMODELc = cell(size(cCNSTR));
-%         cASSETc = cell(size(cCNSTR));
-%         for n = 1:length(cESTATc)        addStatusMsg('Writing table')
 
-%            cESTATc{n} = ccESTAT(:,n); 
-%            cMODELc{n} = ccMODEL(:,n);
-%            cASSETc{n} = ccASSET(:,n);
+        
+%         parfor n=1:length(cCNSTR)
+%             msg = sprintf('Writing outputs for Constraints: %s , Cume time = %1.1f sec', cCNSTR{n}.ConstraintName, toc(tStart));
+%             fprintf(msg);
+%             %addStatusMsg(msg);
+%             read_constraint_write_csv(tmpdir,cCNSTR{n},cCNSTR,outFolder,BENCH)         
 %         end
-% 
-%         % Break into smaller for loops, again to reduce IPC
-%         startVec =  1:numWorkers:length(cCNSTR);
-%         endVec = startVec + numWorkers - 1;
-%         endVec(end) = length(cCNSTR);
-%         for m = 1:length(startVec)
-%             cname1 = cCNSTR{startVec(m)}.ConstraintName;
-%             cname2 = cCNSTR{endVec(m)}.ConstraintName;
-%             msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
-%             addStatusMsg(msg);            
-%             for n = startVec(m):endVec(m)  
-%                 cname = cCNSTR{n}.ConstraintName;
-%                 outFolderSub = fullfile(outFolder, cname);
-% 
-%                 [~, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
-%             end
-%         end
+        
+        % Break into smaller for loops, again to reduce IPC
+        startVec =  1:numWorkers:length(cCNSTR);
+        endVec = startVec + numWorkers - 1;
+        endVec(end) = length(cCNSTR);
+        for m = 1:length(startVec)
+            cname1 = cCNSTR{startVec(m)}.ConstraintName;
+            cname2 = cCNSTR{endVec(m)}.ConstraintName;
+            msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
+            addStatusMsg(msg);            
+            parfor n = startVec(m):endVec(m)  
+                cname = cCNSTR{n}.ConstraintName;
+                outFolderSub = fullfile(outFolder, cname);
+                read_constraint_write_csv(tmpdir,cCNSTR{n},cCNSTR,outFolder,BENCH);
+                %[~, cFileNames] = writeTablesCsv(outFolderSub, cMODELc{n}, cASSETc{n}, cESTATc{n}, cCNSTR, BENCH);
+            end
+        end
 
 
         %% Produce various outputs for a single realization
