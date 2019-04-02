@@ -393,10 +393,17 @@ function marketSimGUI()
         endVec = startVec + numWorkers - 1;
         endVec(end) = length(cCNSTR);
         for m = 1:length(startVec)
+            % quick return if possible.
+            if isCancel
+                isCancel = false;
+                return;
+            end
+
             cname1 = cCNSTR{startVec(m)}.ConstraintName;
             cname2 = cCNSTR{endVec(m)}.ConstraintName;
             msg = sprintf('Writing outputs for Constraints: %s to %s, Cume time = %1.1f sec', cname1, cname2, toc(tStart));
             addStatusMsg(msg);            
+            % replace with parfor after debugging            
             parfor n = startVec(m):endVec(m)  
                 cname = cCNSTR{n}.ConstraintName;
                 outFolderSub = fullfile(outFolder, cname);

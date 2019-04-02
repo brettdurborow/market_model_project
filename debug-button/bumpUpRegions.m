@@ -64,6 +64,10 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
             RESTAT.Branded.M.Units.(statnames{n}) = OUT.M.Units;
             RESTAT.Branded.Y.Units.(statnames{n}) = OUT.Y.Units;
             
+            RESTAT.Branded.M.GTN.(statnames{n}) = OUT.M.GTN;
+            RESTAT.Branded.Y.GTN.(statnames{n}) = OUT.Y.GTN;
+
+            
             RESTAT.Branded.M.NetRevenuesNRA.(statnames{n}) = OUT.M.NetRevenues ./ scenario_PTRS_M;
             RESTAT.Branded.Y.NetRevenuesNRA.(statnames{n}) = OUT.Y.NetRevenues ./ scenario_PTRS_Y;
             RESTAT.Branded.M.UnitsNRA.(statnames{n}) = OUT.M.Units ./ scenario_PTRS_M;            

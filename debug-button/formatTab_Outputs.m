@@ -9,9 +9,10 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                'Constraints', 'Company1', 'Company2', 'Class', ...
                'Branded Net Revenues (NRA)', 'Branded Point Share (NRA)', ...
                'Branded Patient Share (NRA)', 'Branded Units (NRA)', ...
-               'Molecule Point Share (NRA)', 'Molecule Patient Share (NRA)'};
+               'Molecule Point Share (NRA)', 'Molecule Patient Share (NRA)',...
+               'Gross Sales','Generic Units','Molecule Units','Patient Volume'};
            
-    fmt = '%s,%s,%s,%s,%s,%d,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g\n';
+    fmt = '%s,%s,%s,%s,%s,%d,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.12g,%.12g,%.12g,%.12g\n';
       
     
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
@@ -45,7 +46,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
         ASSET = cASSET{m};
         ESTAT = cESTAT{m};
         runTime = datestr(BENCH.RunTime(m), 'yyyy-mm-dd HH:MM:SS'); 
-        
+        patient_volume=MODEL.Pop*MODEL.SubPop;
         dateGrid = ESTAT.DateGrid;
                 
         for q = 1:length(oStats)
@@ -78,6 +79,12 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 16} = ASSET.Company1(n);
                         celltab{rr, 17} = ASSET.Company2(n);
                         celltab{rr, 18} = ASSET.Therapy_Class{n};
+                        
+                        % New outputs
+                        celltab{rr,25} = OUTB.Y.NetRevenues(n,ixYear(p))./OUTB.Y.GTN(n,ixYear(p)) + OUTM.Y.NetRevenues(n,ixYear(p))./OUTM.Y.GTN(n,ixYear(p));
+                        celltab{rr,26} = OUTM.Y.Units(n, ixYear(p))-OUTB.Y.Units(n, ixYear(p));
+                        celltab{rr,27} = OUTM.Y.Units(n, ixYear(p));
+                        celltab{rr,28} = patient_volume;
                     end
                 end
                 
@@ -101,15 +108,23 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     peak12 = nanmax(OUTM.Y.PointShare(n, ix));
                     peak13 = nanmax(OUTM.Y.PatientShare(n, ix));
                     
-                    celltab(rr, 8:13) = {peak8, peak9, peak10, peak11, peak12, peak13};
+                    % New outputs
+                    peak25 = nanmax(OUTB.Y.NetRevenues(n,ix)./OUTB.Y.GTN(n,ix) + OUTM.Y.NetRevenues(n,ix)./OUTM.Y.GTN(n,ix));
+                    peak26 = nanmax(OUTM.Y.Units(n, ix)-OUTB.Y.Units(n, ix));
+                    peak27 = nanmax(OUTM.Y.Units(n, ix));
+                   
+                    celltab(rr, [8:13,25:27]) = {peak8, peak9, peak10, peak11, peak12, peak13 ,peak25,peak26,peak27};
                 else
-                    celltab(rr, 8:13) = {0, 0, 0, 0, 0, 0};                    
+                    celltab(rr, [8:13,25:27]) = {0, 0, 0, 0, 0, 0, 0, 0, 0};                    
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
                 celltab{rr, 16} = ASSET.Company1(n);
                 celltab{rr, 17} = ASSET.Company2(n);
                 celltab{rr, 18} = ASSET.Therapy_Class{n};                
+                
+                % New output
+                celltab{rr, 28} = patient_volume;
                 
                 % Cume Values -----------------------------
                 rr = rr + 1;
@@ -124,15 +139,23 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     cume8  = nansum(OUTB.Y.NetRevenues(n, ix));
                     cume11 = nansum(OUTB.Y.Units(n, ix));
 
-                    celltab(rr, 8:13) = {cume8, nan, nan, cume11, nan, nan};
+                    % New outputs
+                    cume25 = nansum(OUTB.Y.NetRevenues(n,ix)/OUTB.Y.GTN(n,ix) + OUTM.Y.NetRevenues(n,ix)/OUTM.Y.GTN(n,ix));
+                    cume26 = nansum(OUTM.Y.Units(n, ix)-OUTB.Y.Units(n, ix));
+                    cume27 = nansum(OUTM.Y.Units(n, ix));
+
+                    celltab(rr, [8:13,25:27]) = {cume8, nan, nan, cume11, nan, nan,cume25,cume26,cume27};
                 else
-                    celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
+                    celltab(rr, [8:13,25:27]) = {0, nan, nan, 0, nan, nan,0,0,0};               
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
                 celltab{rr, 16} = ASSET.Company1(n);
                 celltab{rr, 17} = ASSET.Company2(n);
                 celltab{rr, 18} = ASSET.Therapy_Class{n};                
+                
+                % New output
+                celltab{rr, 28} = patient_volume;
             end
             
         end
@@ -147,7 +170,7 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
         ASSET = cASSET_R{m};
         RESTAT = cRESTAT_R{m};
         runTime = datestr(BENCH.RunTime(end), 'yyyy-mm-dd HH:MM:SS'); 
-        
+        %patient_volume=MODEL.Pop*MODEL.SubPop;
         yearVec = RESTAT.Branded.Y.YearVec;
                 
         for q = 1:length(oStats)
@@ -178,6 +201,13 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                         celltab{rr, 18} = ASSET.Therapy_Class{n}; 
                         celltab{rr, 19} = RESTAT.Branded.Y.NetRevenuesNRA.(oStats{q})(n, ixYear(p));
                         celltab{rr, 22} = RESTAT.Branded.Y.UnitsNRA.(oStats{q})(n, ixYear(p));
+                        
+                        % New outputs
+                        celltab{rr,25} = RESTAT.Branded.Y.NetRevenues.(oStats{q})(n,ixYear(p))./RESTAT.Branded.Y.GTN.(oStats{q})(n,ixYear(p));
+                        celltab{rr,26} = '';% OUTM.Y.Units(n, ixYear(p))-OUTB.Y.Units(n, ixYear(p)); %Generic units
+                        celltab{rr,27} = '';% OUTM.Y.Units(n, ixYear(p)); % Molecule units
+                        celltab{rr,28} = patient_volume;
+                        
                         if isnan(ASSET.Scenario_PTRS(n))
                             celltab{rr, 14} = celltab{rr, 8} / celltab{rr, 19};  % back into PTRS for regions
                         end
@@ -198,10 +228,12 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 celltab{rr, 7} = 'Peak';
                 if sum(ix) > 0
                     peak8  = nanmax(RESTAT.Branded.Y.NetRevenues.(oStats{q})(n, ix));
-                    peak11 = nanmax(RESTAT.Branded.Y.Units.(oStats{q})(n, ix));                   
-                    celltab(rr, 8:13) = {peak8, nan, nan, peak11, nan, nan};
+                    peak11 = nanmax(RESTAT.Branded.Y.Units.(oStats{q})(n, ix));     
+                    
+                    peak25 = nanmax(RESTAT.Branded.Y.NetRevenues.(oStats{q})(n,ix)./RESTAT.Branded.Y.GTN.(oStats{q})(n,ix));
+                    celltab(rr, [8:13,25]) = {peak8, nan, nan, peak11, nan, nan, peak25};
                 else
-                    celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};                    
+                    celltab(rr, [8:13,25]) = {0, nan, nan, 0, nan, nan,0};                    
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
@@ -221,10 +253,10 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                 if sum(ix) > 0
                     cume8  = nansum(RESTAT.Branded.Y.NetRevenues.(oStats{q})(n, ix));
                     cume11 = nansum(RESTAT.Branded.Y.Units.(oStats{q})(n, ix));
-
-                    celltab(rr, 8:13) = {cume8, nan, nan, cume11, nan, nan};
+                    cume25 = nansum(RESTAT.Branded.Y.NetRevenues.(oStats{q})(n,ix)./RESTAT.Branded.Y.GTN.(oStats{q})(n,ix)); 
+                    celltab(rr, [8:13,25]) = {cume8, nan, nan, cume11, nan, nan,cume25};
                 else
-                    celltab(rr, 8:13) = {0, nan, nan, 0, nan, nan};               
+                    celltab(rr, [8:13,25]) = {0, nan, nan, 0, nan, nan,0};               
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
