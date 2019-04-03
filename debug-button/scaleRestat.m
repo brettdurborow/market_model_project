@@ -5,7 +5,7 @@ function RESTAT2 = scaleRestat(RESTAT1, factor)
     RESTAT2.Branded.Y.YearVec = RESTAT1.Branded.Y.YearVec;
     
     intervalnames = {'Y', 'M'};
-    metricnames = {'NetRevenues', 'Units', 'GTN','NetRevenuesNRA', 'UnitsNRA'};
+    metricnames = {'NetRevenues', 'Units', 'GrossRevenues','PatientVolume','NetRevenuesNRA', 'UnitsNRA','GrossRevenuesNRA','PatientVolumeNRA'};
     statnames = fieldnames(RESTAT1.Branded.M.NetRevenues);
     for n = 1:length(statnames)
         for p = 1:length(metricnames)
