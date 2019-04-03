@@ -63,9 +63,18 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
             RESTAT.Branded.Y.NetRevenues.(statnames{n}) = OUT.Y.NetRevenues;
             RESTAT.Branded.M.Units.(statnames{n}) = OUT.M.Units;
             RESTAT.Branded.Y.Units.(statnames{n}) = OUT.Y.Units;
-            
-            RESTAT.Branded.M.GTN.(statnames{n}) = OUT.M.GTN;
-            RESTAT.Branded.Y.GTN.(statnames{n}) = OUT.Y.GTN;
+
+            % New outputs in table
+            RESTAT.Branded.M.GrossRevenues.(statnames{n}) = OUT.M.GrossRevenues;
+            RESTAT.Branded.Y.GrossRevenues.(statnames{n}) = OUT.Y.GrossRevenues;
+            RESTAT.Branded.M.GrossRevenuesNRA.(statnames{n}) = OUT.M.GrossRevenues ./ scenario_PTRS_M;
+            RESTAT.Branded.Y.GrossRevenuesNRA.(statnames{n}) = OUT.Y.GrossRevenues ./ scenario_PTRS_Y;
+
+            RESTAT.Branded.M.PatientVolume.(statnames{n}) = OUT.M.PatientVolume;
+            RESTAT.Branded.Y.PatientVolume.(statnames{n}) = OUT.Y.PatientVolume;
+            RESTAT.Branded.M.PatientVolumeNRA.(statnames{n}) = OUT.M.PatientVolume ./ scenario_PTRS_M;
+            RESTAT.Branded.Y.PatientVolumeNRA.(statnames{n}) = OUT.Y.PatientVolume ./ scenario_PTRS_Y;
+
 
             
             RESTAT.Branded.M.NetRevenuesNRA.(statnames{n}) = OUT.M.NetRevenues ./ scenario_PTRS_M;
@@ -147,8 +156,7 @@ function [cMODEL_R, cASSET_R, cRESTAT_R] = bumpUpRegions(cMODEL, cASSET, cESTAT)
         rr = rr + 1;
         cMODEL_R{rr} = makeMODEL('NA', MODEL_EU5, cMODEL{ixUS});
         cASSET_R{rr} = ASSET_NA;    
-        cRESTAT_R{rr} = RESTAT_NA;
-    end
+        cRESTAT_R{rr} = RESTAT_NA;    end
     
     % Asia Pacific ----------------------------------    
     % JP + Rest of Asia Pacific

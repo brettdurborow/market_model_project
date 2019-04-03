@@ -25,9 +25,13 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx, doAnnual)
         OUT.M.GTN(m,:) = cappedGrowth(dateGridYear, ASSET.Launch_Year(m), ASSET.GTN_Pct(m), ...
                                     ASSET.GTN_Change(m), ASSET.GTN_Ceiling_Floor(m));       
     end
-    
     OUT.M.Units = monthlyShareMx .* unitsPerDot * MODEL.Pop * MODEL.SubPop * ...
-                MODEL.PCP_Factor * MODEL.Tdays / 12;
+        MODEL.PCP_Factor * MODEL.Tdays / 12;
+    
+    %New outputs: patient volume and gross revenues
+    OUT.M.PatientVolume =  OUT.M.PatientShare * MODEL.Pop * MODEL.SubPop;
+    OUT.M.GrossRevenues = OUT.M.Units .* OUT.M.PricePerDot./ unitsPerDot;
+    
     OUT.M.NetRevenues = OUT.M.Units .* OUT.M.PricePerDot .* OUT.M.GTN ./ unitsPerDot;
    
     %% Also produce Annualized outputs
@@ -39,6 +43,8 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx, doAnnual)
         [~, OUT.Y.GTN]          = annualizeMx(dateGrid, OUT.M.GTN, 'mean');
         [~, OUT.Y.Units]        = annualizeMx(dateGrid, OUT.M.Units, 'sum');
         [~, OUT.Y.NetRevenues]  = annualizeMx(dateGrid, OUT.M.NetRevenues, 'sum');
+        [~, OUT.Y.GrossRevenues]  = annualizeMx(dateGrid, OUT.M.NetRevenues, 'sum');
+        [~, OUT.Y.PatientVolume]  = annualizeMx(dateGrid, OUT.M.PatientVolume, 'sum');
     end
 
 end
