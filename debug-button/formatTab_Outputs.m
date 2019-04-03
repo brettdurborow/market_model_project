@@ -11,9 +11,9 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                'Branded Patient Share (NRA)', 'Branded Units (NRA)', ...
                'Molecule Point Share (NRA)', 'Molecule Patient Share (NRA)',...
                'Branded Gross Sales','Generic Units','Molecule Units','Branded Patient Volume',...
-               'Branded Gross Sales (NRA)','Branded Patient Volume (NRA)'};
+               'Branded Gross Sales (NRA)','Generic Units (NRA)','Molecule Units (NRA)','Branded Patient Volume (NRA)'};
            
-    fmt = '%s,%s,%s,%s,%s,%d,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g\n';
+    fmt = '%s,%s,%s,%s,%s,%d,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.8g,%s,%s,%s,%s,%.12g,%.8g,%.8g,%.12g,%.8g,%.8g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g\n';
       
     
     oStats = {'Mean', 'StdErr', 'Pct01', 'Pct05', 'Pct10', 'Pct15', 'Pct20', ...
@@ -239,9 +239,9 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     % New output Branded Gross Sales
                     peak25 = nanmax(RESTAT.Branded.Y.GrossRevenues.(oStats{q})(n,ix));
                     peak28 = nanmax(RESTAT.Branded.Y.PatientVolume.(oStats{q})(n, ix));
-                    celltab(rr, [8:13,25,28]) = {peak8, nan, nan, peak11, nan, nan, peak25, peak28};
+                    celltab(rr, [8:13,25:28]) = {peak8, nan, nan, peak11, nan, nan, peak25,nan,nan, peak28};
                 else
-                    celltab(rr, [8:13,25,28]) = {0, nan, nan, 0, nan, nan,0,0};                    
+                    celltab(rr, [8:13,25:28]) = {0, nan, nan, 0, nan, nan,0,nan,nan,0};                    
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
@@ -264,9 +264,9 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
                     % New output: Branded gross sales
                     cume25 = nansum(RESTAT.Branded.Y.GrossRevenues.(oStats{q})(n,ix));
                     cume28 = nansum(RESTAT.Branded.Y.PatientVolume.(oStats{q})(n, ix));
-                    celltab(rr, [8:13,25,28]) = {cume8, nan, nan, cume11, nan, nan,cume25,cume28};
+                    celltab(rr, [8:13,25:28]) = {cume8, nan, nan, cume11, nan, nan,cume25,nan,nan,cume28};
                 else
-                    celltab(rr, [8:13,25,28]) = {0, nan, nan, 0, nan, nan,0,0};               
+                    celltab(rr, [8:13,25:28]) = {0, nan, nan, 0, nan, nan,0,nan,nan,0};               
                 end
                 celltab{rr, 14} = ASSET.Scenario_PTRS(n);
                 celltab{rr, 15} = MODEL.ConstraintName;
@@ -306,8 +306,16 @@ function [celltab, fmt] = formatTab_Outputs(cMODEL, cASSET, cESTAT, BENCH)
     cN = 25; % New output: Numerator column: Branded Gross Sales;
     celltab(ixR,29) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
     
-    cN = 28; % New output: Numerator column: Patient volume
+    
+    cN = 26; % New output: Numerator column: Generic Units
     celltab(ixR,30) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    
+    cN = 27; % New output: Numerator column: Molecule units
+    celltab(ixR,31) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
+    
+    cN = 28; % New output: Numerator column: Patient volume
+    celltab(ixR,32) = num2cell(cell2mat(celltab(ixR, cN)) ./ cell2mat(celltab(ixR, cD)));
 
     
     % Blank-out the NRA values for Percentiles and StdErr (they only make sense for Mean)
