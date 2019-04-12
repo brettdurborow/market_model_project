@@ -9,13 +9,14 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     [status, sheets, xlFormat] = xlsfinfo(fileName);
 
     %!RC
-    % Find sheets matching a single string digit in range 1 thru 7
-    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'[1-7]'));
+    % Find sheets matching a single string digit in range 1 thru 7 
+    % NB: this has anchors, so will capture any consecutive numbers like '1234'
+    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'^[1-7]$'));
     assetSheets=sheets(ind_assetSheets);
     
     % Find sheets matching strings '[1-7]CE'
     ceSheets = cell(size(assetSheets));
-    ind_ceSheets=cellfun(@(s) ~isempty(s) && length(s)==3,regexp(sheets,'[1-7]CE'));
+    ind_ceSheets=cellfun(@(s) ~isempty(s) && length(s)==3,regexp(sheets,'^[1-7]CE$'));
     
     % This part needs to be checked, so that we have the right
     % correspondences. Q: if any change event sheet occurs, then to all
