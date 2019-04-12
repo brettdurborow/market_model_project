@@ -44,7 +44,7 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx, doAnnual)
         [~, OUT.Y.Units]        = annualizeMx(dateGrid, OUT.M.Units, 'sum');
         [~, OUT.Y.NetRevenues]  = annualizeMx(dateGrid, OUT.M.NetRevenues, 'sum');
         [~, OUT.Y.GrossRevenues]  = annualizeMx(dateGrid, OUT.M.NetRevenues, 'sum');
-        [~, OUT.Y.PatientVolume]  = annualizeMx(dateGrid, OUT.M.PatientVolume, 'sum');
+        [~, OUT.Y.PatientVolume]  = annualizeMx(dateGrid, OUT.M.PatientVolume, 'mean');
     end
 
 end
