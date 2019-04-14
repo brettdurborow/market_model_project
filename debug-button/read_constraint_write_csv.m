@@ -19,7 +19,7 @@ if ~exist(outFolderSub)
     mkdir(outFolderSub);
 end
 
-[~, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT, cCNSTR, BENCH);
+[~, cFileNames] = writeTablesCsv(outFolderSub, cMODEL, cASSET, cESTAT,CNSTR, cCNSTR, BENCH);
 toc
 
     

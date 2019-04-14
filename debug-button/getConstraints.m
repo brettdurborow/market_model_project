@@ -19,6 +19,9 @@ function cCNSTR = getConstraints(cASSET)
     % Find the unique asset and calculate their probability
     janssenAssets=unique(vertcat(cJanssenAssets{:}));
     janssenProb=mean(horzcat(cJanssenProb{:}),2);
+    % Sort the Janssen assets on their probability
+    [janssenProb,ixProb]=sort(janssenProb,'ascend');
+    janssenAssets=janssenAssets(ixProb);
     
     p0 = 0.10;
     p1 = 1.0;
