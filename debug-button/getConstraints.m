@@ -6,6 +6,19 @@ function cCNSTR = getConstraints(cASSET)
     % Don't allow follow-on Assets to be treated as unpredictable
     % Do force Phase3 and Phase2b assets to be included in the constraint set, 
     % unless they have PTRS of 100%
+
+    % We are first going to calculate the individual Janssen asset launches
+    cJanssenAssets = cell(size(cASSET));
+    cJanssenProb = cell(size(cASSET));
+    for m=1:length(cASSET)
+        ASSET = cASSET{m};
+        ixJanssen = ASSET.Company1 == "Janssen";
+        cJanssenAssets{m} = ASSET.Assets_Rated(ixJanssen);
+        cJanssenProb{m} = ASSET.Scenario_PTRS(ixJanssen);
+    end
+    % Find the unique asset and calculate their probability
+    janssenAssets=unique(vertcat(cJanssenAssets{:}));
+    janssenProb=mean(horzcat(cJanssenProb{:}),2);
     
     p0 = 0.10;
     p1 = 1.0;
@@ -54,12 +67,27 @@ function cCNSTR = getConstraints(cASSET)
 
     NONE = 0;  ON = 1;  OFF = 2;  % possible constraint values
     
-    conSetLen = 1 + 2 * length(riskyAssets);
+    conSetLen = 1 + 2 * length(riskyAssets) +length(janssenAssets);
     cCNSTR = cell(conSetLen, 0);
     cCNSTR{1,1} = makeConstraint(1, riskyAssets, zeros(size(riskyAssets)));
+ 
+    nn = 1;
+    
+    % First set the individual Janssen assets.
+    for m=1:length(janssenAssets)
+        constraintValues = zeros(size(janssenAssets));
+        constraintValues(m) = ON;
+        prob = janssenProb(m);
+        nn = nn + 1;
+        cCNSTR{nn,1} = struct('ConstraintCode',-m,...
+            'ConstraintName',sprintf('Janssen_%s',regexprep(janssenAssets(m),'\s','_')),...
+            'Probability',prob,'ConstraintAssets',janssenAssets,...
+            'ConstraintValues',constraintValues);
+        
+    end
+    
     
     % Switch each risky asset on and off in isolation, one at a time
-    nn = 1;
     for m = length(riskyAssets):-1:1
         constraintValues = zeros(size(riskyAssets));
         constraintValues(m) = ON;
