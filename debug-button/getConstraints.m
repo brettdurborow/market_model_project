@@ -70,7 +70,7 @@ function cCNSTR = getConstraints(cASSET)
 
     NONE = 0;  ON = 1;  OFF = 2;  % possible constraint values
     
-    conSetLen = 1 + 2 * length(riskyAssets) +length(janssenAssets);
+    conSetLen = 1 + 2 * length(riskyAssets) +length(janssenAssets) +1;
     cCNSTR = cell(conSetLen, 0);
     cCNSTR{1,1} = makeConstraint(1, riskyAssets, zeros(size(riskyAssets)));
  
@@ -89,7 +89,15 @@ function cCNSTR = getConstraints(cASSET)
         
     end
     
-    
+    % The probability of all Janssen assets launching should be less than
+    % any of the individual asset launch probabilities, so we append to the
+    % beginning of the list
+    nn=nn+1;
+    cCNSTR{nn,1}=struct('ConstraintCode',-length(janssenAssets)-1,...
+            'ConstraintName','Janssen_All',...
+            'Probability',prod(janssenProb),'ConstraintAssets',janssenAssets,...
+            'ConstraintValues',ones(size(janssenAssets)));
+            
     % Switch each risky asset on and off in isolation, one at a time
     for m = length(riskyAssets):-1:1
         constraintValues = zeros(size(riskyAssets));
