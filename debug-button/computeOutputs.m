@@ -29,7 +29,7 @@ function OUT = computeOutputs(MODEL, ASSET, dateGrid, monthlyShareMx, doAnnual)
         MODEL.PCP_Factor * MODEL.Tdays / 12;
     
     %New outputs: patient volume and gross revenues
-    OUT.M.PatientVolume =  OUT.M.PatientShare * MODEL.Pop * MODEL.SubPop;
+    OUT.M.PatientVolume =  OUT.M.PatientShare * MODEL.Pop * MODEL.SubPop * MODEL.PCP_Factor;
     OUT.M.GrossRevenues = OUT.M.Units .* OUT.M.PricePerDot./ unitsPerDot;
     
     OUT.M.NetRevenues = OUT.M.Units .* OUT.M.PricePerDot .* OUT.M.GTN ./ unitsPerDot;
