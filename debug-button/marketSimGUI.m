@@ -579,7 +579,7 @@ function marketSimGUI()
             % Testing a new strategy,: Asynchronous execution of the write
             % table.
             %parfeval(@writeTablesCsv,0,outFolder+filesep+Scenarios(k),dMODEL, dASSET, dESTAT, cCNSTR, BENCH);
-            writeTablesCsv(outFolder+filesep+Scenarios(k)+datestr(runTime, '_yyyy-mm-dd_HHMMSS'),dMODEL, dASSET, dESTAT, cCNSTR, BENCH);
+            writeTablesCsv(outFolder+filesep+Scenarios(k)+datestr(runTime, '_yyyy-mm-dd_HHMMSS'),dMODEL, dASSET, dESTAT, [],cCNSTR, BENCH);
             tWrite=toc;
             addStatusMsg(sprintf('\nTime for writing csv output files: %g',tWrite));
         end
