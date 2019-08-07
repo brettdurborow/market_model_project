@@ -25,7 +25,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         NumberofParallelWorkersEditFieldLabel  matlab.ui.control.Label
         NumberofParallelWorkersEditField  matlab.ui.control.NumericEditField
         RunSimulationButton         matlab.ui.control.Button
-        RunQueueButton              matlab.ui.control.Button
+        %RunQueueButton              matlab.ui.control.Button
         ptrsTab                     matlab.ui.container.Tab
         ptrsAxes                    matlab.ui.control.UIAxes
     end
@@ -279,8 +279,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     end
                 else
                     % parallel loop for the launch scenarios
-                    w=warndlg('Cancel button does not function for parfor loops');
-                    close_warn=onCleanup(@()delete(w));
+                    app.Status_text.Value=vertcat('[WARNING]: Cancel button does not function for parfor loops',app.Status_text.Value);
+                    
                     parfor launch_scenario=1:max(launch_height)
                         single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
@@ -551,11 +551,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.RunSimulationButton.Text = 'Run Simulation';
             
             % Create RunSimulationButton2
-            app.RunQueueButton = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
-            app.RunQueueButton.ButtonPushedFcn = createCallbackFcn(app, @RunQueueButtonPushed, true);
-            app.RunQueueButton.Position = [59 20 100 22];
-            app.RunQueueButton.Text = 'Run Queue';
- 
+            %             app.RunQueueButton = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
+            %             app.RunQueueButton.ButtonPushedFcn = createCallbackFcn(app, @RunQueueButtonPushed, true);
+            %             app.RunQueueButton.Position = [59 20 100 22];
+            %             app.RunQueueButton.Text = 'Run Queue';
+            %
             % Create ConsoleTab
             app.ptrsTab = uitab(app.TabGroup);
             app.ptrsTab.Title = 'Cumulative PTRS';
