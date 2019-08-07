@@ -221,7 +221,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 output_folder=app.Output_Folder.Value+app.Model.MName+filesep;
                 % make a new sub-directory
                 if ~exist(output_folder)
-                    mkdir(output_folder)
+                    try
+                        mkdir(output_folder)
+                    catch
+                        errordlg({'Could not create directory:',output_folder});
+                    end
                 end
                 
                 tstart=tic;
@@ -302,7 +306,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 output_folder=app.Output_Folder.Value+app.Model.MName+filesep;
                 % make a new sub-directory
                 if ~exist(output_folder)
-                    mkdir(output_folder)
+                    try
+                        mkdir(output_folder)
+                    catch
+                        errordlg({'Could not create directory:',output_folder});
+                    end
                 end
                 
                 tstart=tic;
