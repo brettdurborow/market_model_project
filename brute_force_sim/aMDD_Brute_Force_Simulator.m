@@ -16,10 +16,14 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         Console_text                matlab.ui.control.TextArea
         NumberofParallelWorkersDropDownLabel  matlab.ui.control.Label
         ParallelWorkers             matlab.ui.control.DropDown
+        NumberofOutputTypeDropDownLabel matlab.ui.control.Label
+        OutputType                  matlab.ui.control.DropDown        
         BrowseFile                  matlab.ui.control.Button
         BrowseFolder                matlab.ui.control.Button
         NumberofScenariosEditFieldLabel  matlab.ui.control.Label
         NumberofScenariosEditField  matlab.ui.control.NumericEditField
+        NumberofParallelWorkersEditFieldLabel  matlab.ui.control.Label
+        NumberofParallelWorkersEditField  matlab.ui.control.NumericEditField
         RunSimulationButton         matlab.ui.control.Button
         RunQueueButton              matlab.ui.control.Button
         ptrsTab                     matlab.ui.container.Tab
@@ -35,6 +39,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         isOkInput = false % Input file is read and OK.
         isOkOutput = false % Output folder is valid
         numCores = feature('numcores')
+        ParallelPool % Parallel pool
     end
     
     properties (Access = public)
@@ -59,43 +64,10 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Set the number of entries in the dropdown for the number of parallel workers.
             app.ParallelWorkers.Items=["Serial","Parallel"];
             app.ParallelWorkers.ItemsData=[1,app.numCores];
-            
-            try
-                % First clear the console
-                clc
-                jDesktop = com.mathworks.mde.desk.MLDesktop.getInstance;
-                jCmdWin = jDesktop.getClient('Command Window');
-                jTextArea = jCmdWin.getComponent(0).getViewport.getView;
-                % Attach the console window to the Console_text tab.
-                set(jTextArea,'CaretUpdateCallback',@app.setPromptFcn)
-            catch
-                warndlg('fatal error');
-            end
+            app.ParallelWorkers.Value=app.numCores;
+            app.NumberofParallelWorkersEditField.Value = app.numCores;
+            %app.ParallelPool=parpool(app.numCores);
         end
-
-        function setPromptFcn(app,jTextArea,eventData,newPrompt)
-            % Prevent overlapping reentry due to prompt replacement
-            persistent inProgress
-            if isempty(inProgress)
-                inProgress = 1;  %#ok unused
-            else
-                return;
-            end
-            
-            try
-                % *** Prompt modification code goes here ***
-                cwText = splitlines(char(jTextArea.getText));
-                app.Console_text.Value = cwText(end-min(length(cwText)-1,26):end);                
-                % force prompt-change callback to fizzle-out...
-                pause(0.02);
-            catch
-                % Never mind - ignore errors...
-            end
-         
-            % Enable new callbacks now that the prompt has been modified
-            inProgress = [];
-            
-        end  % setPromptFcn
             
         % Button pushed function: BrowseFile
         function BrowseFileButtonPushed(app, event)
@@ -246,6 +218,30 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function RunSimulationButtonPushed(app, event)
             % Check if input and output are set, then simulate
             if app.isOkInput && app.isOkOutput
+                output_folder=app.Output_Folder.Value+app.Model.MName+filesep;
+                % make a new sub-directory
+                if ~exist(output_folder)
+                    mkdir(output_folder)
+                end
+                
+                tstart=tic;
+                writetable(app.Model,output_folder+"Model.csv");
+                writetable(app.dateTable,output_folder+"dateGrid.csv");
+                writetable(app.eventTable,output_folder+"dateEvent.csv");
+                writetable(app.Country(:,{'ID','CName','Has_Model'}),output_folder+"Country.csv");
+                writetable(app.Asset,output_folder+"Asset.csv");
+                writetable(app.Company,output_folder+"Company.csv");
+                writetable(app.Class,output_folder+"Class.csv");
+                writetable(app.assetLaunchInfo,output_folder+"assetLaunchInfo.csv");
+                writetable(app.launchCodes,output_folder+"launchCodes.csv");
+                writetable(app.Ta,output_folder+"assumptions.csv");
+                writetable(app.Tm,output_folder+"simulation.csv");
+                twrite=toc(tstart);
+                app.Status_text.Value=vertcat(sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite),app.Status_text.Value);
+                                
+                fprintf('[Timing] Writing all non-output tables to disk %gs\n',twrite);
+
+                
                 %% Now we are in a position to do some of the actual calculations:
                 %Firstly, we need a loop per country,
                 tstart=tic;
@@ -256,8 +252,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 app.Status_text.Value=vertcat('Starting simulation.',app.Status_text.Value);
 
                 % Extract static variables 
-                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;output_folder=app.Output_Folder.Value;
-
+                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
+                output_type=app.OutputType.Value;
                 % Set up a progress bar (apparently works in serial code, too)
                 WaitMessage = parfor_wait(max(launch_height),'Waitbar',true,'ReportInterval',1);
                 cleanWait=onCleanup(@()delete(WaitMessage));
@@ -266,7 +262,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 if app.ParallelWorkers.Value == 1 
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder);
+                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                         if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
                             % Write out that we have cancelled, all other
@@ -282,7 +278,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     w=warndlg('Cancel button does not function for parfor loops');
                     close_warn=onCleanup(@()delete(w));
                     parfor launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder);
+                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                    end
                 end
@@ -290,6 +286,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 tsimulate=toc(tstart);
                 fprintf('[Timing] Total simulation time: %gs\n',tsimulate);
                 %if the launch wasnt cancelled, then we are done!
+                app.Status_text.Value=vertcat('Simulation completed',app.Status_text.Value);
+
                 app.Status_text.Value=vertcat(sprintf('[Timing] Total simulation time: %gs\n',tsimulate),app.Status_text.Value);
                 
             else
@@ -301,6 +299,29 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function RunQueueButtonPushed(app, event)
             % Check if input and output are set, then simulate
             if app.isOkInput && app.isOkOutput
+                output_folder=app.Output_Folder.Value+app.Model.MName+filesep;
+                % make a new sub-directory
+                if ~exist(output_folder)
+                    mkdir(output_folder)
+                end
+                
+                tstart=tic;
+                writetable(app.Model,output_folder+"Model.csv");
+                writetable(app.dateTable,output_folder+"dateGrid.csv");
+                writetable(app.eventTable,output_folder+"dateEvent.csv");
+                writetable(app.Country(:,{'ID','CName','Has_Model'}),output_folder+"Country.csv");
+                writetable(app.Asset,output_folder+"Asset.csv");
+                writetable(app.Company,output_folder+"Company.csv");
+                writetable(app.Class,output_folder+"Class.csv");
+                writetable(app.assetLaunchInfo,output_folder+"assetLaunchInfo.csv");
+                writetable(app.launchCodes,output_folder+"launchCodes.csv");
+                writetable(app.Ta,output_folder+"assumptions.csv");
+                writetable(app.Tm,output_folder+"simulation.csv");
+                twrite=toc(tstart);
+                app.Status_text.Value=vertcat(sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite),app.Status_text.Value);
+                                
+                fprintf('[Timing] Writing all non-output tables to disk %gs\n',twrite);
+
                 %% Now we are in a position to do some of the actual calculations:
                 %Firstly, we need a loop per country,
                 tstart=tic;
@@ -316,11 +337,12 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 % For parallel execution, apparently we can't access the
                 % app variables directly, so we copy
                 Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;output_folder=app.Output_Folder.Value;
-       
+                output_type=app.OutputType.Value;
+
                 if app.ParallelWorkers.Value==1
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder);
+                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                         if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
                             % Write out that we have cancelled, all other
@@ -334,7 +356,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     % Otherwise we run parallel version
                     for launch_scenario=1:max(launch_height)
                         % Asynchronously launch each scenario
-                        future_launch(launch_scenario)=parfeval(@(launch) single_simulation(launch,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder),0,launch_scenario);
+                        future_launch(launch_scenario)=parfeval(@(launch) single_simulation(launch,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type),0,launch_scenario);
                     end
                     app.Status_text.Value=vertcat('Parallel queue initialized',app.Status_text.Value);
                     
@@ -344,7 +366,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     afterEach(future_launch,@(f) disp(f.Diary),0,'passFuture',true);
                     
                     numRead=0;timeout=10;
-                    while numRead < max(launch_height)
+                    while numRead <= max(launch_height)
                         if ~all([future_launch.Read])
                             completedID=fetchNext(future_launch,timeout);
                         end
@@ -366,11 +388,18 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 tsimulate=toc(tstart);
                 fprintf('[Timing] Total simulation time: %gs\n',tsimulate);
                 %if the launch wasnt cancelled, then we are done!
+                app.Status_text.Value=vertcat('Simulation completed',app.Status_text.Value);
+
                 app.Status_text.Value=vertcat(sprintf('[Timing] Total simulation time: %gs',tsimulate),app.Status_text.Value);
                 
             else
                 app.Status_text.Value=vertcat('Warning Input and output paths must be specified',app.Status_text.Value);
             end
+        end
+
+        function OutputTypeValueChanged(app, event)
+            value = app.OutputType.Value;
+            app.Status_text.Value=vertcat(sprintf('Output type change to: %s',value),app.Status_text.Value);
         end
 
         
@@ -441,29 +470,32 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.Status_text.Editable = 'on';
             app.Status_text.Position = [15 10 487 373];
 
-            % Create ConsoleTab
-            app.ConsoleTab = uitab(app.TabGroup);
-            app.ConsoleTab.Title = 'Console';
-            app.ConsoleTab.Scrollable = 'on';
-
-            % Create Console_text
-            app.Console_text = uitextarea(app.ConsoleTab);
-            app.Console_text.Editable = 'on';
-            app.Console_text.Position = [15 10 487 373];
-
             % Create NumberofParallelWorkersDropDownLabel
             app.NumberofParallelWorkersDropDownLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
-            app.NumberofParallelWorkersDropDownLabel.HorizontalAlignment = 'right';
-            app.NumberofParallelWorkersDropDownLabel.Position = [59 493 153 22];
-            app.NumberofParallelWorkersDropDownLabel.Text = 'Number of Parallel Workers';
+            app.NumberofParallelWorkersDropDownLabel.HorizontalAlignment = 'left';
+            app.NumberofParallelWorkersDropDownLabel.Position = [180 500 153 22];
+            app.NumberofParallelWorkersDropDownLabel.Text = 'Mode:';
 
             % Create ParallelWorkers
             app.ParallelWorkers = uidropdown(app.aMDDBruteForceSimulatorUIFigure);
             app.ParallelWorkers.Items = {};
             app.ParallelWorkers.ValueChangedFcn = createCallbackFcn(app, @ParallelWorkersValueChanged, true);
-            app.ParallelWorkers.Position = [227 493 100 22];
+            app.ParallelWorkers.Position = [180 480 75 22];
             app.ParallelWorkers.Value = {};
 
+            % Create NumberofOutputTypeDropDownLabel
+            app.NumberofOutputTypeDropDownLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
+            app.NumberofOutputTypeDropDownLabel.HorizontalAlignment = 'left';
+            app.NumberofOutputTypeDropDownLabel.Position = [275 500 153 22];
+            app.NumberofOutputTypeDropDownLabel.Text = 'Output Type:';
+
+            % Create OutputType
+            app.OutputType = uidropdown(app.aMDDBruteForceSimulatorUIFigure);
+            app.OutputType.Items = {'Yearly','Monthly','Yearly+Monthly'};
+            app.OutputType.ValueChangedFcn = createCallbackFcn(app, @OutputTypeValueChanged, true);
+            app.OutputType.Position = [275 480 110 22];
+            app.OutputType.Value = 'Yearly';
+            
             % Create BrowseFile
             app.BrowseFile = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
             app.BrowseFile.ButtonPushedFcn = createCallbackFcn(app, @BrowseFileButtonPushed, true);
@@ -482,6 +514,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.NumberofScenariosEditFieldLabel.Position = [391 487 62 28];
             app.NumberofScenariosEditFieldLabel.Text = {'Number of'; 'Scenarios'};
 
+            % Create NumberofParallelWorkersEditFieldLabel
+            app.NumberofParallelWorkersEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
+            app.NumberofParallelWorkersEditFieldLabel.HorizontalAlignment = 'right';
+            app.NumberofParallelWorkersEditFieldLabel.Position = [59 487 62 42];
+            app.NumberofParallelWorkersEditFieldLabel.Text = {'Number of';'Parallel'; 'Workers'};
+
+            
             % Create NumberofScenariosEditField
             app.NumberofScenariosEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'numeric');
             app.NumberofScenariosEditField.Limits = [0 Inf];
@@ -489,6 +528,14 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.NumberofScenariosEditField.Editable = 'off';
             app.NumberofScenariosEditField.Position = [468 487 100 28];
 
+            % Create NumberofScenariosEditField
+            app.NumberofParallelWorkersEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'numeric');
+            app.NumberofParallelWorkersEditField.Limits = [0 Inf];
+            app.NumberofParallelWorkersEditField.ValueDisplayFormat = '%d';
+            app.NumberofParallelWorkersEditField.Editable = 'off';
+            app.NumberofParallelWorkersEditField.Position = [131 487 28 28];
+
+            
             % Create RunSimulationButton
             app.RunSimulationButton = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
             app.RunSimulationButton.ButtonPushedFcn = createCallbackFcn(app, @RunSimulationButtonPushed, true);
@@ -536,7 +583,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
         % Code that executes before app deletion
         function delete(app)
-
+            %delete(app.ParallelPool);
             % Delete UIFigure when app is deleted
             delete(app.aMDDBruteForceSimulatorUIFigure)
         end
