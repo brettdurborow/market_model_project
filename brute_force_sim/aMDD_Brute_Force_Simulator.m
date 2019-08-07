@@ -336,7 +336,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 cleanWait=onCleanup(@()delete(WaitMessage));
                 % For parallel execution, apparently we can't access the
                 % app variables directly, so we copy
-                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;output_folder=app.Output_Folder.Value;
+                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
                 output_type=app.OutputType.Value;
 
                 if app.ParallelWorkers.Value==1
