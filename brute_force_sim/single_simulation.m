@@ -32,7 +32,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     isLaunchAll=launchInfo{i}.launch_logical(launch_scenario,:)';
     
     % Restrict to only those assets in the restricted asset table.
-    isLaunch=isLaunchAll(ptrsTable.drop_mask(:,i));
+    isLaunch=isLaunchAll(ptrsTable.launch_mask(:,i));
     
     % Restrict number to only those assets actually launching. NB: We could restrict this by reducing the number of assets given to each model.
     Nlaunch=sum(isLaunch);
