@@ -24,10 +24,15 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         NumberofScenariosEditField  matlab.ui.control.NumericEditField
         NumberofParallelWorkersEditFieldLabel  matlab.ui.control.Label
         NumberofParallelWorkersEditField  matlab.ui.control.NumericEditField
+        NumberofUnlaunchedAssetsEditFieldLabel matlab.ui.control.Label
+        NumberofUnlaunchedAssetsEditField matlab.ui.control.NumericEditField
+        NumberofLaunchedAssetsEditFieldLabel matlab.ui.control.Label
+        NumberofLaunchedAssetsEditField matlab.ui.control.NumericEditField
         RunSimulationButton         matlab.ui.control.Button
-        %RunQueueButton              matlab.ui.control.Button
+        RunQueueButton              matlab.ui.control.Button
         ptrsTab                     matlab.ui.container.Tab
         ptrsAxes                    matlab.ui.control.UIAxes
+        
     end
 
     
@@ -40,6 +45,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         isOkOutput = false % Output folder is valid
         numCores = feature('numcores')
         ParallelPool % Parallel pool
+        Nunlaunched % Number of unlaunched assets
+        Nlaunched % Number of launched assets
     end
     
     properties (Access = public)
@@ -83,7 +90,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             if dataFolder == 0  % user hit cancel in uigetfile dialog
                 app.isOkInput = false;
                 app.Input_File.Value = '';
-                app.Status_text.Value=vertcat('WARNING: no input file set!',app.Status_text.Value);
+                app.Status_text.Value=vertcat('[WARNING]: No input file selected!',app.Status_text.Value);
                 
             else % User selected something
                 
@@ -99,31 +106,40 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 % Check first for a Cache .mat file
                 switch inputExtension
                     case '.mat'
-                        load(fullDataFile);
-                        app.isOkInput = true;
+                        try
+                            load(fullDataFile, 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
+                            app.isOkInput = true;
+                        catch
+                            app.Status_text.Value=vertcat('[WARNING]: Error reading cache file. Try loading Excel file instead');
+                            app.isOKInput=false;
+                        end
                     case {'.xls','.xlsx','.xlsm','.xlsb'}
                         % Check input file for asset, change event, and simulation sheets
                         assetSheets=[];
                         try
                             [assetSheets, ~ , simuSheet] = checkInputSheets(fullDataFile);%ceSheets
                         catch
-                            app.Status_text.Value=vertcat({'Unable to open Input file!  Please check file location and Excel installation.'},app.Status_text.Value);
+                            app.Status_text.Value=vertcat('[WARNING]: Unable to open Input file!  Please check file location and Excel installation.',app.Status_text.Value);
                             app.isOkInput = false;
                         end
                         % Input check passes now check if there are asset sheets to import
                         if all(assetSheets==0) || simuSheet==0
-                            msgbox('Found no "Asset" sheet in this file named "1", "2", etc.  Unable to continue.');
+                            warndlg('Found no "Asset" sheet in this file named "1", "2", etc.  Unable to continue.');
                             app.isOkInput = false;
                         else
                             tStart = tic;
                             % First import assumptions and asset information from excel
-                            [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fullDataFile);
-                            app.Status_text.Value = vertcat(sprintf('Imported Data, elapsed time = %1.1f sec',toc(tStart)),app.Status_text.Value);
-                            
-                            app.isOkInput = true;
-                            
+                            try
+                                [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fullDataFile);
+                                app.Status_text.Value = vertcat(sprintf('[Timing] Import Data: %gs',toc(tStart)),app.Status_text.Value);
+                                app.isOkInput = true;
+                            catch
+                                app.Status_text.Value=vertcat('[WARNING]: Importing assumptions failed. Check input data', app.Status_text.Value);
+                                app.isOkInput=false;
+                            end
+                                                            
                             % Cache the output in a Matlab .Mat file
-                            if exist([inputDataName,'.mat'],'file')
+                            if app.isOkInput && exist([inputDataName,'.mat'],'file')
                                 overWrite=questdlg('Overwrite existing Cache file?','Overwrite Cache','No');
                                 switch overWrite
                                     case 'Yes'
@@ -132,31 +148,59 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                             end
                         end
                 end
+                if ~app.isOkInput
+                    app.Status_text.Value = vertcat('[WARNING]: Input file not correctly loaded', app.Status_text.Value);
+                    return
+                else
+                    app.Status_text.Value=vertcat('Input data loaded.',app.Status_text.Value);
+                end
+                
+                
                 app.Status_text.Value=vertcat('Starting data pre-processing:',app.Status_text.Value);
                 % We preprocess the data to get the tables out
-                tstart=tic;
-                [app.Tm,app.Ta,app.Tc,app.Model,app.eventTable,app.dateTable,app.Country,app.Asset,app.Class,app.Company]...
-                    = preprocess_data(app.modelID,cMODEL,cASSET,cCHANGE);
-                tdata_proc=toc(tstart);
+                try
+                    tstart=tic;
+                    [app.Tm,app.Ta,app.Tc,app.eventTable,app.dateTable,app.Country,app.Asset,app.Class,app.Company]...
+                        = preprocess_data(app.modelID,cMODEL,cASSET,cCHANGE);
+                    tdata_proc=toc(tstart);
+                    % Output some status messages
+                    app.Status_text.Value=vertcat(sprintf('[Timing] Data pre-processing: %gs',tdata_proc),app.Status_text.Value);
+                catch
+                    app.Status_text.Value=vertcat('[WARNING]: Data pre-processing failed',app.Status_text.Value);
+                    app.isOkInput=false;
+                    return
+                end
                 
-                % Output some status messages
-                app.Status_text.Value=vertcat(sprintf('[Timing] Data pre-processing: %gs',tdata_proc),app.Status_text.Value);
                 
                 app.Status_text.Value=vertcat('Generating launch Scenarios',app.Status_text.Value);
-                % Since we have the data available, we generate the launch codes
-                tstart=tic;
-                [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
-                tlaunch_scenarios=toc(tstart);
-                app.NumberofScenariosEditField.Value=height(app.launchCodes);
-                app.Status_text.Value=vertcat(sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios),app.Status_text.Value);
-                cla(app.ptrsAxes)
-                app.ptrsAxes.XScale='log';
-                hold(app.ptrsAxes,'on')
-                for i=1:length(app.launchInfo)
-                    semilogx(app.ptrsAxes,app.launchInfo{i}.cdf);
+                try
+                    % Since we have the data available, we generate the launch codes
+                    tstart=tic;
+                    [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.Nunlaunched,app.Nlaunched]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
+                    tlaunch_scenarios=toc(tstart);
+                    app.Status_text.Value=vertcat(sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios),app.Status_text.Value);
+                    app.NumberofScenariosEditField.Value=height(app.launchCodes);
+                    app.NumberofUnlaunchedAssetsEditField.Value=app.Nunlaunched;
+                    app.NumberofLaunchedAssetsEditField.Value=app.Nlaunched;
+                catch
+                    app.Status_text.Value=vertcat('[WARNING]: Generating launch scenarios failed',app.Status_text.Value);
+                    app.isOkInput=false;
+                    return
                 end
-                legend(app.ptrsAxes,app.Country.CName,'Location','SouthEast')
-                hold(app.ptrsAxes,'off');
+                
+                
+                try
+                    cla(app.ptrsAxes)
+                    app.ptrsAxes.XScale='log';
+                    hold(app.ptrsAxes,'on')
+                    for i=1:length(app.launchInfo)
+                        semilogx(app.ptrsAxes,app.launchInfo{i}.cdf);
+                    end
+                    legend(app.ptrsAxes,app.Country.CName,'Location','SouthEast')
+                    hold(app.ptrsAxes,'off');
+                catch
+                    app.Status_text.Value=vertcat('[WARNING]: Plotting Cumulative PTRS failed',app.Status_text.Value);
+                end
                 
             end
             
@@ -183,7 +227,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 msg = {'Selected valid output folder:';app.Output_Folder.Value};
             else
                 app.isOkOutput = false;
-                msg = 'WARNING: invalid Output Folder!';
+                msg = '[WARNING]: invalid Output Folder!';
                 app.Output_Folder.Value = '';
             end
             app.Status_text.Value=vertcat(msg,app.Status_text.Value);
@@ -218,6 +262,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function RunSimulationButtonPushed(app, event)
             % Check if input and output are set, then simulate
             if app.isOkInput && app.isOkOutput
+                [~,FileName,~]=fileparts(app.Tm.FileName(1));
+                app.Model=table(app.modelID,FileName+"_"+string(datetime(app.Tm.FileDate(1),'Format','dd-MMM-yyyy-HH_mm'))+...
+                    "_RUN_"+string(datetime('now','Format','dd-MMM-yyyy-HH_mm')),'VariableNames',{'ID','MName'});
+
+                
                 output_folder=app.Output_Folder.Value+app.Model.MName+filesep;
                 % make a new sub-directory
                 if ~exist(output_folder)
@@ -295,11 +344,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 app.Status_text.Value=vertcat(sprintf('[Timing] Total simulation time: %gs\n',tsimulate),app.Status_text.Value);
                 
             else
-                app.Status_text.Value=vertcat('Warning Input and output paths must be specified',app.Status_text.Value);
+                app.Status_text.Value=vertcat('[Warning]: Input and output paths must be specified',app.Status_text.Value);
             end
         end
 
-                % Button pushed function: RunSimulationButton
+        % [DEPRECIATED] Button pushed function: RunSimulationButton
         function RunQueueButtonPushed(app, event)
             % Check if input and output are set, then simulate
             if app.isOkInput && app.isOkOutput
@@ -401,7 +450,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 app.Status_text.Value=vertcat(sprintf('[Timing] Total simulation time: %gs',tsimulate),app.Status_text.Value);
                 
             else
-                app.Status_text.Value=vertcat('Warning Input and output paths must be specified',app.Status_text.Value);
+                app.Status_text.Value=vertcat('[Warning]: Input and output paths must be specified',app.Status_text.Value);
             end
         end
 
@@ -432,37 +481,37 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create RobustnessSliderLabel
             app.RobustnessSliderLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.RobustnessSliderLabel.HorizontalAlignment = 'right';
-            app.RobustnessSliderLabel.Position = [59 551 69 22];
+            app.RobustnessSliderLabel.Position = [49 581 69 22];
             app.RobustnessSliderLabel.Text = 'Robustness';
 
             % Create RobustnessSlider
             app.RobustnessSlider = uislider(app.aMDDBruteForceSimulatorUIFigure);
             app.RobustnessSlider.ValueChangedFcn = createCallbackFcn(app, @RobustnessSliderValueChanged, true);
             app.RobustnessSlider.Tooltip = {'Set robustness percentage'};
-            app.RobustnessSlider.Position = [149 560 419 3];
+            app.RobustnessSlider.Position = [131 590 437 3];
             app.RobustnessSlider.Value = 80;
 
             % Create InputFileEditFieldLabel
             app.InputFileEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.InputFileEditFieldLabel.HorizontalAlignment = 'right';
-            app.InputFileEditFieldLabel.Position = [61 637 55 22];
+            app.InputFileEditFieldLabel.Position = [61 660 55 22];
             app.InputFileEditFieldLabel.Text = 'Input File';
 
             % Create Input_File
             app.Input_File = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
             app.Input_File.Editable = 'off';
-            app.Input_File.Position = [131 637 319 22];
+            app.Input_File.Position = [131 660 319 22];
 
             % Create OutputEditFieldLabel
             app.OutputEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.OutputEditFieldLabel.HorizontalAlignment = 'right';
-            app.OutputEditFieldLabel.Position = [74 594 42 22];
+            app.OutputEditFieldLabel.Position = [74 617 42 22];
             app.OutputEditFieldLabel.Text = 'Output';
 
             % Create Output_Folder
             app.Output_Folder = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
             app.Output_Folder.Editable = 'off';
-            app.Output_Folder.Position = [131 594 319 22];
+            app.Output_Folder.Position = [131 617 319 22];
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.aMDDBruteForceSimulatorUIFigure);
@@ -481,52 +530,78 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create NumberofParallelWorkersDropDownLabel
             app.NumberofParallelWorkersDropDownLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.NumberofParallelWorkersDropDownLabel.HorizontalAlignment = 'left';
-            app.NumberofParallelWorkersDropDownLabel.Position = [180 500 153 22];
+            app.NumberofParallelWorkersDropDownLabel.Position = [59 480 40 22];
             app.NumberofParallelWorkersDropDownLabel.Text = 'Mode:';
 
             % Create ParallelWorkers
             app.ParallelWorkers = uidropdown(app.aMDDBruteForceSimulatorUIFigure);
             app.ParallelWorkers.Items = {};
             app.ParallelWorkers.ValueChangedFcn = createCallbackFcn(app, @ParallelWorkersValueChanged, true);
-            app.ParallelWorkers.Position = [180 480 75 22];
+            app.ParallelWorkers.Position = [104 480 75 22];
             app.ParallelWorkers.Value = {};
 
             % Create NumberofOutputTypeDropDownLabel
             app.NumberofOutputTypeDropDownLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.NumberofOutputTypeDropDownLabel.HorizontalAlignment = 'left';
-            app.NumberofOutputTypeDropDownLabel.Position = [275 500 153 22];
+            app.NumberofOutputTypeDropDownLabel.Position = [275 480 153 22];
             app.NumberofOutputTypeDropDownLabel.Text = 'Output Type:';
 
             % Create OutputType
             app.OutputType = uidropdown(app.aMDDBruteForceSimulatorUIFigure);
             app.OutputType.Items = {'Yearly','Monthly','Yearly+Monthly'};
             app.OutputType.ValueChangedFcn = createCallbackFcn(app, @OutputTypeValueChanged, true);
-            app.OutputType.Position = [275 480 110 22];
+            app.OutputType.Position = [355 480 110 22];
             app.OutputType.Value = 'Yearly';
             
             % Create BrowseFile
             app.BrowseFile = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
             app.BrowseFile.ButtonPushedFcn = createCallbackFcn(app, @BrowseFileButtonPushed, true);
-            app.BrowseFile.Position = [468 637 100 22];
+            app.BrowseFile.Position = [468 660 100 22];
             app.BrowseFile.Text = 'Browse';
 
             % Create BrowseFolder
             app.BrowseFolder = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
             app.BrowseFolder.ButtonPushedFcn = createCallbackFcn(app, @BrowseFolderButtonPushed, true);
-            app.BrowseFolder.Position = [468 594 100 22];
+            app.BrowseFolder.Position = [468 617 100 22];
             app.BrowseFolder.Text = 'Browse';
 
             % Create NumberofScenariosEditFieldLabel
             app.NumberofScenariosEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.NumberofScenariosEditFieldLabel.HorizontalAlignment = 'right';
-            app.NumberofScenariosEditFieldLabel.Position = [391 487 62 28];
+            app.NumberofScenariosEditFieldLabel.Position = [391 521 62 28];
             app.NumberofScenariosEditFieldLabel.Text = {'Number of'; 'Scenarios'};
 
             % Create NumberofParallelWorkersEditFieldLabel
             app.NumberofParallelWorkersEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.NumberofParallelWorkersEditFieldLabel.HorizontalAlignment = 'right';
-            app.NumberofParallelWorkersEditFieldLabel.Position = [59 487 62 42];
-            app.NumberofParallelWorkersEditFieldLabel.Text = {'Number of';'Parallel'; 'Workers'};
+            app.NumberofParallelWorkersEditFieldLabel.Position = [29 521 92 28];
+            app.NumberofParallelWorkersEditFieldLabel.Text = {'Number of';'Parallel Workers'};
+
+            % Create NumberofParallelWorkersEditFieldLabel
+            app.NumberofUnlaunchedAssetsEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
+            app.NumberofUnlaunchedAssetsEditFieldLabel.HorizontalAlignment = 'right';
+            app.NumberofUnlaunchedAssetsEditFieldLabel.Position = [139 511 92 42];
+            app.NumberofUnlaunchedAssetsEditFieldLabel.Text = {'Number of';'Unlaunched';'Assets'};
+
+            % Create NumberofUnlaunchedAssetsEditField
+            app.NumberofUnlaunchedAssetsEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'numeric');
+            app.NumberofUnlaunchedAssetsEditField.Limits = [0 Inf];
+            app.NumberofUnlaunchedAssetsEditField.ValueDisplayFormat = '%d';
+            app.NumberofUnlaunchedAssetsEditField.Editable = 'off';
+            app.NumberofUnlaunchedAssetsEditField.Position = [241 521 28 28];
+
+            % Create NumberofLaunchedAssetsEditFieldLabel
+            app.NumberofLaunchedAssetsEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
+            app.NumberofLaunchedAssetsEditFieldLabel.HorizontalAlignment = 'right';
+            app.NumberofLaunchedAssetsEditFieldLabel.Position = [139+110 511 92 42];
+            app.NumberofLaunchedAssetsEditFieldLabel.Text = {'Number of';'Launched';'Assets'};
+
+            % Create NumberofLaunchedAssetsEditField
+            app.NumberofLaunchedAssetsEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'numeric');
+            app.NumberofLaunchedAssetsEditField.Limits = [0 Inf];
+            app.NumberofLaunchedAssetsEditField.ValueDisplayFormat = '%d';
+            app.NumberofLaunchedAssetsEditField.Editable = 'off';
+            app.NumberofLaunchedAssetsEditField.Position = [241+110 521 28 28];
 
             
             % Create NumberofScenariosEditField
@@ -534,14 +609,14 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.NumberofScenariosEditField.Limits = [0 Inf];
             app.NumberofScenariosEditField.ValueDisplayFormat = '%d';
             app.NumberofScenariosEditField.Editable = 'off';
-            app.NumberofScenariosEditField.Position = [468 487 100 28];
+            app.NumberofScenariosEditField.Position = [468 521 100 28];
 
-            % Create NumberofScenariosEditField
+            % Create NumberofParallelWorkersEditField
             app.NumberofParallelWorkersEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'numeric');
             app.NumberofParallelWorkersEditField.Limits = [0 Inf];
             app.NumberofParallelWorkersEditField.ValueDisplayFormat = '%d';
             app.NumberofParallelWorkersEditField.Editable = 'off';
-            app.NumberofParallelWorkersEditField.Position = [131 487 28 28];
+            app.NumberofParallelWorkersEditField.Position = [131 521 28 28];
 
             
             % Create RunSimulationButton

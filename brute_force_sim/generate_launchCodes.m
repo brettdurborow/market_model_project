@@ -1,4 +1,4 @@
-function [launchCodes,launchInfo,assetLaunchInfo,ptrsTable]=generate_launchCodes(Ta,Country,Asset,robustness)
+function [launchCodes,launchInfo,assetLaunchInfo,ptrsTable,Nunlaunched,Nlaunched]=generate_launchCodes(Ta,Country,Asset,robustness)
 %% Now we generate the launch scenrios for each country
 %
 % This is really the entry point to the main algorithm, and the one that
@@ -29,6 +29,8 @@ PTRS=array2table(zeros(Na_total,Nco),'VariableNames',Country.CName,'RowNames',As
 % Specify a vector for the potentially unlaunched assets
 unlaunched_id=Asset.ID<=64;
 Nunlaunched=sum(unlaunched_id);
+launched_id=Asset.ID>64;
+Nlaunched=sum(launched_id);
 
 for i=1:Nco
     % Select country rows
@@ -70,7 +72,7 @@ end
 assetLaunchInfo=vertcat(assetLaunchInfo{:});
 launchCodes=sortrows(vertcat(launchCodes{:}),'probability','descend');
 
-drop_mask=PTRS.Variables>0; % these assets should not be considered
-ptrsTable=table(PTRS.Variables,drop_mask,'VariableNames',{'PTRS','drop_mask'});
+launch_mask=PTRS.Variables>0; % these assets launch
+ptrsTable=table(PTRS.Variables,launch_mask,'VariableNames',{'PTRS','launch_mask'});
 tlaunch_scenarios=toc(tstart);
 fprintf('[Timing] Generate launch scenario ranking: %gs\n',tlaunch_scenarios);

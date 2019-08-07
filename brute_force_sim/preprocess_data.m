@@ -1,4 +1,4 @@
-function [Tm,Ta,Tc,Model,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cCHANGE)
+function [Tm,Ta,Tc,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cCHANGE)
 %% Data pre-processing.
 % 
 % From the input data structures, we do some pre-processing to get the data
@@ -20,9 +20,6 @@ Tm.FileDate=datetime(Tm.FileDate);
 assert(all(Tm.FileName==Tm.FileName(1))& all(Tm.FileDate==Tm.FileDate(1)),...
     "Model file name and date must be identcal")
 
-[~,FileName,~]=fileparts(Tm.FileName(1));
-Model=table(modelID,FileName+"_"+string(datetime(Tm.FileDate(1),'Format','dd-MMM-yyyy-HH_mm'))+...
-    "_RUN_"+string(datetime('now','Format','dd-MMM-yyyy-HH_mm')),'VariableNames',{'ID','MName'});
 
 % Convert all char to string type
 Tm.CountrySelected=string(Tm.CountrySelected);

@@ -4,7 +4,8 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     [filepath, name, ext] = fileparts(fileName);
     shortName = [name, ext];
     hWait = waitbar(0, sprintf('Opening File: %s', shortName));
-
+    cleanWaitbar=onCleanup(@()delete(hWait));
+    
     fileInfo = dir(fileName);    
     [status, sheets, xlFormat] = xlsfinfo(fileName);
 
@@ -23,33 +24,6 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     if(sum(ind_assetSheets)==sum(ind_ceSheets)) % only populate if we have all corresponding change events??
         ceSheets=sheets(ind_ceSheets);
     end
-    %!RC
-
-    % This is the old code to find these sheets.
-    %fprintf('Timing assetSheets\n')
-    %tic
-    % Build a list of Asset sheets in this workbook
-    %assetSheets = {};
-    %for m = 1:length(sheets)
-    %    ascii = double(sheets{m});
-    %    if all(ascii >= 48 & ascii <= 57)
-    %        assetSheets{end + 1} = sheets{m};
-    %    end    
-    %end
-    %toc
-    %fprintf('Timing ceSheets\n')
-    %tic
-    % Check for ChangeEvents for each Asset sheet
-    %ceSheets = cell(size(assetSheets));
-    %     for m = 1:length(assetSheets)
-    %         ceName = [assetSheets{m}, 'CE'];
-    %         ix = find(strcmpi(sheets, ceName));
-    %         if length(ix) == 1
-    %             ceSheets{m} = sheets{m};
-    %         end
-    %     end
-    %     toc
-    %tic
         
     Nwait = length(assetSheets) + 1;
     
@@ -103,16 +77,14 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     %fprintf('timing asset sheets\n')
     %tic
     for m = 1:length(assetSheets)
-        waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}));
+        waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}),wb);
         [ASSET, MODEL, CHANGE,DEBUG] = importAssetSheet(fileName, assetSheets{m}, ceSheets{m}, SIMULATION);
         cASSET{m} = convert_asset(ASSET);
         cMODEL{m} = MODEL;
         cCHANGE{m} = CHANGE;       
         cDEBUG{m} = DEBUG;
     end
-    %toc
-    close(hWait);
-    
+    %toc    
 end
 
 
