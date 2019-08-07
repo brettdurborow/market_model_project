@@ -1,4 +1,4 @@
-function [I,II,p,cdf]=rankAssets(ptrs,followed_inds,follow_on_inds)
+function [II,p,cdf]=rankAssets(ptrs,followed_inds,follow_on_inds)
 % rankAssets enumerates and ranks all possible launch combinations of
 % assets given their PTRS value.
 
@@ -32,11 +32,12 @@ Nscenarios=2^Nassets;
 p=zeros(Nscenarios,1);
 
 % Indexing variable
-I=uint32(0:Nscenarios-1)';
+%I=uint32(0:Nscenarios-1)';
 II=false(Nscenarios,Ntotal);
 II(:,will_launch)=true;
 for i=1:Nscenarios
-    launch=logical(bitget(I(i),1:Nassets,'uint32'));
+    I=i+1;
+    launch=logical(bitget(I,1:Nassets,'uint32'));
     p(i)=prod(ptrs(ptrs_inds(launch)))*prod(1-ptrs(ptrs_inds(~launch)));
     II(i,ptrs_mask)=launch;
     II(i,follow_on_inds)=II(i,followed_inds);
@@ -46,14 +47,14 @@ end
 [p,ind]=sort(p,'descend');
 
 % Sort the launch sequence
-I1=I(ind);
+%I1=I(ind);
 
 % Sort the logical array representing the sequence
 II=II(ind,:);
 
 % now convert logical bits in II to an index (This seems to be a silly way of doing things)
 %I=uint64(bin2dec(char('0'+ II(:,end:-1:1))));
-I=uint64(II*(2.^(0:Ntotal-1)'));
+%I=uint64(II*(2.^(0:Ntotal-1)'));
 
 % Compute the cumulative launch probability
 cdf=cumsum(p);

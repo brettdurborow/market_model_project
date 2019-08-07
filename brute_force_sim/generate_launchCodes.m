@@ -26,6 +26,9 @@ PTRS=array2table(zeros(Na_total,Nco),'VariableNames',Country.CName,'RowNames',As
 [followed_inds,~]=find(Asset.AName==unique_follow_on(2:end)');
 [follow_on_inds,~]=find(Asset.AName==Ta.Assets_Rated(ind_unique_follow_on(2:end))');
 
+% Specify a vector for the potentially unlaunched assets
+unlaunched_id=Asset.ID<=64;
+Nunlaunched=sum(unlaunched_id);
 
 for i=1:Nco
     % Select country rows
@@ -36,10 +39,12 @@ for i=1:Nco
     PTRS(Ta.Assets_Rated(country_table_index),country_selected)=table(Ta.Scenario_PTRS(country_table_index));
     
     % Rank the assets to produce their launch indices
-    [I,II,p,cdf]=rankAssets(PTRS(:,i).Variables,followed_inds,follow_on_inds);
-
+    [II,p,cdf]=rankAssets(PTRS(:,i).Variables,followed_inds,follow_on_inds);
+    
     % Now we are going to truncate based on the robustness factor
     ind_r = cdf<=robustness;
+    
+    I_r=uint64(II(ind_r,unlaunched_id)*(2.^(0:Nunlaunched-1)'));
     
     % Here we replicate the asset indices
     K=repmat(Asset.ID,1,sum(ind_r));
@@ -48,18 +53,18 @@ for i=1:Nco
     indK=K(II(ind_r,:)');
   
     % Replicate the launch code
-    K1=repmat(I(ind_r),1,Na_total)';
+    K1=repmat(I_r,1,Na_total)';
     
     % Select only those who launch
     indK1=K1(II(ind_r,:)');
     
     assetLaunchInfo{i}=table(indK1,indK,i*ones(size(indK)),'VariableNames',{'launch_code','asset_launched','country_id'});
     
-    launchCodes{i}=table(I(ind_r),i*ones(sum(ind_r),1),p(ind_r),'VariableNames',{'launch_code','country_id','probability'});
+    launchCodes{i}=table(I_r,i*ones(sum(ind_r),1),p(ind_r),'VariableNames',{'launch_code','country_id','probability'});
     
     % Put everything into a table
-    launchInfo{i}=table(I(ind_r),II(ind_r,:),p(ind_r),cdf(ind_r),'VariableNames',{'launch_code','launch_logical','probability','cdf'});   
-    fullLaunch{i}=table(I,II,p,cdf,'VariableNames',{'launch_code','launch_logical','probability','cdf'});
+    launchInfo{i}=table(I_r,II(ind_r,:),p(ind_r),cdf(ind_r),'VariableNames',{'launch_code','launch_logical','probability','cdf'});   
+    %fullLaunch{i}=table(I,II,p,cdf,'VariableNames',{'launch_code','launch_logical','probability','cdf'});
 end
 % Concatenate all launch info and launch codes together
 assetLaunchInfo=vertcat(assetLaunchInfo{:});
