@@ -21,8 +21,8 @@ assert(all(Tm.FileName==Tm.FileName(1))& all(Tm.FileDate==Tm.FileDate(1)),...
     "Model file name and date must be identcal")
 
 [~,FileName,~]=fileparts(Tm.FileName(1));
-Model=table(modelID,FileName+"_"+string(datetime(Tm.FileDate(1),'Format','dd-MMM-yyyy-HH:mm'))+...
-    "_RUN_"+string(datetime('now','Format','dd-MMM-yyyy-HH:mm')),'VariableNames',{'ID','MName'});
+Model=table(modelID,FileName+"_"+string(datetime(Tm.FileDate(1),'Format','dd-MMM-yyyy-HH_mm'))+...
+    "_RUN_"+string(datetime('now','Format','dd-MMM-yyyy-HH_mm')),'VariableNames',{'ID','MName'});
 
 % Convert all char to string type
 Tm.CountrySelected=string(Tm.CountrySelected);
