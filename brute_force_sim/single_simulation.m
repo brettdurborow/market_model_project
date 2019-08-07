@@ -1,4 +1,4 @@
-function single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder)
+function single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type)
 
 Na=Country.NAssets;
 
@@ -156,9 +156,20 @@ Tmon=vertcat(Tmon{:});
 Ttarget=vertcat(Ttarget{:});
 
 twritestart=tic;
-writetable(Tout,sprintf("%sscenario_%04d.csv",output_folder,launch_scenario));
+
+% Question: Write target shares or not?
 writetable(Ttarget,sprintf("%starget_%04d.csv",output_folder,launch_scenario));
-writetable(Tmon,sprintf("%smonthly_%04d.csv",output_folder,launch_scenario));
+
+% Write all the other tables out
+
+if output_type == "Yearly" || output_type == "Yearly+Monthly"
+    writetable(Tout,sprintf("%sscenario_%04d.csv",output_folder,launch_scenario));
+end
+
+if output_type == "Monthly" || output_type == "Yearly+Monthly"
+    writetable(Tmon,sprintf("%smonthly_%04d.csv",output_folder,launch_scenario));
+end
+
 twrite=toc(twritestart);
 tscenario=toc(tscenario);
 fprintf('[Timing] Single launch time %gs. Table writing time %gs\n',tscenario,twrite);
