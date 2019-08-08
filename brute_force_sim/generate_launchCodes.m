@@ -46,8 +46,9 @@ for i=1:Nco
     % Now we are going to truncate based on the robustness factor
     ind_r = cdf<=robustness;
     
-    I_r=uint64(II(ind_r,unlaunched_id)*(2.^(0:Nunlaunched-1)'));
-    
+    %I_r=uint64(II(ind_r,unlaunched_id)*(2.^(0:Nunlaunched-1)'));
+    % New launch codes indicating up to 64 unlaunched assets
+    I_r=uint64(II(ind_r,unlaunched_id)*(2.^(Asset.ID(unlaunched_id)-1)));
     % Here we replicate the asset indices
     K=repmat(Asset.ID,1,sum(ind_r));
     
