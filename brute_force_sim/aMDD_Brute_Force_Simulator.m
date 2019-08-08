@@ -28,11 +28,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         NumberofUnlaunchedAssetsEditField matlab.ui.control.NumericEditField
         NumberofLaunchedAssetsEditFieldLabel matlab.ui.control.Label
         NumberofLaunchedAssetsEditField matlab.ui.control.NumericEditField
+        EstFileSizeLabel            matlab.ui.control.Label
+        EstFileSizeEditField        matlab.ui.control.EditField
         RunSimulationButton         matlab.ui.control.Button
         RunQueueButton              matlab.ui.control.Button
         ptrsTab                     matlab.ui.container.Tab
         ptrsAxes                    matlab.ui.control.UIAxes
-        
+        checkBox                    matlab.ui.control.CheckBox
     end
 
     
@@ -73,7 +75,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.ParallelWorkers.ItemsData=[1,app.numCores];
             app.ParallelWorkers.Value=app.numCores;
             app.NumberofParallelWorkersEditField.Value = app.numCores;
-            %app.ParallelPool=parpool(app.numCores);
         end
             
         % Button pushed function: BrowseFile
@@ -202,7 +203,9 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.Status_text.Value=vertcat('[WARNING]: Plotting Cumulative PTRS failed',app.Status_text.Value);
                 end
                 
+                UpdateFileSize(app);
             end
+          
             
             function [assetSheets, ceSheets, simuSheet] = checkInputSheets(fileName)
                 % Build a list of Asset sheets in this workbook
@@ -217,6 +220,26 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             
         end
 
+        function UpdateFileSize(app,event)
+            Ny=size(app.dateTable.date(1:12:end),1);
+            Nt=height(app.dateTable);
+            Nevents=height(app.eventTable);
+            total_individual_asset_launches=sum(cellfun(@(a)sum(sum(a.launch_logical)),app.launchInfo));
+            if app.OutputType.Value =="Yearly"
+                total_filesize=total_individual_asset_launches*(46*Ny+71*Nevents);
+            elseif app.OutputType.Value == "Monthly"
+                total_filesize=total_individual_asset_launches*(43*Nt+71*Nevents);
+            else
+                total_filesize=total_individual_asset_launches*(46*Ny+43*Nt+71*Nevents);
+            end
+            
+            unit_ind=min(max(1,floor(log2(total_filesize)/10)),4);
+            units={'KB','MB','GB','TB'};
+            
+            fprintf('Total file size: %6.2f %s\n',total_filesize/2^(unit_ind*10),units{unit_ind});
+            app.EstFileSizeEditField.Value=sprintf('%6.2f %s',total_filesize/2^(unit_ind*10),units{unit_ind});
+        end
+        
         % Button pushed function: BrowseFolder
         function BrowseFolderButtonPushed(app, event)
             foldername = uigetdir();
@@ -254,6 +277,9 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
                 app.Status_text.Value=vertcat(sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios),...
                     app.Status_text.Value);
+
+                UpdateFileSize(app);
+
             end
             % Otherwise, we don't need to do anything
         end
@@ -457,6 +483,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function OutputTypeValueChanged(app, event)
             value = app.OutputType.Value;
             app.Status_text.Value=vertcat(sprintf('Output type change to: %s',value),app.Status_text.Value);
+            UpdateFileSize(app);
         end
 
         
@@ -464,6 +491,21 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function ParallelWorkersValueChanged(app, event)
             value = app.ParallelWorkers.Value;
             app.Status_text.Value=vertcat(sprintf('Number of processors changed to: %d',value),app.Status_text.Value);
+        end
+        
+        function startParrallelPool(app,event)
+            if event.PreviousValue == 0 
+                pool = gcp('nocreate');
+                % Initialize a pool if not created already.
+                if isempty(pool)
+                    app.ParallelPool=parpool(app.numCores);
+                    fprintf('Initialized parallel pool');
+                    app.checkBox.Value = true;
+                end
+            else % Turning off parallel pool
+                delete(gcp('nocreate'));
+                app.checkBox.Value=0;
+            end
         end
     end
 
@@ -543,14 +585,28 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create NumberofOutputTypeDropDownLabel
             app.NumberofOutputTypeDropDownLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.NumberofOutputTypeDropDownLabel.HorizontalAlignment = 'left';
-            app.NumberofOutputTypeDropDownLabel.Position = [275 480 153 22];
+            app.NumberofOutputTypeDropDownLabel.Position = [200 480 153 22];
             app.NumberofOutputTypeDropDownLabel.Text = 'Output Type:';
 
+            % Create estimated file size
+            app.EstFileSizeLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
+            app.EstFileSizeLabel.HorizontalAlignment = 'left';
+            app.EstFileSizeLabel.Position = [400 480 153 22];
+            app.EstFileSizeLabel.Text = 'Output Size:';
+
+             % Create EstFileSizeLabelEditField
+            app.EstFileSizeEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
+            %app.EstFileSizeEditField.Limits = [0 Inf];
+            app.EstFileSizeEditField.HorizontalAlignment = 'right';
+            app.EstFileSizeEditField.Editable = 'off';
+            app.EstFileSizeEditField.Position = [468 521-45 100 28];
+
+            
             % Create OutputType
             app.OutputType = uidropdown(app.aMDDBruteForceSimulatorUIFigure);
             app.OutputType.Items = {'Yearly','Monthly','Yearly+Monthly'};
             app.OutputType.ValueChangedFcn = createCallbackFcn(app, @OutputTypeValueChanged, true);
-            app.OutputType.Position = [355 480 110 22];
+            app.OutputType.Position = [280 480 110 22];
             app.OutputType.Value = 'Yearly';
             
             % Create BrowseFile
@@ -642,6 +698,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             ylabel(app.ptrsAxes, 'Probability')
             app.ptrsAxes.Position = [7 7 508 377];
 
+            % ['Depreciated'] Create parallel pool checkbox
+            app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
+            app.checkBox.Position =  [56 8 100 58];
+            app.checkBox.Enable = 'on';
+            app.checkBox.Text = {'Parallel Pool';'Connected'};
+            app.checkBox.ValueChangedFcn = createCallbackFcn(app,@startParrallelPool,true);
+            app.checkBox.Visible = false;
         end
     end
 
