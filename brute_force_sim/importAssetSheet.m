@@ -60,11 +60,26 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     MODEL.SubPop = SIMULATION.SubPop{ix};
     MODEL.PCP_Factor = SIMULATION.PCP_Factor{ix};
     MODEL.Tdays = SIMULATION.Tdays{ix};
+    % New additional columns to model
+    MODEL.SubPop_Growth = SIMULATION.SubPop_Growth{ix};
+    MODEL.SubPop_Floor_Ceiling = SIMULATION.SubPop_Floor_Ceiling{ix};
+    MODEL.PCP_Factor_Growth = SIMULATION.PCP_Factor_Floor_Ceiling{ix};
+    MODEL.Tdays_Growth = SIMULATION.Tdays_Growth{ix};
+    MODEL.Tdays_Floor_Ceiling = SIMULATION.Tdays_Floor_Ceiling{ix};
+    MODEL.Pop_Growth = SIMULATION.Pop_Growth{ix};    MODEL.Tdays_Growth = SIMULATION.Tdays_Growth{ix};
+    MODEL.Tdays_Floor_Ceiling = SIMULATION.Tdays_Floor_Ceiling{ix};
+    MODEL.Pop_Growth = SIMULATION.Pop_Growth{ix};
+    MODEL.Pop_Floor_Ceiling = SIMULATION.Pop_Floor_Ceiling{ix};
+
+    MODEL.Pop_Floor_Ceiling = SIMULATION.Pop_Floor_Ceiling{ix};
+    
+    % Entries having only the one entry for all countries
     MODEL.Rest_of_EMEA_Bump_Up_from_EU5 = SIMULATION.Rest_of_EMEA_Bump_Up_from_EU5;
     MODEL.Rest_of_AP_Bump_Up_from_EU5 = SIMULATION.Rest_of_AP_Bump_Up_from_EU5;
     MODEL.CA_Bump_Up_from_EU5 = SIMULATION.CA_Bump_Up_from_EU5;
     MODEL.LA_Bump_Up_from_EU5 = SIMULATION.LA_Bump_Up_from_EU5;
-        
+    
+    
     fnames = fieldnames(MODEL);
     for m = 1:length(fnames)
         if isnan(MODEL.(fnames{m}))
