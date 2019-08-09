@@ -493,20 +493,20 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.Status_text.Value=vertcat(sprintf('Number of processors changed to: %d',value),app.Status_text.Value);
         end
         
-        function startParrallelPool(app,event)
-            if event.PreviousValue == 0 
-                pool = gcp('nocreate');
-                % Initialize a pool if not created already.
-                if isempty(pool)
-                    app.ParallelPool=parpool(app.numCores);
-                    fprintf('Initialized parallel pool');
-                    app.checkBox.Value = true;
-                end
-            else % Turning off parallel pool
-                delete(gcp('nocreate'));
-                app.checkBox.Value=0;
-            end
-        end
+%         function startParrallelPool(app,event)
+%             if event.PreviousValue == 0 
+%                 pool = gcp('nocreate');
+%                 % Initialize a pool if not created already.
+%                 if isempty(pool)
+%                     app.ParallelPool=parpool(app.numCores);
+%                     fprintf('Initialized parallel pool');
+%                     app.checkBox.Value = true;
+%                 end
+%             else % Turning off parallel pool
+%                 delete(gcp('nocreate'));
+%                 app.checkBox.Value=0;
+%             end
+%         end
     end
 
     % App initialization and construction
@@ -699,12 +699,12 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.ptrsAxes.Position = [7 7 508 377];
 
             % ['Depreciated'] Create parallel pool checkbox
-            app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
-            app.checkBox.Position =  [56 8 100 58];
-            app.checkBox.Enable = 'on';
-            app.checkBox.Text = {'Parallel Pool';'Connected'};
-            app.checkBox.ValueChangedFcn = createCallbackFcn(app,@startParrallelPool,true);
-            app.checkBox.Visible = false;
+            %             app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
+            %             app.checkBox.Position =  [56 8 100 58];
+            %             app.checkBox.Enable = 'on';
+            %             app.checkBox.Text = {'Parallel Pool';'Connected'};
+            %             app.checkBox.ValueChangedFcn = createCallbackFcn(app,@startParrallelPool,true);
+            %             app.checkBox.Visible = false;
         end
     end
 
