@@ -77,7 +77,7 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     %fprintf('timing asset sheets\n')
     %tic
     for m = 1:length(assetSheets)
-        waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}),wb);
+        waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}),hWait);
         [ASSET, MODEL, CHANGE,DEBUG] = importAssetSheet(fileName, assetSheets{m}, ceSheets{m}, SIMULATION);
         cASSET{m} = convert_asset(ASSET);
         cMODEL{m} = MODEL;
