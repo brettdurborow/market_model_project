@@ -688,7 +688,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             %             app.RunQueueButton.Text = 'Run Queue';
             %
             % Create ConsoleTab
-            app.ptrsTab = uitab(app.TabGroup);
+            app.ptrsTab= uitab(app.TabGroup);
             app.ptrsTab.Title = 'Cumulative PTRS';
             
             % Create UIAxes
