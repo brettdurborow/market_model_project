@@ -61,6 +61,7 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     MODEL.PCP_Factor = SIMULATION.PCP_Factor{ix};
     MODEL.Tdays = SIMULATION.Tdays{ix};
     % New additional columns to model
+    MODEL.aMDD_Price = SIMULATION.aMDD_Price{ix};
     MODEL.SubPop_Growth = SIMULATION.SubPop_Growth{ix};
     MODEL.SubPop_Floor_Ceiling = SIMULATION.SubPop_Floor_Ceiling{ix};
     MODEL.PCP_Factor_Growth = SIMULATION.PCP_Factor_Floor_Ceiling{ix};
