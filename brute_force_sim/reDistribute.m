@@ -50,7 +50,7 @@ function newShare = reDistribute(initialShare, adjustment, errThresh)
     % figure; semilogy(cumErr); grid on;  title('Error as a function of iteration');
     
     cumShare = cumShare / sum(cumShare);
-    newShare = zeros(size(initialShare));
+    newShare = nan(size(initialShare));
     newShare(ixOk) = cumShare;
 
 end

@@ -89,6 +89,9 @@ for i=find(launch_scenario<=launch_height) %1:Nco
         reshape(Tadt.Variables,Nlaunch*nEvents,[]),...
         'VariableNames',{'model_id','launch_code','country_id','asset_id','event_id','LOT','PMT','CMB','ADT'});
     
+    % Filter out any rows where all of the target shares are NaN
+    Ttarget{i}=Ttarget{i}(~all(ismissing(Ttarget{i}(:,{'LOT','PMT','CMB','ADT'})),2),:);
+    
     % From the the target shares, run Bass diffusion.
     [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, ~] =...
         bassDiffusionClass(dateGrid,ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, false);
