@@ -35,6 +35,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         ptrsTab                     matlab.ui.container.Tab
         ptrsAxes                    matlab.ui.control.UIAxes
         checkBox                    matlab.ui.control.CheckBox
+        PreviousSelectionButton     matlab.ui.control.Button
     end
 
     
@@ -84,9 +85,28 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             
             % Dialogue text for input
             dialogTitle = 'Select Input file (Excel or MAT)';
-            
-            % Prompt user for file input
-            [dataFile,dataFolder] = uigetfile(filterSpec, dialogTitle);
+          
+            switch event.Source.Text 
+                case 'Browse'
+                    app.Status_text.Value = vertcat('Browse for input file',app.Status_text.Value);
+                    % Prompt user for file input
+                    [dataFile,dataFolder] = uigetfile(filterSpec, dialogTitle);
+
+                case 'Previous Selection'
+                    try
+                        load('previous_selection.mat','dataFile','dataFolder','Output_Folder');
+                        app.Output_Folder.Value = Output_Folder;
+                        app.Status_text.Value = vertcat(sprintf('Loading previously selected file: %s',dataFile),app.Status_text.Value);
+                    catch
+                        app.Status_text.Value = vertcat('[WARNING]: Previous File Selection failed',app.Status_text.Value);
+                        return
+                    end
+                    
+                otherwise
+                    app.Status_text.Value = vertcat('Unknown event source',app.Status_text.Value);
+                    return
+            end
+                        
             
             if dataFolder == 0  % user hit cancel in uigetfile dialog
                 app.isOkInput = false;
@@ -141,11 +161,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                                                             
                             % Cache the output in a Matlab .Mat file
                             if app.isOkInput && exist([inputDataName,'.mat'],'file')
-                                overWrite=questdlg('Overwrite existing Cache file?','Overwrite Cache','No');
-                                switch overWrite
-                                    case 'Yes'
-                                        save([inputDataName,'.mat'], 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
-                                end
+                                app.Status_text.Value=vertcat('[INFO]: Overwriting existing Cache file',app.Status_text.Value);
+                                save([inputDataName,'.mat'], 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
                             end
                         end
                 end
@@ -303,6 +320,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     end
                 end
                 
+                % By here we should have everything needed to save the
+                % cache file for the previous input
+                Output_Folder = app.Output_Folder.Value;
+                [dataFolder,dataFile,dataExt]=fileparts(app.Input_File.Value);
+                dataFile=[dataFile,dataExt];
+                save('previous_selection.mat','dataFile','dataFolder','Output_Folder');
+                
                 tstart=tic;
                 writetable(app.Model,output_folder+"Model.csv");
                 writetable(app.dateTable,output_folder+"dateGrid.csv");
@@ -374,6 +398,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             end
         end
 
+        function PreviousSelectionButtonPushed(app,event)
+            BrowseFileButtonPushed(app, event)
+        end
+        
+        
         % [DEPRECIATED] Button pushed function: RunSimulationButton
         function RunQueueButtonPushed(app, event)
             % Check if input and output are set, then simulate
@@ -621,6 +650,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.BrowseFolder.Position = [468 617 100 22];
             app.BrowseFolder.Text = 'Browse';
 
+            % Create PreviousSelectionButton
+            app.PreviousSelectionButton = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
+            app.PreviousSelectionButton.ButtonPushedFcn = createCallbackFcn(app, @PreviousSelectionButtonPushed, true);
+            app.PreviousSelectionButton.Position = [59 20 110 22];
+            app.PreviousSelectionButton.Text = 'Previous Selection';
+
+            
             % Create NumberofScenariosEditFieldLabel
             app.NumberofScenariosEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.NumberofScenariosEditFieldLabel.HorizontalAlignment = 'right';
