@@ -94,14 +94,17 @@ end
        
        function WaitbarUpdate(Obj)
            UsedTime_now = toc(Obj.StartTime);
-           EstimatedTimeNeeded = (UsedTime_now-Obj.UsedTime_1)/Obj.ReportInterval*(Obj.TotalMessage-Obj.NumMessage);
+           %EstimatedTimeNeeded = (UsedTime_now-Obj.UsedTime_1)/Obj.ReportInterval*(Obj.TotalMessage-Obj.NumMessage);
+           EstimatedTimeNeeded = (Obj.TotalMessage/Obj.NumMessage-1)*UsedTime_now;
+           
            waitbar(Obj.NumMessage/Obj.TotalMessage, Obj.WaitbarHandle, ['Progress: ',num2str(Obj.NumMessage/Obj.TotalMessage*100, '%.2f'), '%; ', num2str(UsedTime_now, '%.2f'), 's elapsed ', num2str(EstimatedTimeNeeded, '%.2f'), 's remaining.']);
            Obj.UsedTime_1 = UsedTime_now;
        end
        
        function FileUpdate(Obj)
            UsedTime_now = toc(Obj.StartTime);
-           EstimatedTimeNeeded = (UsedTime_now-Obj.UsedTime_1)/Obj.ReportInterval*(Obj.TotalMessage-Obj.NumMessage);           
+           %EstimatedTimeNeeded = (UsedTime_now-Obj.UsedTime_1)/Obj.ReportInterval*(Obj.TotalMessage-Obj.NumMessage);    
+           EstimatedTimeNeeded = (Obj.TotalMessage/Obj.NumMessage-1)*UsedTime_now;
            switch Obj.FileName
                case 'screen'
                    fprintf('%.2f%%; %.2fs used and %.2fs needed...\n', Obj.NumMessage/Obj.TotalMessage*100, UsedTime_now, EstimatedTimeNeeded);

@@ -88,7 +88,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
           
             switch event.Source.Text 
                 case 'Browse'
-                    app.Status_text.Value = vertcat('Browse for input file',app.Status_text.Value);
+                    app.Status_text.Value = vertcat('Browsing for input file',app.Status_text.Value);
                     % Prompt user for file input
                     [dataFile,dataFolder] = uigetfile(filterSpec, dialogTitle);
 
@@ -97,6 +97,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         load('previous_selection.mat','dataFile','dataFolder','Output_Folder');
                         app.Output_Folder.Value = Output_Folder;
                         app.Status_text.Value = vertcat(sprintf('Loading previously selected file: %s',dataFile),app.Status_text.Value);
+                        app.isOkInput = true;
+                        app.isOkOutput = true;
                     catch
                         app.Status_text.Value = vertcat('[WARNING]: Previous File Selection failed',app.Status_text.Value);
                         return
