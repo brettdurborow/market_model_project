@@ -157,7 +157,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                                 app.Status_text.Value = vertcat(sprintf('[Timing] Import Data: %gs',toc(tStart)),app.Status_text.Value);
                                 app.isOkInput = true;
                             catch
-                                app.Status_text.Value=vertcat('[WARNING]: Importing assumptions failed. Check input data', app.Status_text.Value);
+                                app.Status_text.Value=vertcat(['[ERRORMSG]:',lasterr],'[WARNING]: Importing assumptions failed. Check input data', app.Status_text.Value);
                                 app.isOkInput=false;
                             end
                                                             

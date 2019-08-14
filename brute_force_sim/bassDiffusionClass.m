@@ -97,9 +97,10 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
             tt = years((dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
         else
             tt = years(days(dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
+            tt1 = (dateGrid(ixStart:ixEnd) - dateGrid(ixStart))/daysPerYear;
         end
         
-        
+        fprintf('Nrm tt-tt1: %g\n',norm(tt-tt1));
         % compute target shares for each asset in this class on this event date
         for n = 1:Nc     
             ixC = find((therapyClassNames(n) == therapyClass) & isLaunch);  % Assets in this class that launched
@@ -124,6 +125,10 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
                 end
             end
         end
+        % Basically, we need to normalize the class share so that it always
+        % adds to one. Somehow, this doesn't work, maybe we have to
+        % normalize at the end...
+        %sharePerClassMonthlySeries(:,ixStart:ixEnd)=sharePerClassMonthlySeries(:,ixStart:ixEnd)./nansum(sharePerClassMonthlySeries(:,ixStart:ixEnd));
         
         if doDebug        
             dbgBassClass(1, ixStart:ixEnd) = datenumToYearFraction(eventDate);
@@ -144,7 +149,10 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
         %DBG.rowBassClassPrep=sideHeadPrep;
         DBG.BassClassPrep = table(sideHeadPrep,dbgBassClassPrep);
     end
-
+    
+    % We normalize the class share curve after all the events have been
+    % done
+    %sharePerClassMonthlySeries = sharePerClassMonthlySeries./nansum(sharePerClassMonthlySeries);
     %% Asset Diffusion
     
     sharePerAssetMonthlySeriesRaw = zeros(Na, Nd);
@@ -209,7 +217,8 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
         if isnumeric(dateGrid)
             tt = (dateGrid(ixStart:ixEnd) - dateGrid(ixStart)) / daysPerYear;
         else
-            tt = years((dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
+            %tt = years((dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
+            tt = (dateGrid(ixStart:ixEnd) - dateGrid(ixStart))/daysPerYear;
         end
         
         
@@ -239,6 +248,7 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
         numer = sharePerClassMonthlySeries(m,:);
         denom = sum(sharePerAssetMonthlySeriesRaw(ix,:), 1);
         if any(numer ~= 0 & denom == 0)
+            keyboard
             error('Unexpected values in assetShare and classShare');
         end
         scaleVec = zeros(1, Nd);
