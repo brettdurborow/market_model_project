@@ -71,8 +71,9 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     MODEL.Tdays_Floor_Ceiling = SIMULATION.Tdays_Floor_Ceiling{ix};
     MODEL.Pop_Growth = SIMULATION.Pop_Growth{ix};
     MODEL.Pop_Floor_Ceiling = SIMULATION.Pop_Floor_Ceiling{ix};
-
-    MODEL.Pop_Floor_Ceiling = SIMULATION.Pop_Floor_Ceiling{ix};
+    MODEL.Concomitant_Rate = SIMULATION.Concomitant_Rate{ix};
+    MODEL.Concomitant_Growth = SIMULATION.Concomitant_Growth{ix};
+    MODEL.Concomitant_Floor_Ceiling = SIMULATION.Concomitant_Floor_Ceiling{ix};
     
     % Entries having only the one entry for all countries
     MODEL.Rest_of_EMEA_Bump_Up_from_EU5 = SIMULATION.Rest_of_EMEA_Bump_Up_from_EU5;

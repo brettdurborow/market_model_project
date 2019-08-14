@@ -37,11 +37,12 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     
     expectedFields1 = {'Pop', 'SubPop', 'PCP Factor', 'Tdays','aMDD_Price','SubPop Growth'...
         ,'SubPop Floor Ceiling','PCP Factor Growth','PCP Factor Floor Ceiling',...
-        'Tdays Growth','Tdays Floor Ceiling','Pop Growth','Pop Floor Ceiling'};
+        'Tdays Growth','Tdays Floor Ceiling','Pop Growth','Pop Floor Ceiling',...
+        'Concomitant Rate','Concomitant Growth','Concomitant Floor Ceiling'};
     expectedFields2 = {'Rest of EMEA Bump Up from EU5', 'Rest of AP Bump Up from EU5', ...
         'CA Bump Up from EU5', 'LA Bump Up from EU5'};
     fnames = {'Country'};
-    for row = [2:14]
+    for row = [2:17]
         fnames{end+1} = cleanFieldName(raw{row, 1});
     end
     SIMULATION = struct;
