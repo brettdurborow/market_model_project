@@ -32,10 +32,15 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
             classEventDates(nClass) = firstDate;
             classPVec(nClass) = ASSET.Class_p(ixC(ixD));
             classQVec(nClass) = ASSET.Class_q(ixC(ixD));
+            
             % Initialize starting value for mothly class share series
-            sharePerClassMonthlySeries(m,1) = sum(ASSET.Starting_Share(ixC)) / nansum(ASSET.Starting_Share(isLaunch));  
-        end        
+            sharePerClassMonthlySeries(m,1) = sum(ASSET.Starting_Share(ixC)) / nansum(ASSET.Starting_Share(isLaunch));
+        end
     end
+    
+    % As a boundary case: All share per class is initialized to zero, so if
+    % an asset does not launch some time in the future, then it will be
+    % zero. However, if no assets have any share, then the 
     
     % Sort by date
     [classEventDates, ix] = sort(classEventDates);
@@ -96,11 +101,11 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
         if isdatetime(dateGrid)
             tt = years((dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
         else
-            tt = years(days(dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
-            tt1 = (dateGrid(ixStart:ixEnd) - dateGrid(ixStart))/daysPerYear;
+            %tt = years(days(dateGrid(ixStart:ixEnd) - dateGrid(ixStart)));
+            tt = (dateGrid(ixStart:ixEnd) - dateGrid(ixStart))/daysPerYear;
         end
         
-        fprintf('Nrm tt-tt1: %g\n',norm(tt-tt1));
+        %fprintf('Nrm tt-tt1: %g\n',norm(tt-tt1));
         % compute target shares for each asset in this class on this event date
         for n = 1:Nc     
             ixC = find((therapyClassNames(n) == therapyClass) & isLaunch);  % Assets in this class that launched
@@ -109,7 +114,7 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
                 if length(ixE) ~= 1
                     error('Duplicate event dates');
                 end
-                shareTarget = sum(sharePerAssetEventSeries(ixC, ixE));
+                shareTarget = sum(sharePerAssetEventSeries(ixC, ixE),'omitnan');
                 shareStart = sharePerClassMonthlySeries(n, ixStart);
                 share = bassDiffusion(tt, classPVec(m), classQVec(m), shareStart, shareTarget, false);
                 sharePerClassMonthlySeries(n, ixStart:ixEnd) = share;
@@ -152,7 +157,11 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
     
     % We normalize the class share curve after all the events have been
     % done
-    %sharePerClassMonthlySeries = sharePerClassMonthlySeries./nansum(sharePerClassMonthlySeries);
+    if any(abs(nansum(sharePerClassMonthlySeries)-1)>100*eps)
+        error('Share per class does not sum to 1');
+        %sharePerClassMonthlySeries = sharePerClassMonthlySeries./nansum(sharePerClassMonthlySeries);
+    end
+    
     %% Asset Diffusion
     
     sharePerAssetMonthlySeriesRaw = zeros(Na, Nd);
@@ -248,7 +257,6 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
         numer = sharePerClassMonthlySeries(m,:);
         denom = sum(sharePerAssetMonthlySeriesRaw(ix,:), 1);
         if any(numer ~= 0 & denom == 0)
-            keyboard
             error('Unexpected values in assetShare and classShare');
         end
         scaleVec = zeros(1, Nd);

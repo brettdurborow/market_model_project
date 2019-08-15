@@ -99,8 +99,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         app.Status_text.Value = vertcat(sprintf('Loading previously selected file: %s',dataFile),app.Status_text.Value);
                         app.isOkInput = true;
                         app.isOkOutput = true;
-                    catch
-                        app.Status_text.Value = vertcat('[WARNING]: Previous File Selection failed',app.Status_text.Value);
+                    catch ME
+                        app.Status_text.Value = vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Previous File Selection failed',app.Status_text.Value);
                         return
                     end
                     
@@ -132,8 +132,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         try
                             load(fullDataFile, 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
                             app.isOkInput = true;
-                        catch
-                            app.Status_text.Value=vertcat('[WARNING]: Error reading cache file. Try loading Excel file instead');
+                        catch ME
+                            app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Error reading cache file. Try loading Excel file instead');
                             app.isOKInput=false;
                         end
                     case {'.xls','.xlsx','.xlsm','.xlsb'}
@@ -141,8 +141,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         assetSheets=[];
                         try
                             [assetSheets, ~ , simuSheet] = checkInputSheets(fullDataFile);%ceSheets
-                        catch
-                            app.Status_text.Value=vertcat('[WARNING]: Unable to open Input file!  Please check file location and Excel installation.',app.Status_text.Value);
+                        catch ME
+                            app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Unable to open Input file!  Please check file location and Excel installation.',app.Status_text.Value);
                             app.isOkInput = false;
                         end
                         % Input check passes now check if there are asset sheets to import
@@ -156,8 +156,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                                 [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fullDataFile);
                                 app.Status_text.Value = vertcat(sprintf('[Timing] Import Data: %gs',toc(tStart)),app.Status_text.Value);
                                 app.isOkInput = true;
-                            catch
-                                app.Status_text.Value=vertcat(['[ERRORMSG]:',lasterr],'[WARNING]: Importing assumptions failed. Check input data', app.Status_text.Value);
+                            catch ME
+                                app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Importing assumptions failed. Check input data', app.Status_text.Value);
                                 app.isOkInput=false;
                             end
                                                             
@@ -172,7 +172,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.Status_text.Value = vertcat('[WARNING]: Input file not correctly loaded', app.Status_text.Value);
                     return
                 else
-                    app.Status_text.Value=vertcat('Input data loaded.',app.Status_text.Value);
+                    app.Status_text.Value=vertcat('Success: Input data loaded.',app.Status_text.Value);
                 end
                 
                 
@@ -185,8 +185,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     tdata_proc=toc(tstart);
                     % Output some status messages
                     app.Status_text.Value=vertcat(sprintf('[Timing] Data pre-processing: %gs',tdata_proc),app.Status_text.Value);
-                catch
-                    app.Status_text.Value=vertcat('[WARNING]: Data pre-processing failed',app.Status_text.Value);
+                catch ME
+                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Data pre-processing failed',app.Status_text.Value);
                     app.isOkInput=false;
                     return
                 end
@@ -202,8 +202,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.NumberofScenariosEditField.Value=height(app.launchCodes);
                     app.NumberofUnlaunchedAssetsEditField.Value=app.Nunlaunched;
                     app.NumberofLaunchedAssetsEditField.Value=app.Nlaunched;
-                catch
-                    app.Status_text.Value=vertcat('[WARNING]: Generating launch scenarios failed',app.Status_text.Value);
+                catch ME
+                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Generating launch scenarios failed',app.Status_text.Value);
                     app.isOkInput=false;
                     return
                 end
@@ -218,8 +218,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     end
                     legend(app.ptrsAxes,app.Country.CName,'Location','SouthEast')
                     hold(app.ptrsAxes,'off');
-                catch
-                    app.Status_text.Value=vertcat('[WARNING]: Plotting Cumulative PTRS failed',app.Status_text.Value);
+                catch ME
+                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Plotting Cumulative PTRS failed',app.Status_text.Value);
                 end
                 
                 UpdateFileSize(app);
@@ -573,6 +573,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create Input_File
             app.Input_File = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
             app.Input_File.Editable = 'off';
+            app.Input_File.HorizontalAlignment = 'right';
             app.Input_File.Position = [131 660 319 22];
 
             % Create OutputEditFieldLabel
@@ -584,6 +585,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create Output_Folder
             app.Output_Folder = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
             app.Output_Folder.Editable = 'off';
+            app.Output_Folder.HorizontalAlignment = 'center';
             app.Output_Folder.Position = [131 617 319 22];
 
             % Create TabGroup

@@ -7,8 +7,11 @@
 % The modelID should be imported from the input data
 modelID=1;
 
+% the type of output for the simulation
+output_type="Yearly";
+
 %output_folder=string([uigetdir('','Select output folder'),filesep]);
-output_folder="data_80"+filesep;
+output_folder="data"+filesep+"prepare_tables_output"+filesep;
 target_folder=output_folder;%+"target"+filesep;
 scenario_folder=output_folder;%+"scenario"+filesep;
 monthly_folder=output_folder;%+"monthly"+filesep;
@@ -37,7 +40,7 @@ end
 robustness=0.80;
 
 %[dataFile,dataFolder] = uigetfile({'*.xls*','Excel files (.xls*)';'*.mat','Matlab Cache file (.mat)'},'Select Input file (Excel or MAT)');
-dataFile='Market_Model_Assumptions_2.mat';
+dataFile='Market_Model_Assumptions.xlsm';
 dataFolder='./';
 
 % Put together full file name in case app is run in a different dir.
@@ -46,6 +49,8 @@ fullDataFile=fullfile(dataFolder,dataFile);
 % Get file extension fro deciding which path to take0
 [~,inputDataName,inputExtension]=fileparts(dataFile);
 
+
+Model=table(modelID,output_folder,'VariableNames',{'ID','MName'});
 % Global timing point
 tbegin=tic;
 

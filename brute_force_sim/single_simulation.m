@@ -96,6 +96,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, ~] =...
         bassDiffusionClass(dateGrid,ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, false);
     
+    %fprintf('||sumMonthlyShare||: %g\n',norm(sum(sharePerClassMonthlySeries)-1))
     % Finally split into Branded and Generic shares
     [brandedMonthlyShare, genericMonthlyShare] = bassBrandedShare(dateGrid, sharePerAssetMonthlySeries, ASSET);
     
@@ -160,7 +161,7 @@ Ttarget=vertcat(Ttarget{:});
 
 twritestart=tic;
 
-% Question: Write target shares or not?
+% Always write target shares
 writetable(Ttarget,sprintf("%starget_%04d.csv",output_folder,launch_scenario));
 
 % Write all the other tables out
