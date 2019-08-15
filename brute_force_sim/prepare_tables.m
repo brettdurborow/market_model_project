@@ -1,7 +1,7 @@
 load_data;
 %fprintf('%s\n',msg)
 
-[Tm,Ta,Tc,Model,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cCHANGE);
+[Tm,Ta,Tc,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cCHANGE);
 
 %fprintf('%s\n',msg)
 [launchCodes,launchInfo,assetLaunchInfo,ptrsTable]=generate_launchCodes(Ta,Country,Asset,robustness);
@@ -20,8 +20,8 @@ tstart=tic;
 
 %fprintf('[INFO] Robustness %3.0f\n[INFO] Total launch scenarios %d in parallel\n',robustness*100,max(launch_height));
 launch_height=cellfun(@height,launchInfo)';
-parfor launch_scenario=1:max(launch_height)
-    single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder);
+for launch_scenario=1:max(launch_height)
+    single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
 end
 
 

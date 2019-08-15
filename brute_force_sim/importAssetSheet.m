@@ -74,7 +74,10 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     MODEL.Concomitant_Rate = SIMULATION.Concomitant_Rate{ix};
     MODEL.Concomitant_Growth = SIMULATION.Concomitant_Growth{ix};
     MODEL.Concomitant_Floor_Ceiling = SIMULATION.Concomitant_Floor_Ceiling{ix};
-    
+    MODEL.Market_DOT = SIMULATION.Market_DOT{ix};
+    MODEL.Market_DOT_Growth = SIMULATION.Market_DOT_Growth{ix};
+    MODEL.Market_DOT_Floor_Ceiling = SIMULATION.Market_DOT_Floor_Ceiling{ix};
+
     % Entries having only the one entry for all countries
     MODEL.Rest_of_EMEA_Bump_Up_from_EU5 = SIMULATION.Rest_of_EMEA_Bump_Up_from_EU5;
     MODEL.Rest_of_AP_Bump_Up_from_EU5 = SIMULATION.Rest_of_AP_Bump_Up_from_EU5;
@@ -230,7 +233,9 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     
     validateFields(ASSET, assetSheet, fieldsToCheck, Nrows);
     ASSET = validateFollowOn(ASSET, assetSheet);
-    
+
+    % Convert Force_toggle output to be missing rather than NaN
+    ASSET.Force_toggle=string(ASSET.Force_toggle);
     
 %% Change Events
 
@@ -279,6 +284,11 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     
     end    
     
+    %% Validate the starting share so that it adds to 1
+    if abs(sum(cell2mat(ASSET.Starting_Share))-1) > 100*eps
+        %keyboard
+        error('Asset starting share must sum to 100 %')
+    end
     
     %% Postprocess some DATE fields to get them in the expected datatype
     ASSET.Launch_Date = datenum(cell2mat(ASSET.Launch_Year), cell2mat(ASSET.Launch_Month), 1);
