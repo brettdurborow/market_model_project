@@ -119,7 +119,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     %brandedYearlyShare=squeeze(mean(reshape(brandedMonthlyShare(isLaunch,:)',12,[],Nlaunch),1))';
     %genericYearlyShare=squeeze(mean(reshape(genericMonthlyShare(isLaunch,:)',12,[],Nlaunch),1))';
     brandedYearlyShare=retime(Tbms,'yearly','mean');
-    genericYearlyShare=retime(Tgms,'yearly','mean');
+    moleculeYearlyShare=retime(Tgms,'yearly','mean');
     
     % Store the yearly share value in a table (option 1)
     % NB: The date_id year will correspond correctly, but will not be
@@ -128,7 +128,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
         repmat(launchInfo{i}.launch_code(launch_scenario),Ny*Nlaunch,1),...
         country_id,asset_id,date_id,...%reshape(aux_ind(:,isLaunch),Ny*Nlaunch,[]),
         reshape(brandedYearlyShare.Variables,Ny*Nlaunch,[]),...
-        reshape(genericYearlyShare.Variables,Ny*Nlaunch,[]),...
+        reshape(moleculeYearlyShare.Variables,Ny*Nlaunch,[]),...
         'VariableNames',{'model_id','launch_code','country_id','asset_id','date_id','Branded_Molecule','Molecule'});
     
     model_id=repmat(Model.ID,Nt*Nlaunch,1);
@@ -140,7 +140,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
         repmat(launchInfo{i}.launch_code(launch_scenario),Nt*Nlaunch,1),...
         country_id,asset_id,date_id,...%reshape(aux_ind(:,isLaunch),Ny*Nlaunch,[]),
         reshape(brandedMonthlyShare(isLaunch,:)',Nt*Nlaunch,[]),...
-        reshape(genericMonthlyShare(isLaunch,:)',Nt*Nlaunch,[]),...
+        reshape(sharePerAssetMonthlySeries(isLaunch,:)',Nt*Nlaunch,[]),...
         'VariableNames',{'model_id','launch_code','country_id','asset_id','date_id','Branded_Molecule','Molecule'});
     % Now do some timing on inserts with the smaller output table
     %tstartsql=tic;
