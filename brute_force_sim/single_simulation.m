@@ -44,9 +44,9 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     % Construct the event date vector
     eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; ASSET.Starting_Share_Date]);% CHANGE.Launch_Date; CHANGE.LOE_Date]);
     nEvents=length(eventDates);
-    CLASS = therapyClassRank(ASSET, isLaunch);
-    %fprintf('Processing country %s, Length of assets %d\n',country_selected,length(ASSET.Assets_Rated));
     
+    CLASS = therapyClassRank(ASSET, isLaunch);
+        
     % Consider setting thes to -1 rather than NaN, since MySQL does not
     % support NaN...
     sharePerAssetOE=nan(Na(i),nEvents);
