@@ -123,8 +123,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 % Get file extension fro deciding which path to take
                 [~,inputDataName,inputExtension]=fileparts(dataFile);
                 
-                % Update input text
-                app.Input_File.Value=fullDataFile;
                 
                 % Check first for a Cache .mat file
                 switch inputExtension
@@ -169,9 +167,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         end
                 end
                 if ~app.isOkInput
+                    % Update input text (probably not necessary).
+                    app.Input_File.Value='';
                     app.Status_text.Value = vertcat('[WARNING]: Input file not correctly loaded', app.Status_text.Value);
                     return
                 else
+                    % Update input text
+                    app.Input_File.Value=fullDataFile;  %[inputDataName,inputExtension];
                     app.Status_text.Value=vertcat('Success: Input data loaded.',app.Status_text.Value);
                 end
                 
@@ -187,6 +189,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.Status_text.Value=vertcat(sprintf('[Timing] Data pre-processing: %gs',tdata_proc),app.Status_text.Value);
                 catch ME
                     app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Data pre-processing failed',app.Status_text.Value);
+                    app.Input_File.Value='';
                     app.isOkInput=false;
                     return
                 end
@@ -204,6 +207,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.NumberofLaunchedAssetsEditField.Value=app.Nlaunched;
                 catch ME
                     app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Generating launch scenarios failed',app.Status_text.Value);
+                    app.Input_File.Value='';
                     app.isOkInput=false;
                     return
                 end
@@ -242,14 +246,22 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function UpdateFileSize(app,event)
             Ny=size(app.dateTable.date(1:12:end),1);
             Nt=height(app.dateTable);
-            Nevents=height(app.eventTable);
+            Nevents=app.Country.Nevents;
             total_individual_asset_launches=sum(cellfun(@(a)sum(sum(a.launch_logical)),app.launchInfo));
+            total_event_asset_launches=sum(cellfun(@(a)sum(sum(a.launch_logical)),app.launchInfo).*Nevents);
+            
+            % The following approximate file sizes are based on empirically
+            % measuring the average number of characters per line of output
+            target_filesize = total_event_asset_launches*77;
+            yearly_filesize = total_individual_asset_launches*54*Ny;
+            monthly_filesize = total_individual_asset_launches*51*Nt;
+            
             if app.OutputType.Value =="Yearly"
-                total_filesize=total_individual_asset_launches*(46*Ny+71*Nevents);
+                total_filesize = target_filesize + yearly_filesize;
             elseif app.OutputType.Value == "Monthly"
-                total_filesize=total_individual_asset_launches*(43*Nt+71*Nevents);
+                total_filesize=target_filesize + monthly_filesize;
             else
-                total_filesize=total_individual_asset_launches*(46*Ny+43*Nt+71*Nevents);
+                total_filesize=target_filesize + yearly_filesize + monthly_filesize;
             end
             
             unit_ind=min(max(1,floor(log2(total_filesize)/10)),4);
@@ -257,6 +269,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             
             fprintf('Total file size: %6.2f %s\n',total_filesize/2^(unit_ind*10),units{unit_ind});
             app.EstFileSizeEditField.Value=sprintf('%6.2f %s',total_filesize/2^(unit_ind*10),units{unit_ind});
+            app.EstFileSizeEditField.UserData=total_filesize;
         end
         
         % Button pushed function: BrowseFolder
@@ -573,7 +586,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create Input_File
             app.Input_File = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
             app.Input_File.Editable = 'off';
-            app.Input_File.HorizontalAlignment = 'right';
             app.Input_File.Position = [131 660 319 22];
 
             % Create OutputEditFieldLabel
@@ -585,7 +597,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create Output_Folder
             app.Output_Folder = uieditfield(app.aMDDBruteForceSimulatorUIFigure, 'text');
             app.Output_Folder.Editable = 'off';
-            app.Output_Folder.HorizontalAlignment = 'center';
             app.Output_Folder.Position = [131 617 319 22];
 
             % Create TabGroup

@@ -24,10 +24,14 @@ assert(all(Tm.FileName==Tm.FileName(1))& all(Tm.FileDate==Tm.FileDate(1)),...
 % Convert all char to string type
 Tm.CountrySelected=string(Tm.CountrySelected);
 
+
 % Convert the assets to the asset table and reverse the ordering
 Ta=cellfun(@(A)struct2table(A),cASSET,'UniformOutput',false);
 Ta=Ta(end:-1:1);
 [Na,~]=cellfun(@size,Ta); % Get asset sizes
+% Generate number of unique events in each country
+Nevents=cellfun(@(A)length(unique([A.Launch_Date; A.LOE_Date; A.Starting_Share_Date])),cASSET(end:-1:1));
+% Concatenate into a single table.
 Ta=vertcat(Ta{:});
 
 % Process the asset names to only contain only alphanumeric plus underscore and hyphens
@@ -46,7 +50,7 @@ Tc=vertcat(Tc{end:-1:1});
 % We are going to ensure that Starting share date is consistent accross all
 % countries, issuing a warning if not all the same.
 if length(startDate)>1
-    warning('Starting share date is not unique over all countries\n Replacing date with minimum');
+    warning('Starting share date is not unique over all countries. Replacing date with minimum');
     Ta.Starting_Share_Date(Ta.Starting_Share_Date~=min(startDate))=min(startDate);
 end
 
@@ -111,7 +115,7 @@ Tm=addvars(Tm,repmat(modelID,Nco,1),ind_unique_country,'NewVariableNames',{'Mode
 % database)
 eventTable=table((1:length(allEvents))',dtAllEvents,'VariableNames',{'ID','date'});
 dateTable=table((1:length(dtDateGrid))',dtDateGrid,'VariableNames',{'ID','date'});
-Country=table(ind_unique_country,unique_country,Na,true(size(unique_country)),'VariableNames',{'ID','CName','NAssets','Has_Model'});% 'Description'=>NULL
+Country=table(ind_unique_country,unique_country,Na,true(size(unique_country)),Nevents,'VariableNames',{'ID','CName','NAssets','Has_Model','Nevents'});% 'Description'=>NULL
 Asset=table(unique_asset_id,unique_assets,ind_company(ind_unique_assets,1),ind_company(ind_unique_assets,2),ind_classes(ind_unique_assets),'VariableNames',{'ID','AName','Company1','Company2','Class'}); %'UID',
 Class=table((1:length(unique_classes))',unique_classes,'VariableNames',{'ID','CName'}); % CDescription
 Company=table((1:length(unique_company))',unique_company,'VariableNames',{'ID','CName'});
