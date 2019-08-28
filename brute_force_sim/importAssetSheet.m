@@ -287,7 +287,7 @@ function [ASSET, MODEL, CHANGE, debug] = importAssetSheet(fileName, assetSheet, 
     %% Validate the starting share so that it adds to 1
     if abs(sum(cell2mat(ASSET.Starting_Share))-1) > 100*eps
         %keyboard
-        error('Asset starting share must sum to 100 %')
+        error('Asset sheet %s:\n\tStarting share must sum to 100 percent in error by: %.2g percent',ASSET.Country{1},abs(sum(cell2mat(ASSET.Starting_Share))-1)*100)
     end
     
     %% Postprocess some DATE fields to get them in the expected datatype
