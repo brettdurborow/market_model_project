@@ -152,6 +152,19 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                             % First import assumptions and asset information from excel
                             try
                                 [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fullDataFile);
+                                
+                                starting_share_error=abs(cellfun(@(A) sum(A.Starting_Share),cASSET)-1);
+                                if(any(starting_share_error>1e-6))
+                                    those_in_error=starting_share_error>1e-6;
+                                    for err=find(those_in_error)'
+                                        app.Status_text.Value=vertcat(sprintf('[WARNING]: Starting share does not sum to 100 percent for sheet: %s',cMODEL{err}.CountrySelected),app.Status_text.Value);
+                                        app.Status_text.Value=vertcat(sprintf('[WARNING]: Starting share in %s in error by: %.2g percent',cMODEL{err}.CountrySelected,starting_share_error(err)*100),app.Status_text.Value);
+                                        cASSET{err}.Starting_Share = cASSET{err}.Starting_Share/sum( cASSET{err}.Starting_Share);
+                                    end
+                                    
+                                    
+                                end
+
                                 app.Status_text.Value = vertcat(sprintf('[Timing] Import Data: %gs',toc(tStart)),app.Status_text.Value);
                                 app.isOkInput = true;
                             catch ME
