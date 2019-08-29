@@ -52,6 +52,7 @@ classdef parfor_wait < handle
            if Obj.Waitbar
                Obj.WaitbarHandle = waitbar(0, sprintf('Running: %d batches in total',TotalMessage), 'Resize', true,'CreateCancelBtn', @(src, event) setappdata(gcbf(), 'Cancelled', true));
                setappdata(Obj.WaitbarHandle, 'Cancelled', false);
+               set(Obj.WaitbarHandle,'Position', Obj.WaitbarHandle.Position+[0 0 0 20]);
            end
            switch Obj.FileName
                case 'screen'
@@ -92,14 +93,17 @@ end
            end
        end
        
-       function WaitbarUpdate(Obj)
+      function WaitbarUpdate(Obj)
            UsedTime_now = toc(Obj.StartTime);
            %EstimatedTimeNeeded = (UsedTime_now-Obj.UsedTime_1)/Obj.ReportInterval*(Obj.TotalMessage-Obj.NumMessage);
            EstimatedTimeNeeded = (Obj.TotalMessage/Obj.NumMessage-1)*UsedTime_now;
+           ms=@(d)[floor(d/60),rem(d,60)];
+           waitbar(Obj.NumMessage/Obj.TotalMessage, Obj.WaitbarHandle,sprintf('Progress: %.2f %%;\n %dm %.0fs elapsed %dm %.0fs remaining',Obj.NumMessage/Obj.TotalMessage*100,ms(UsedTime_now),ms(EstimatedTimeNeeded)));
            
-           waitbar(Obj.NumMessage/Obj.TotalMessage, Obj.WaitbarHandle, ['Progress: ',num2str(Obj.NumMessage/Obj.TotalMessage*100, '%.2f'), '%; ', num2str(UsedTime_now, '%.2f'), 's elapsed ', num2str(EstimatedTimeNeeded, '%.2f'), 's remaining.']);
+           %['Progress: ',num2str(Obj.NumMessage/Obj.TotalMessage*100, '%.2f'), '%; ', num2str(UsedTime_now, '%.2f'), 's elapsed ', num2str(EstimatedTimeNeeded, '%.2f'), 's remaining.']);
            Obj.UsedTime_1 = UsedTime_now;
-       end
+           
+      end
        
        function FileUpdate(Obj)
            UsedTime_now = toc(Obj.StartTime);
