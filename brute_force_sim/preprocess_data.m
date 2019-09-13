@@ -6,6 +6,9 @@ function [Tm,Ta,Tc,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_
 %
 % NB: We reverse the ordering in all of the structures below.
 tstart=tic;
+% utility function to sanitize incoming strings
+sanitize=@(name)lower(regexprep(name,{'[^a-zA-Z_0-9 ]','\s'},{'','_'}));
+
 % Get country names in reverse ordering
 unique_country=string(cellfun(@(A)A.CountrySelected,cMODEL(end:-1:1),'UniformOutput',false));
 ind_unique_country=(1:length(unique_country))';
@@ -33,14 +36,13 @@ Ta=Ta(end:-1:1);
 Nevents=cellfun(@(A)length(unique([A.Launch_Date; A.LOE_Date; A.Starting_Share_Date])),cASSET(end:-1:1));
 % Concatenate into a single table.
 Ta=vertcat(Ta{:});
-
 % Process the asset names to only contain only alphanumeric plus underscore and hyphens
-Ta.Assets_Rated=lower(regexprep(Ta.Assets_Rated,{'[^a-zA-Z_0-9 ]','\s'},{'','_'}));
-Ta.Follow_On=lower(regexprep(Ta.Follow_On,{'[^a-zA-Z_0-9 ]','\s'},{'','_'}));
+Ta.Assets_Rated=sanitize(Ta.Assets_Rated);
+Ta.Follow_On=sanitize(Ta.Follow_On);
 
-% Extract the change sheets (These are not used fo the moment)
-Tc=cellfun(@(A)struct2table(A),cCHANGE,'UniformOutput',false);
-Tc=vertcat(Tc{end:-1:1});
+% [Depreciated]: Extract the change sheets (These are not used fo the moment)
+% Tc=cellfun(@(A)struct2table(A),cCHANGE,'UniformOutput',false);
+% Tc=vertcat(Tc{end:-1:1});
 
 % Now add the time dimension
 [launchDate,~,ind_launch] = unique(Ta.Launch_Date);
@@ -110,6 +112,8 @@ ind_company=reshape(ind_company,[],2);
 
 % Update the Ta table to include the IDs
 Ta=addvars(Ta,ind_company(:,1),ind_company(:,2),ind_classes,ind_country,'NewVariableNames',{'Company1_ID','Company2_ID','Class_ID','Country_ID'});
+Ta=sortrows(Ta,{'Country_ID','Unique_ID'});
+
 Tm=addvars(Tm,repmat(modelID,Nco,1),ind_unique_country,'NewVariableNames',{'Model_ID','Country_ID'});
 % Construct all of the processed input tables and write out to csv (or
 % database)
@@ -119,6 +123,14 @@ Country=table(ind_unique_country,unique_country,Na,true(size(unique_country)),Ne
 Asset=table(unique_asset_id,unique_assets,ind_company(ind_unique_assets,1),ind_company(ind_unique_assets,2),ind_classes(ind_unique_assets),'VariableNames',{'ID','AName','Company1','Company2','Class'}); %'UID',
 Class=table((1:length(unique_classes))',unique_classes,'VariableNames',{'ID','CName'}); % CDescription
 Company=table((1:length(unique_company))',unique_company,'VariableNames',{'ID','CName'});
+
+Janssen_Assets=sanitize(Ta.Company1)=="janssen";
+Delay=table((1:3)',calmonths((6:6:18)'),'VariableNames',{'ID','Delay'});
+Delay.Delay.Format='mdt';
+ID=kron(Delay.ID,ones(nnz(Janssen_Assets),1));
+% Construct the delay table
+Tc=Ta(Janssen_Assets,{'Country_ID','Unique_ID'});
+Tc=addvars(array2table([kron([1;1;1],Tc.Variables)],'VariableNames',{'Country_ID','Asset_ID'}),Delay.Delay(ID),'NewVariableNames',{'Delay'});
 
 % Timing statistics
 tdata_proc=toc(tstart);

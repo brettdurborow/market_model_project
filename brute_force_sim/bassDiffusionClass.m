@@ -168,7 +168,7 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
     sharePerAssetMonthlySeriesRaw(isLaunch,1) = ASSET.Starting_Share(isLaunch) / nansum(ASSET.Starting_Share(isLaunch));  
         
     % Find Asset event dates
-    [assetEventDatesRaw, ix] = sort(ASSET.Launch_Date);
+    [assetEventDatesRaw, ix] = sort(ASSET.Launch_Date(isLaunch));
     assetPVecRaw = ASSET.Product_p(ix);
     assetQVecRaw = ASSET.Product_q(ix);
     
@@ -233,8 +233,10 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
         
         % compute target shares for each asset on this event date
         ixE = find(eventDates == assetEventDates(m));
-        if length(ixE) ~= 1
+        if length(ixE) > 1
             error('Duplicate event dates');
+        elseif isempty(ixE)
+            error('No event dates found')
         end
         for n = 1:Na
             if isLaunch(n)
@@ -266,8 +268,14 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
             sharePerAssetMonthlySeries(ix(n),:) = sharePerAssetMonthlySeriesRaw(ix(n),:) .* scaleVec;
         end
     end
-
-
+    launchMask=(ASSET.Launch_Date<=dateGrid')&isLaunch;
+    sharePerAssetMonthlySeries(~launchMask)=nan;
+    %NB: theroetically we should do the same for the share per class
+    %monthly series.
+    isLaunchClass=~isnan(CLASS.First_Launch_Date);
+    launchMaskClass=(CLASS.First_Launch_Date<=dateGrid')&isLaunchClass;
+    sharePerClassMonthlySeries(~launchMaskClass)=nan;
+    
 end
 
 function tab = mx2tab(colHead, rowHead, dataMx)

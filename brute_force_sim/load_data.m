@@ -8,7 +8,7 @@
 modelID=1;
 
 % the type of output for the simulation
-output_type="Yearly";
+output_type="Monthly";
 
 %output_folder=string([uigetdir('','Select output folder'),filesep]);
 output_folder="data"+filesep+"prepare_tables_output"+filesep;
@@ -37,10 +37,10 @@ end
 % end
 
 % Set the robustness value of the model run.
-robustness=0.80;
+robustness=0.1;
 
 %[dataFile,dataFolder] = uigetfile({'*.xls*','Excel files (.xls*)';'*.mat','Matlab Cache file (.mat)'},'Select Input file (Excel or MAT)');
-dataFile='Market_Model_Assumptions.xlsm';
+dataFile='Market_Model_Assumptions.mat';
 dataFolder='./';
 
 % Put together full file name in case app is run in a different dir.

@@ -384,8 +384,15 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 % Update the status
                 app.Status_text.Value=vertcat('Starting simulation.',app.Status_text.Value);
 
+                if app.checkBox.Value
+                    Tc=app.Tc;
+                else
+                    Tc=app.Tc([],:);
+                end
+                
+                
                 % Extract static variables 
-                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
+                Tm=app.Tm; Ta=app.Ta;  eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
                 output_type=app.OutputType.Value;
                 % Set up a progress bar (apparently works in serial code, too)
                 WaitMessage = parfor_wait(max(launch_height),'Waitbar',true,'ReportInterval',1);
@@ -552,20 +559,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.Status_text.Value=vertcat(sprintf('Number of processors changed to: %d',value),app.Status_text.Value);
         end
         
-%         function startParrallelPool(app,event)
-%             if event.PreviousValue == 0 
-%                 pool = gcp('nocreate');
-%                 % Initialize a pool if not created already.
-%                 if isempty(pool)
-%                     app.ParallelPool=parpool(app.numCores);
-%                     fprintf('Initialized parallel pool');
-%                     app.checkBox.Value = true;
-%                 end
-%             else % Turning off parallel pool
-%                 delete(gcp('nocreate'));
-%                 app.checkBox.Value=0;
-%             end
-%         end
     end
 
     % App initialization and construction
@@ -765,12 +758,12 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.ptrsAxes.Position = [7 7 508 377];
 
             % ['Depreciated'] Create parallel pool checkbox
-            %             app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
-            %             app.checkBox.Position =  [56 8 100 58];
-            %             app.checkBox.Enable = 'on';
-            %             app.checkBox.Text = {'Parallel Pool';'Connected'};
-            %             app.checkBox.ValueChangedFcn = createCallbackFcn(app,@startParrallelPool,true);
-            %             app.checkBox.Visible = false;
+            app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
+            app.checkBox.Position =  [186 2 100 58];
+            app.checkBox.Enable = 'on';
+            app.checkBox.Text = {'Janssen';'Delay Analysis'};
+            %app.checkBox.ValueChangedFcn = createCallbackFcn(app,@initializeDelays,true);
+            app.checkBox.Value = true;
         end
     end
 
