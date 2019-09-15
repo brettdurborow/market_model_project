@@ -1,4 +1,4 @@
-function [Tm,Ta,Tc,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cCHANGE)
+function [Tm,Ta,Tc,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cDELAY)
 %% Data pre-processing.
 % 
 % From the input data structures, we do some pre-processing to get the data
@@ -124,13 +124,8 @@ Asset=table(unique_asset_id,unique_assets,ind_company(ind_unique_assets,1),ind_c
 Class=table((1:length(unique_classes))',unique_classes,'VariableNames',{'ID','CName'}); % CDescription
 Company=table((1:length(unique_company))',unique_company,'VariableNames',{'ID','CName'});
 
-Janssen_Assets=sanitize(Ta.Company1)=="janssen";
-Delay=table((1:3)',calmonths((6:6:18)'),'VariableNames',{'ID','Delay'});
-Delay.Delay.Format='mdt';
-ID=kron(Delay.ID,ones(nnz(Janssen_Assets),1));
 % Construct the delay table
-Tc=Ta(Janssen_Assets,{'Country_ID','Unique_ID'});
-Tc=addvars(array2table([kron([1;1;1],Tc.Variables)],'VariableNames',{'Country_ID','Asset_ID'}),Delay.Delay(ID),'NewVariableNames',{'Delay'});
+Tc=Ta(sanitize(Ta.Company1)=="janssen",{'Country_ID','Unique_ID'});
 
 % Timing statistics
 tdata_proc=toc(tstart);

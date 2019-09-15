@@ -130,7 +130,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
         for j = 1:height(DELAY)
             asset_delay_selector=ASSET.Unique_ID==DELAY.Asset_ID(j);
             original_launch_date=ASSET.Launch_Date(asset_delay_selector);
-            ASSET.Launch_Date(asset_delay_selector)=datenum(datetime(original_launch_date,'ConvertFrom','datenum')+DELAY.Delay(j));
+            ASSET.Launch_Date(asset_delay_selector)=datenum(datetime(original_launch_date,'ConvertFrom','datenum')+calmonths(DELAY.Delay(j)));
             
             % Construct the event date vector
             original_eventDates=eventDates;

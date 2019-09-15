@@ -36,6 +36,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         ptrsAxes                    matlab.ui.control.UIAxes
         checkBox                    matlab.ui.control.CheckBox
         PreviousSelectionButton     matlab.ui.control.Button
+        DelayTab                    matlab.ui.container.Tab
+        DelayTable                  matlab.ui.control.Table
     end
 
     
@@ -356,7 +358,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 [dataFolder,dataFile,dataExt]=fileparts(app.Input_File.Value);
                 dataFile=[dataFile,dataExt];
                 save('previous_selection.mat','dataFile','dataFolder','Output_Folder');
-                
+                                
                 tstart=tic;
                 writetable(app.Model,output_folder+"Model.csv");
                 writetable(app.dateTable,output_folder+"dateGrid.csv");
@@ -385,7 +387,9 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 app.Status_text.Value=vertcat('Starting simulation.',app.Status_text.Value);
 
                 if app.checkBox.Value
-                    Tc=app.Tc;
+                    Delay=app.DelayTable.Data;
+                    Delay=Delay.Delay(Delay.Delay~=0); % Throw away zero delays
+                    Tc=array2table([kron(ones(size(Delay)),app.Tc.Variables),kron(Delay,ones(height(app.Tc),1))],'VariableNames',{'Country_ID','Asset_ID','Delay'});
                 else
                     Tc=app.Tc([],:);
                 end
@@ -749,7 +753,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create ConsoleTab
             app.ptrsTab= uitab(app.TabGroup);
             app.ptrsTab.Title = 'Cumulative PTRS';
-            
+  
             % Create UIAxes
             app.ptrsAxes = uiaxes(app.ptrsTab);
             title(app.ptrsAxes, 'Cumulative PTRS')
@@ -757,7 +761,18 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             ylabel(app.ptrsAxes, 'Probability')
             app.ptrsAxes.Position = [7 7 508 377];
 
-            % ['Depreciated'] Create parallel pool checkbox
+            % Create DelayTab
+            app.DelayTab = uitab(app.TabGroup);
+            app.DelayTab.Title = 'Janssen Delay';
+            app.DelayTab.Scrollable = 'on';
+            
+            % Create table for Delays
+            app.DelayTable = uitable(app.DelayTab,'ColumnName',{'Delay'},...
+                'Data',table((6:6:18)','VariableNames',{'Delay'}),...  % this is the default delay
+                'ColumnEditable',true);
+            app.DelayTable.Position=[177,200,162,79];
+            
+            % Checkbox for Janssen assets
             app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
             app.checkBox.Position =  [186 2 100 58];
             app.checkBox.Enable = 'on';
