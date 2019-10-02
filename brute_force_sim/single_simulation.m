@@ -130,8 +130,9 @@ for i=find(launch_scenario<=launch_height) %1:Nco
         for j = 1:height(DELAY)
             asset_delay_selector=ASSET.Unique_ID==DELAY.Asset_ID(j);
             original_launch_date=ASSET.Launch_Date(asset_delay_selector);
-            ASSET.Launch_Date(asset_delay_selector)=datenum(datetime(original_launch_date,'ConvertFrom','datenum')+calmonths(DELAY.Delay(j)));
-            
+            original_LOE_date=ASSET.LOE_Date(asset_delay_selector);
+            ASSET.Launch_Date(asset_delay_selector)=datenum(datetime(original_launch_date,'ConvertFrom','datenum')+calmonths(DELAY.Launch_Delay(j)));
+            ASSET.LOE_Date(asset_delay_selector)=datenum(datetime(original_LOE_date,'ConvertFrom','datenum')+calmonths(DELAY.LOE_Delay(j)));
             % Construct the event date vector
             original_eventDates=eventDates;
             eventDates = unique([ASSET.Launch_Date(isLaunch); ASSET.LOE_Date(isLaunch); ASSET.Starting_Share_Date(isLaunch)]);
@@ -146,13 +147,15 @@ for i=find(launch_scenario<=launch_height) %1:Nco
             country_id=repmat(i,Nvalid,1);
             asset_id=ASSET.Unique_ID(isLaunch);
             delayed_asset_id=repmat(DELAY.Asset_ID(j),Nvalid,1);
-            delay_time=repmat(DELAY.Delay(j),Nvalid,1);
+            launch_delay_time=repmat(DELAY.Launch_Delay(j),Nvalid,1);
+            loe_delay_time=repmat(DELAY.LOE_Delay(j),Nvalid,1);
             Td{j} = table(model_id,repmat(launchInfo{i}.launch_code(launch_scenario),Nvalid,1),...
-                country_id,delayed_asset_id,delay_time,asset_id(nanMask),AOCpct_change(nanMask),'VariableNames',{'model_id','launch_code','country_id','delayed_asset_id','delay_time','asset_id','AOC_ratio'});
+                country_id,delayed_asset_id,launch_delay_time,loe_delay_time,asset_id(nanMask),AOCpct_change(nanMask),'VariableNames',{'model_id','launch_code','country_id','delayed_asset_id','launch_delay_time','loe_delay_time','asset_id','AOC_ratio'});
 
             % Reset the dates back to what they were originally
             eventDates=original_eventDates;
             ASSET.Launch_Date(asset_delay_selector)=original_launch_date;
+            ASSET.LOE_Date(asset_delay_selector)=original_LOE_date;
         end
         Taoc{i}=vertcat(Td{:});
         %launchMask=isLaunch&(ASSET.Launch_Date<=dateGrid'); % not sure where this was used.
