@@ -388,8 +388,10 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
                 if app.checkBox.Value
                     Delay=app.DelayTable.Data;
-                    Delay=Delay.Delay(Delay.Delay~=0); % Throw away zero delays
-                    Tc=array2table([kron(ones(size(Delay)),app.Tc.Variables),kron(Delay,ones(height(app.Tc),1))],'VariableNames',{'Country_ID','Asset_ID','Delay'});
+                    Launch_Delay=Delay.Launch_Delay(Delay.Launch_Delay~=0); % Throw away zero delays
+                    LOE_Delay=Delay.LOE_Delay(Delay.LOE_Delay~=0);
+                    Tc=array2table([kron(ones(size(Launch_Delay)),app.Tc.Variables),kron(Launch_Delay,ones(height(app.Tc),1)),...
+                        kron(LOE_Delay,ones(height(app.Tc),1))],'VariableNames',{'Country_ID','Asset_ID','Launch_Delay','LOE_Delay'});
                 else
                     Tc=app.Tc([],:);
                 end
@@ -767,8 +769,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.DelayTab.Scrollable = 'on';
             
             % Create table for Delays
-            app.DelayTable = uitable(app.DelayTab,'ColumnName',{'Delay'},...
-                'Data',table((6:6:18)','VariableNames',{'Delay'}),...  % this is the default delay
+            app.DelayTable = uitable(app.DelayTab,'ColumnName',{'Launch Delay','LOE Delay'},...
+                'Data',table((6:6:18)',-(3:3:9)','VariableNames',{'Launch_Delay','LOE_Delay'}),...  % this is the default delay
                 'ColumnEditable',true);
             app.DelayTable.Position=[177,200,162,79];
             

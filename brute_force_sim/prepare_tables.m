@@ -6,6 +6,10 @@ load_data;
 %fprintf('%s\n',msg)
 [launchCodes,launchInfo,assetLaunchInfo,ptrsTable]=generate_launchCodes(Ta,Country,Asset,robustness);
 
+Launch_Delay=(6:6:18)';
+LOE_Delay=-(3:3:9)';
+Tc=array2table([kron(ones(size(Launch_Delay)),Tc.Variables),kron(Launch_Delay,ones(height(Tc),1)),kron(LOE_Delay,ones(height(Tc),1))],'VariableNames',{'Country_ID','Asset_ID','Launch_Delay','LOE_Delay'});
+
 write_tables;
 %fprintf('%s\n',msg);
 
