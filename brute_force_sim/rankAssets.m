@@ -43,6 +43,18 @@ for i=1:Nscenarios
     II(i,follow_on_inds)=II(i,followed_inds);
 end
 
+% II2=false(Nscenarios,Ntotal);
+% II2(:,will_launch)=true;
+% I2=(uint32(1):uint32(Nscenarios))';
+% p=ones(Nscenarios,1);
+% for i=1:Nassets
+%     launch=logical(bitget(I2,i,'uint32'));
+%     p=p.*(launch*ptrs(ptrs_inds(i))).*(1-(~launch*ptrs(ptrs_inds(i))));
+%     II2(launch,ptrs_mask)=launch;
+%     II2(launch,follow_on_inds)=II(launch,followed_inds);
+% end
+
+
 % Sort the launch scenarios 
 [p,ind]=sort(p,'descend');
 

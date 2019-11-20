@@ -44,7 +44,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
     properties (Access = private)
         Ta % Asset table
         Tm % Model table
-        Tc % Change table (future)
+        Tc % Class table (starting shares)
+        Td % Delay table
         modelID = 1 % Model
         isOkInput = false % Input file is read and OK.
         isOkOutput = false % Output folder is valid
@@ -130,7 +131,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 switch inputExtension
                     case '.mat'
                         try
-                            load(fullDataFile, 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
+                            load(fullDataFile, 'cMODEL','cASSET', 'Tc','cDEBUG');
                             app.isOkInput = true;
                         catch ME
                             app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Error reading cache file. Try loading Excel file instead');
@@ -153,8 +154,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                             tStart = tic;
                             % First import assumptions and asset information from excel
                             try
-                                [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fullDataFile);
-                                
+                                [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fullDataFile);
+                                app.Tc=Tc;
                                 % Test the error in the starting share, if any.
                                 starting_share_error=abs(cellfun(@(A) sum(A.Starting_Share),cASSET)-1);
                                 if(any(starting_share_error>1e-6))
@@ -179,7 +180,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                             % Cache the output in a Matlab .Mat file
                             if app.isOkInput && exist([inputDataName,'.mat'],'file')
                                 app.Status_text.Value=vertcat('[INFO]: Overwriting existing Cache file',app.Status_text.Value);
-                                save([inputDataName,'.mat'], 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
+                                save([inputDataName,'.mat'], 'cMODEL','cASSET', 'Tc','cDEBUG');
                             end
                         end
                 end
@@ -199,8 +200,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 % We preprocess the data to get the tables out
                 try
                     tstart=tic;
-                    [app.Tm,app.Ta,app.Tc,app.eventTable,app.dateTable,app.Country,app.Asset,app.Class,app.Company]...
-                        = preprocess_data(app.modelID,cMODEL,cASSET,cCHANGE);
+                    [app.Tm,app.Ta,app.Td,app.eventTable,app.dateTable,app.Country,app.Asset,app.Class,app.Company]...
+                        = preprocess_data(app.modelID,cMODEL,cASSET);
                     tdata_proc=toc(tstart);
                     % Output some status messages
                     app.Status_text.Value=vertcat(sprintf('[Timing] Data pre-processing: %gs',tdata_proc),app.Status_text.Value);
@@ -390,15 +391,15 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     Delay=app.DelayTable.Data;
                     Launch_Delay=Delay.Launch_Delay(Delay.Launch_Delay~=0); % Throw away zero delays
                     LOE_Delay=Delay.LOE_Delay(Delay.LOE_Delay~=0);
-                    Tc=array2table([kron(ones(size(Launch_Delay)),app.Tc.Variables),kron(Launch_Delay,ones(height(app.Tc),1)),...
-                        kron(LOE_Delay,ones(height(app.Tc),1))],'VariableNames',{'Country_ID','Asset_ID','Launch_Delay','LOE_Delay'});
+                    Td=array2table([kron(ones(size(Launch_Delay)),app.Td.Variables),kron(Launch_Delay,ones(height(app.Td),1)),...
+                        kron(LOE_Delay,ones(height(app.Td),1))],'VariableNames',{'Country_ID','Asset_ID','Launch_Delay','LOE_Delay'});
                 else
-                    Tc=app.Tc([],:);
+                    Td=app.Td([],:);
                 end
                 
                 
                 % Extract static variables 
-                Tm=app.Tm; Ta=app.Ta;  eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
+                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc;  eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
                 output_type=app.OutputType.Value;
                 % Set up a progress bar (apparently works in serial code, too)
                 WaitMessage = parfor_wait(max(launch_height),'Waitbar',true,'ReportInterval',1);
@@ -408,7 +409,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 if app.ParallelWorkers.Value == 1 
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
+                        single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                         if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
                             % Write out that we have cancelled, all other
@@ -424,7 +425,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.Status_text.Value=vertcat('[WARNING]: Cancel button does not function for parfor loops',app.Status_text.Value);
                     
                     parfor launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
+                        single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                    end
                 end
@@ -491,13 +492,13 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 cleanWait=onCleanup(@()delete(WaitMessage));
                 % For parallel execution, apparently we can't access the
                 % app variables directly, so we copy
-                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
+                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; Td=app.Td; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
                 output_type=app.OutputType.Value;
 
                 if app.ParallelWorkers.Value==1
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
+                        single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                         if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
                             % Write out that we have cancelled, all other
@@ -511,7 +512,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     % Otherwise we run parallel version
                     for launch_scenario=1:max(launch_height)
                         % Asynchronously launch each scenario
-                        future_launch(launch_scenario)=parfeval(@(launch) single_simulation(launch,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type),0,launch_scenario);
+                        future_launch(launch_scenario)=parfeval(@(launch) single_simulation(launch,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type),0,launch_scenario);
                     end
                     app.Status_text.Value=vertcat('Parallel queue initialized',app.Status_text.Value);
                     
@@ -562,6 +563,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         % Value changed function: ParallelWorkers
         function ParallelWorkersValueChanged(app, event)
             value = app.ParallelWorkers.Value;
+            app.NumberofParallelWorkersEditField.Value=value;
             app.Status_text.Value=vertcat(sprintf('Number of processors changed to: %d',value),app.Status_text.Value);
         end
         
