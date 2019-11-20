@@ -204,32 +204,31 @@ sharePerAssetP=nan(Na,nEvents);
 sharePerAsset=nan(Na,nEvents);
 sharePerAssetEventSeries=nan(Na,nEvents);
 CLASS = therapyClassRank(ASSET, CLASS, isLaunch);
-tic;
-sharePerAssetOEvec = orderOfEntryModelvec(MODEL, ASSET, CLASS, isLaunch, eventDates);
-sharePerAssetPvec = profile_Modelvec(MODEL,ASSET,CLASS,isLaunch,eventDates);
-sharePerAssetvec=(sharePerAssetOEvec*MODEL.OrderOfEntryWeight+sharePerAssetPvec*MODEL.ProfileWeight)/(MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
-adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
-sharePerAssetEventSeriesvec = reDistributevec(sharePerAssetvec, adjustmentFactor);
-tt_vec=toc;
 
-tic
+sharePerAssetOE = orderOfEntryModelvec(MODEL, ASSET, CLASS, isLaunch, eventDates);
+sharePerAssetP = profile_Modelvec(MODEL,ASSET,CLASS,isLaunch,eventDates);
+sharePerAsset=(sharePerAssetOE*MODEL.OrderOfEntryWeight+sharePerAssetP*MODEL.ProfileWeight)/(MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
 adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
-for m = 1:nEvents
-    sharePerAssetOE(:,m) = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m)); % NB: elastClass, elastAsset are contained in MODEL
-    sharePerAssetP(:,m) = profileModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m));
-    
-    sharePerAsset(:,m) = (sharePerAssetOE(:,m) * MODEL.OrderOfEntryWeight + sharePerAssetP(:,m) * MODEL.ProfileWeight) ...
-        / (MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
-    
-    newSharePerAsset= reDistribute(sharePerAsset(:,m), adjustmentFactor);
-    %
-    % NB: this is essentially the target share of the asset!
-    sharePerAssetEventSeries(:, m) = newSharePerAsset;
-    
-end
-tt_scalar=toc;
+sharePerAssetEventSeries = reDistributevec(sharePerAsset, adjustmentFactor);
 
-fprintf('vectorized speedup: %g\n',tt_scalar/tt_vec);
+
+% adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
+% for m = 1:nEvents
+%     sharePerAssetOE(:,m) = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m)); % NB: elastClass, elastAsset are contained in MODEL
+%     sharePerAssetP(:,m) = profileModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m));
+%     
+%     sharePerAsset(:,m) = (sharePerAssetOE(:,m) * MODEL.OrderOfEntryWeight + sharePerAssetP(:,m) * MODEL.ProfileWeight) ...
+%         / (MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
+%     
+%     newSharePerAsset= reDistribute(sharePerAsset(:,m), adjustmentFactor);
+%     %
+%     % NB: this is essentially the target share of the asset!
+%     sharePerAssetEventSeries(:, m) = newSharePerAsset;
+%     
+% end
+
+%ma=@(x)max(max(abs(x)));
+%fprintf('vectorized speedup: %g ||OE|| %g ||P|| %g ||COM|| %g ||SERIES|| %g \n',tt_scalar/tt_vec,ma(sharePerAssetOE-sharePerAssetOEvec),ma(sharePerAssetP-sharePerAssetPvec),ma(sharePerAsset-sharePerAssetvec),ma(sharePerAssetEventSeries-sharePerAssetEventSeriesvec));
 % From the the target shares, run Bass diffusion.
 
 [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, ~] =...
