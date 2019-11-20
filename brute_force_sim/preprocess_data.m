@@ -1,4 +1,4 @@
-function [Tm,Ta,Tc,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET,cDELAY)
+function [Tm,Ta,Td,eventTable,dateTable,Country,Asset,Class,Company]=preprocess_data(modelID,cMODEL,cASSET)
 %% Data pre-processing.
 % 
 % From the input data structures, we do some pre-processing to get the data
@@ -31,18 +31,21 @@ Tm.CountrySelected=string(Tm.CountrySelected);
 % Convert the assets to the asset table and reverse the ordering
 Ta=cellfun(@(A)struct2table(A),cASSET,'UniformOutput',false);
 Ta=Ta(end:-1:1);
-[Na,~]=cellfun(@size,Ta); % Get asset sizes
+
+% We need to validate the assets based on their PTRS value, as none of the
+% assets having PTRS==0 will launch, then we remove them from consideration
+% Thus, the number of assets is given as the number of nonzero PTRS values
+Na=cellfun(@(A)sum(A.Scenario_PTRS>0),Ta); % Get asset sizes
 % Generate number of unique events in each country
 Nevents=cellfun(@(A)length(unique([A.Launch_Date; A.LOE_Date; A.Starting_Share_Date])),cASSET(end:-1:1));
 % Concatenate into a single table.
 Ta=vertcat(Ta{:});
+% Then remove any values with a zero PTRS value
+Ta(Ta.Scenario_PTRS==0,:)=[];
+
 % Process the asset names to only contain only alphanumeric plus underscore and hyphens
 Ta.Assets_Rated=sanitize(Ta.Assets_Rated);
 Ta.Follow_On=sanitize(Ta.Follow_On);
-
-% [Depreciated]: Extract the change sheets (These are not used fo the moment)
-% Tc=cellfun(@(A)struct2table(A),cCHANGE,'UniformOutput',false);
-% Tc=vertcat(Tc{end:-1:1});
 
 % Now add the time dimension
 [launchDate,~,ind_launch] = unique(Ta.Launch_Date);
@@ -125,7 +128,7 @@ Class=table((1:length(unique_classes))',unique_classes,'VariableNames',{'ID','CN
 Company=table((1:length(unique_company))',unique_company,'VariableNames',{'ID','CName'});
 
 % Construct the delay table
-Tc=Ta(sanitize(Ta.Company1)=="janssen",{'Country_ID','Unique_ID'});
+Td=Ta(sanitize(Ta.Company1)=="janssen",{'Country_ID','Unique_ID'});
 
 % Timing statistics
 tdata_proc=toc(tstart);
