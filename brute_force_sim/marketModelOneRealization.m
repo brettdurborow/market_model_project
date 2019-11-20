@@ -1,4 +1,4 @@
-function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChange, doDebug)
+function SIM = marketModelOneRealization(MODEL, ASSET, isLaunch, doDebug)
 
 
 
@@ -18,7 +18,7 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
 
     CLASS = therapyClassRank(MODEL, ASSET, isLaunch);
     nClasses=length(CLASS.Therapy_Class);
-    eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; ASSET.Starting_Share_Date; CHANGE.Launch_Date; CHANGE.LOE_Date]);
+    eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; ASSET.Starting_Share_Date]);
     nEvents = length(eventDates);
 
     sharePerAssetEventSeries = zeros(Na,nEvents);  % row for each asset, col for each date
@@ -35,12 +35,12 @@ function SIM = marketModelOneRealization(MODEL, ASSET, CHANGE, isLaunch, isChang
 
         eventDate = eventDates(m);
         sharePerAssetOE = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventDate, elastClass, elastAsset);
-        sharePerAssetP = profileModel(MODEL, ASSET, CHANGE, CLASS, isLaunch, isChange, eventDate);
+        sharePerAssetP = profileModel(MODEL, ASSET, CLASS, isLaunch, eventDate);
 
         sharePerAsset = (sharePerAssetOE * MODEL.OrderOfEntryWeight + sharePerAssetP * MODEL.ProfileWeight) ...
                         / (MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
 
-        adjustmentFactor = applyFactors(MODEL, ASSET, CHANGE, isLaunch, isChange, eventDate);
+        adjustmentFactor = applyFactors(MODEL, ASSET, isLaunch, eventDate);
         newSharePerAsset = reDistribute(sharePerAsset, adjustmentFactor);
 
         sharePerAssetEventSeries(:, m) = newSharePerAsset;
