@@ -1,4 +1,4 @@
-function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
+function [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fileName)
 
     
     [filepath, name, ext] = fileparts(fileName);
@@ -9,22 +9,10 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     fileInfo = dir(fileName);    
     [status, sheets, xlFormat] = xlsfinfo(fileName);
 
-    %!RC
     % Find sheets matching a single string digit in range 1 thru 7
-    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'[1-7]'));
+    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'[1-7]$'));
     assetSheets=sheets(ind_assetSheets);
     
-    % Find sheets matching strings '[1-7]CE'
-    ceSheets = cell(size(assetSheets));
-    ind_ceSheets=cellfun(@(s) ~isempty(s) && length(s)==3,regexp(sheets,'[1-7]CE'));
-    
-    % This part needs to be checked, so that we have the right
-    % correspondences. Q: if any change event sheet occurs, then to all
-    % asset sheets need change events.
-    if(sum(ind_assetSheets)==sum(ind_ceSheets)) % only populate if we have all corresponding change events??
-        ceSheets=sheets(ind_ceSheets);
-    end
-        
     Nwait = length(assetSheets) + 1;
     
     %% Read the "Simulation" sheet
@@ -76,18 +64,28 @@ function [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(fileName)
     
     cASSET = cell(length(assetSheets), 1);
     cMODEL = cell(length(assetSheets), 1);
-    cCHANGE = cell(length(assetSheets), 1);
+    
     cDEBUG = cell(length(assetSheets), 1);
     %fprintf('timing asset sheets\n')
     %tic
     for m = 1:length(assetSheets)
         waitbar((m+1)/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, assetSheets{m}),hWait);
-        [ASSET, MODEL, CHANGE,DEBUG] = importAssetSheet(fileName, assetSheets{m}, ceSheets{m}, SIMULATION);
+        [ASSET, MODEL, DEBUG] = importAssetSheet(fileName, assetSheets{m}, SIMULATION);
         cASSET{m} = convert_asset(ASSET);
         cMODEL{m} = MODEL;
-        cCHANGE{m} = CHANGE;       
         cDEBUG{m} = DEBUG;
     end
+    opt=detectImportOptions('Market_Model_Assumptions.xlsm','Sheet','Class','TextType','string');
+    opt.VariableNames(:)={'Country','Therapy_Class','Starting_Share','In_Class_Product_Elasticity'};
+    % Load new class sheet
+    Tc=readtable(fileName,opt);    
+    
+    % We have to further assume that the class starting share is not
+    % normalized. Thus, we normalize it here.
+    for country=unique(Tc.Country,'stable')'
+        Tc.Starting_Share(Tc.Country==country)=Tc.Starting_Share(Tc.Country==country)/sum(Tc.Starting_Share(Tc.Country==country));
+    end
+    
     %toc    
 end
 

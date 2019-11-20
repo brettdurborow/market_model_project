@@ -37,6 +37,7 @@ function newShare = reDistribute(initialShare, adjustment, errThresh)
     
     Niter = 20;
     cumErr = nan(Niter, 1);
+    
     for m = 1:Niter
         redistShare = A * redistShare;  % redistribute proportionally to the initial share of each asset
         cumShare = cumShare + redistShare .* okAdjustment;  % some of the redisributed patients will stay
@@ -45,8 +46,8 @@ function newShare = reDistribute(initialShare, adjustment, errThresh)
         if cumErr(m) < errThresh
             break;
         end
-    end
-
+    end  
+    
     % figure; semilogy(cumErr); grid on;  title('Error as a function of iteration');
     
     cumShare = cumShare / sum(cumShare);

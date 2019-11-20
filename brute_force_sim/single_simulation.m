@@ -1,4 +1,4 @@
-function single_simulation(launch_scenario,Tm,Ta,Tc,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type)
+function single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type)
 
 Na=Country.NAssets;
 
@@ -28,7 +28,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     country_table_index=Ta.Country==country_selected;
     MODEL=Tm(Tm.CountrySelected==country_selected,:);
     ASSET=sortrows(Ta(country_table_index,:),'Unique_ID'); % This sort can be omitted if the Ta table is presorted.
-    
+    CLASS=Tc(Tc.Country==country_selected,:);
     % Get the launch vector over all assets
     isLaunchAll=launchInfo{i}.launch_logical(launch_scenario,:)';
     
@@ -38,16 +38,13 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     % Restrict number to only those assets actually launching. NB: We could restrict this by reducing the number of assets given to each model.
     Nlaunch=sum(isLaunch);
     
-    % The Change Events have been depreciated.
-    isChange=false(Na(i),1);
-    
     % Construct the event date vector
-    eventDates = unique([ASSET.Launch_Date(isLaunch); ASSET.LOE_Date(isLaunch); ASSET.Starting_Share_Date(isLaunch)]);% CHANGE.Launch_Date; CHANGE.LOE_Date]);
+    eventDates = unique([ASSET.Launch_Date(isLaunch); ASSET.LOE_Date(isLaunch); ASSET.Starting_Share_Date(isLaunch)]);
     nEvents=length(eventDates);
     [which_events,~]=find(allEvents==eventDates');
         
     % Call the nested function defining the model (this could be made external)
-    [sharePerAssetOE,sharePerAssetP,sharePerAsset,sharePerAssetEventSeries,sharePerAssetMonthlySeries,brandedMonthlyShare,AOC]=model_and_diffuse(MODEL,ASSET,isLaunch,eventDates,dateGrid);
+    [sharePerAssetOE,sharePerAssetP,sharePerAsset,sharePerAssetEventSeries,sharePerAssetMonthlySeries,brandedMonthlyShare,AOC]=model_and_diffuse(MODEL,ASSET,CLASS,isLaunch,eventDates,dateGrid);
 
     % Now do things with the output
     Tlot=array2timetable(sharePerAssetOE(isLaunch,:)','RowTimes',eventTable.date(which_events),'VariableNames',ASSET.Assets_Rated(isLaunch));
@@ -122,9 +119,9 @@ for i=find(launch_scenario<=launch_height) %1:Nco
         'VariableNames',{'model_id','launch_code','country_id','asset_id','date_id','Branded_Molecule','Molecule'});
 
     % Now we can investigate the delays on the AOC output
-    if ~isempty(Tc)
+    if ~isempty(Td)
         % Get the delay table
-        DELAY=Tc(Tc.Country_ID==Country.ID(i),:);
+        DELAY=Td(Td.Country_ID==Country.ID(i),:);
         Td=cell(height(DELAY),1);
   
         for j = 1:height(DELAY)
@@ -137,7 +134,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
             original_eventDates=eventDates;
             eventDates = unique([ASSET.Launch_Date(isLaunch); ASSET.LOE_Date(isLaunch); ASSET.Starting_Share_Date(isLaunch)]);
 
-            [~,~,~,~,~,brandedMonthlyShare_delayed,AOC_delay]=model_and_diffuse(MODEL,ASSET,isLaunch,eventDates,dateGrid);
+            [~,~,~,~,~,brandedMonthlyShare_delayed,AOC_delay]=model_and_diffuse(MODEL,ASSET,CLASS,isLaunch,eventDates,dateGrid);
             
             AOCpct_change=AOC_delay./AOC;
             nanMask=~isnan(AOCpct_change);
@@ -197,7 +194,7 @@ tscenario=toc(tscenario);
 fprintf('[Timing] Single launch time %gs. Table writing time %gs\n',tscenario,twrite);
 end
 
-function [sharePerAssetOE,sharePerAssetP,sharePerAsset,sharePerAssetEventSeries,sharePerAssetMonthlySeries,brandedMonthlyShare,AOC]=model_and_diffuse(MODEL,ASSET,isLaunch,eventDates,dateGrid)
+function [sharePerAssetOE,sharePerAssetP,sharePerAsset,sharePerAssetEventSeries,sharePerAssetMonthlySeries,brandedMonthlyShare,AOC]=model_and_diffuse(MODEL,ASSET,CLASS,isLaunch,eventDates,dateGrid)
 nEvents=length(eventDates);
 Na=length(isLaunch);
 
@@ -206,7 +203,17 @@ sharePerAssetOE=nan(Na,nEvents);
 sharePerAssetP=nan(Na,nEvents);
 sharePerAsset=nan(Na,nEvents);
 sharePerAssetEventSeries=nan(Na,nEvents);
-CLASS = therapyClassRank(ASSET, isLaunch);
+CLASS = therapyClassRank(ASSET, CLASS, isLaunch);
+tic;
+sharePerAssetOEvec = orderOfEntryModelvec(MODEL, ASSET, CLASS, isLaunch, eventDates);
+sharePerAssetPvec = profile_Modelvec(MODEL,ASSET,CLASS,isLaunch,eventDates);
+sharePerAssetvec=(sharePerAssetOEvec*MODEL.OrderOfEntryWeight+sharePerAssetPvec*MODEL.ProfileWeight)/(MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
+adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
+sharePerAssetEventSeriesvec = reDistributevec(sharePerAssetvec, adjustmentFactor);
+tt_vec=toc;
+
+tic
+adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
 for m = 1:nEvents
     sharePerAssetOE(:,m) = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m)); % NB: elastClass, elastAsset are contained in MODEL
     sharePerAssetP(:,m) = profileModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m));
@@ -214,14 +221,17 @@ for m = 1:nEvents
     sharePerAsset(:,m) = (sharePerAssetOE(:,m) * MODEL.OrderOfEntryWeight + sharePerAssetP(:,m) * MODEL.ProfileWeight) ...
         / (MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
     
-    adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch, eventDates(m));
-    newSharePerAsset = reDistribute(sharePerAsset(:,m), adjustmentFactor);
-    
+    newSharePerAsset= reDistribute(sharePerAsset(:,m), adjustmentFactor);
+    %
     % NB: this is essentially the target share of the asset!
     sharePerAssetEventSeries(:, m) = newSharePerAsset;
     
 end
+tt_scalar=toc;
+
+fprintf('vectorized speedup: %g\n',tt_scalar/tt_vec);
 % From the the target shares, run Bass diffusion.
+
 [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, ~] =...
     bassDiffusionClass(dateGrid,ASSET, CLASS, isLaunch, eventDates, sharePerAssetEventSeries, false);
 

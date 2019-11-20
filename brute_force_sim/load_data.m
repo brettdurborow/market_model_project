@@ -62,17 +62,17 @@ switch inputExtension
         load(dataFile);
     case {'.xls','.xlsx','.xlsm','.xlsb'}
         % First import assumptions and asset information from excel
-        [cMODEL, cASSET, cCHANGE,cDEBUG] = importAssumptions(dataFile);
+        [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(dataFile);
 
         % Cache the output in a Matlab .Mat file
         if exist([inputDataName,'.mat'],'file')
             overWrite=questdlg('Overwrite existing Cache file?','Overwrite Cache','No');
             switch overWrite
                 case 'Yes'
-                    save([inputDataName,'.mat'], 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
+                    save([inputDataName,'.mat'], 'cMODEL','cASSET', 'Tc','cDEBUG');
             end
         else
-            save([inputDataName,'.mat'], 'cMODEL','cASSET', 'cCHANGE','cDEBUG');
+            save([inputDataName,'.mat'], 'cMODEL','cASSET', 'Tc','cDEBUG');
         end
 end
 
