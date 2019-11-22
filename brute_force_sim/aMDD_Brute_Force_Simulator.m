@@ -390,7 +390,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 if app.checkBox.Value
                     Delay=app.DelayTable.Data;
                     Launch_Delay=Delay.Launch_Delay(Delay.Launch_Delay~=0); % Throw away zero delays
-                    LOE_Delay=Delay.LOE_Delay(Delay.LOE_Delay~=0);
+                    LOE_Delay=Delay.LOE_Delay(Delay.Launch_Delay~=0);
                     Td=array2table([kron(ones(size(Launch_Delay)),app.Td.Variables),kron(Launch_Delay,ones(height(app.Td),1)),...
                         kron(LOE_Delay,ones(height(app.Td),1))],'VariableNames',{'Country_ID','Asset_ID','Launch_Delay','LOE_Delay'});
                 else

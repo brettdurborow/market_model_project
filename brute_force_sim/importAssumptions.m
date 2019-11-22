@@ -10,7 +10,7 @@ function [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fileName)
     [status, sheets, xlFormat] = xlsfinfo(fileName);
 
     % Find sheets matching a single string digit in range 1 thru 7
-    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'[1-7]$'));
+    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'^[1-7]*$'));
     assetSheets=sheets(ind_assetSheets);
     
     Nwait = length(assetSheets) + 1;
