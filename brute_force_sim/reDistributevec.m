@@ -43,11 +43,12 @@ function newShare = reDistributevec(initialShare, adjustment, errThresh)
         end
         
         B=A*diag(1-okAdjustment);
-        rho=max(abs(eig(B)));
-        j=20;%ceil(log(errThresh)/log(rho))+2;
+        %rho=max(abs(eig(B)));
+        %j=ceil(log(errThresh)/log(rho))+2;
+        maxIter=20;
         
         cumShare=okShare;
-        for m = 1:j
+        for m = 1:maxIter
             cumShare=okShare+B*cumShare;
             if abs(1-sum(okAdjustment.*cumShare))< errThresh
                 %        fprintf('s: %g\n',1-sum(okAdjustment.*cumShare));

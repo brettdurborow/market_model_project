@@ -187,7 +187,7 @@ if output_type == "Monthly" || output_type == "Yearly+Monthly"
     writetable(Tmon,sprintf("%smonthly_%04d.csv",output_folder,launch_scenario));
 end
 
-writetable(Taoc,sprintf("%sJanssen_Delay_%04d.csv",output_folder,launch_scenario));
+writetable(Taoc,sprintf("%sdelay_%04d.csv",output_folder,launch_scenario));
 
 twrite=toc(twritestart);
 tscenario=toc(tscenario);
