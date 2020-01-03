@@ -250,9 +250,9 @@ function [sharePerAssetMonthlySeries, sharePerClassMonthlySeries, DBG] = bassDif
     
     %% Blend the Class and Asset diffusion numbers 
     
-    sharePerAssetMonthlySeries = zeros(Na, Nd);
+    sharePerAssetMonthlySeries = nan(Na, Nd);
     for m = 1:Nc
-        ix = find(therapyClassNames(m) == therapyClass);
+        ix = find((therapyClassNames(m) == therapyClass) & isLaunch);
         
         % COMBINED DIFFUSION -----------------------------------------------------
         % Scale asset shares within a class to sum to class shares in classShareMx
