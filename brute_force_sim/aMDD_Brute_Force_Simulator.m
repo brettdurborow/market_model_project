@@ -103,12 +103,16 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         app.isOkInput = true;
                         app.isOkOutput = true;
                     catch ME
-                        app.Status_text.Value = vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Previous File Selection failed',app.Status_text.Value);
+                        app.Status_text.Value = vertcat(['[ERRORMSG]: ',ME.message],'[ERROR]: Previous File Selection failed',app.Status_text.Value);
                         return
                     end
                     
                 otherwise
+                    % This should not happen. But just in case, we should
+                    % block any OkInput values
                     app.Status_text.Value = vertcat('Unknown event source',app.Status_text.Value);
+                    app.isOkInput = false;
+                    app.isOkOutput = false;
                     return
             end
                         
@@ -298,6 +302,14 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 app.isOkOutput = true;
                 app.Output_Folder.Value=[foldername,filesep];
                 msg = {'Selected valid output folder:';app.Output_Folder.Value};
+            elseif foldername==0
+                
+                msg = '[WARNING]: No output folder selected';
+                if ~isempty(app.Output_Folder.Value)
+                    msg = vertcat({'[WARNING]: Retaining existing data directory:'},app.Output_Folder.Value,msg);
+                else                    
+                    app.Output_Folder.Value = '';
+                end
             else
                 app.isOkOutput = false;
                 msg = '[WARNING]: invalid Output Folder!';
@@ -772,7 +784,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             
             % Create table for Delays
             app.DelayTable = uitable(app.DelayTab,'ColumnName',{'Launch Delay','LOE Delay'},...
-                'Data',table((6:6:18)',-(3:3:9)','VariableNames',{'Launch_Delay','LOE_Delay'}),...  % this is the default delay
+                'Data',table((6:6:18)',(3:3:9)','VariableNames',{'Launch_Delay','LOE_Delay'}),...  % this is the default delay
                 'ColumnEditable',true);
             app.DelayTable.Position=[177,200,162,79];
             

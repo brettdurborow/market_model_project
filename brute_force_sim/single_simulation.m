@@ -46,6 +46,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     % Call the nested function defining the model (this could be made external)
     [sharePerAssetOE,sharePerAssetP,sharePerAsset,sharePerAssetEventSeries,sharePerAssetMonthlySeries,brandedMonthlyShare,AOC]=model_and_diffuse(MODEL,ASSET,CLASS,isLaunch,eventDates,dateGrid);
 
+    fprintf('shareperAsset: %g\n',norm(sum(sharePerAssetMonthlySeries,'omitnan')-1))
     % Now do things with the output
     Tlot=array2timetable(sharePerAssetOE(isLaunch,:)','RowTimes',eventTable.date(which_events),'VariableNames',ASSET.Assets_Rated(isLaunch));
     Tpmt=array2timetable(sharePerAssetP(isLaunch,:)','RowTimes',eventTable.date(which_events),'VariableNames',ASSET.Assets_Rated(isLaunch));
@@ -209,8 +210,10 @@ sharePerAssetOE = orderOfEntryModelvec(MODEL, ASSET, CLASS, isLaunch, eventDates
 sharePerAssetP = profile_Modelvec(MODEL,ASSET,CLASS,isLaunch,eventDates);
 sharePerAsset=(sharePerAssetOE*MODEL.OrderOfEntryWeight+sharePerAssetP*MODEL.ProfileWeight)/(MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
 adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
-sharePerAssetEventSeries = reDistributevec(sharePerAsset, adjustmentFactor);
-
+sharePerAssetEventSeriesvec = reDistributevec(sharePerAsset, adjustmentFactor);
+for m=1:nEvents
+    sharePerAssetEventSeries(:,m) = reDistribute(sharePerAsset(:,m), adjustmentFactor);
+end
 
 % adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
 % for m = 1:nEvents
