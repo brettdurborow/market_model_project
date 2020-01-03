@@ -123,7 +123,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     if ~isempty(Td)
         % Get the delay table
         DELAY=Td(Td.Country_ID==Country.ID(i),:);
-        Td=cell(height(DELAY),1);
+        Te=cell(height(DELAY),1);
   
         for j = 1:height(DELAY)
             asset_delay_selector=ASSET.Unique_ID==DELAY.Asset_ID(j);
@@ -147,7 +147,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
             delayed_asset_id=repmat(DELAY.Asset_ID(j),Nvalid,1);
             launch_delay_time=repmat(DELAY.Launch_Delay(j),Nvalid,1);
             loe_delay_time=repmat(DELAY.LOE_Delay(j),Nvalid,1);
-            Td{j} = table(model_id,repmat(launchInfo{i}.launch_code(launch_scenario),Nvalid,1),...
+            Te{j} = table(model_id,repmat(launchInfo{i}.launch_code(launch_scenario),Nvalid,1),...
                 country_id,delayed_asset_id,launch_delay_time,loe_delay_time,asset_id(nanMask),AOCpct_change(nanMask),'VariableNames',{'model_id','launch_code','country_id','delayed_asset_id','launch_delay_time','loe_delay_time','asset_id','AOC_ratio'});
 
             % Reset the dates back to what they were originally
@@ -155,7 +155,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
             ASSET.Launch_Date(asset_delay_selector)=original_launch_date;
             ASSET.LOE_Date(asset_delay_selector)=original_LOE_date;
         end
-        Taoc{i}=vertcat(Td{:});
+        Taoc{i}=vertcat(Te{:});
         %launchMask=isLaunch&(ASSET.Launch_Date<=dateGrid'); % not sure where this was used.
         
     else
