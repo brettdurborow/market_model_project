@@ -13,14 +13,14 @@ scores = (ASSET.Efficacy + ASSET.S_T + ASSET.Delivery);
 % Compute the exponential model 
 elasticScore = scores.*ixA;
 elasticScore = elasticScore./sum(elasticScore,1);
-elasticScore = elasticScore.^MODEL.ProfileElasticity;
+%elasticScore = elasticScore.^MODEL.ProfileElasticity;
 elasticScore(~ixA)=nan;
 bestInClass=nan(height(CLASS),length(eventDates));
 shareWithinClass=nan(size(elasticScore));
 for ID=1:height(CLASS)
     iC=ASSET.Therapy_Class==therapyClassNames(ID);
-    bestInClass(ID,:)=max(elasticScore(iC,:),[],1);
-    shareWithinClass(iC,:)=elasticScore(iC,:)./sum(elasticScore(iC,:),1,'omitnan');
+    bestInClass(ID,:)=max(elasticScore(iC,:).^MODEL.ProfileElasticity,[],1);
+    shareWithinClass(iC,:)=elasticScore(iC,:).^CLASS.InClassPMProductElasticity(ID)./sum(elasticScore(iC,:).^CLASS.InClassPMProductElasticity(ID),1,'omitnan');
 end
 %shareWithinClass(isnan(shareWithinClass))=0;
 classShare=bestInClass./sum(bestInClass,1,'omitnan');
