@@ -38,7 +38,7 @@ for m = 1:length(fxC)
     end
     
     [~,~,assetRank] = unique(assetLaunchDate(ixD2));
-    sharePerAssetWithinClass=(assetRank.^CLASS.In_Class_Product_Elasticity(fxC(m))).*ix(ixD2,:);
+    sharePerAssetWithinClass=(assetRank.^CLASS.InClassOEProductElasticity(fxC(m))).*ix(ixD2,:);
     sharePerAssetWithinClass=sharePerAssetWithinClass./sum(sharePerAssetWithinClass,1);
     sharePerAssetWithinClass(~ix(ixD2,:))=nan;
     
