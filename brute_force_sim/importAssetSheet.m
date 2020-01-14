@@ -41,7 +41,8 @@ function [ASSET, MODEL, debug] = importAssetSheet(fileName, assetSheet, SIMULATI
     MODEL.aMDD_Price = SIMULATION.aMDD_Price{ix};
     MODEL.SubPop_Growth = SIMULATION.SubPop_Growth{ix};
     MODEL.SubPop_Floor_Ceiling = SIMULATION.SubPop_Floor_Ceiling{ix};
-    MODEL.PCP_Factor_Growth = SIMULATION.PCP_Factor_Floor_Ceiling{ix};
+    MODEL.PCP_Factor_Growth = SIMULATION.PCP_Factor_Growth{ix};
+    MODEL.PCP_Factor_Floor_Ceiling = SIMULATION.PCP_Factor_Floor_Ceiling{ix};
     MODEL.Tdays_Growth = SIMULATION.Tdays_Growth{ix};
     MODEL.Tdays_Floor_Ceiling = SIMULATION.Tdays_Floor_Ceiling{ix};
     MODEL.Pop_Growth = SIMULATION.Pop_Growth{ix};    MODEL.Tdays_Growth = SIMULATION.Tdays_Growth{ix};
