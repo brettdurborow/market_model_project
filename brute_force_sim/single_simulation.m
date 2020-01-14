@@ -210,11 +210,12 @@ sharePerAssetOE = orderOfEntryModelvec(MODEL, ASSET, CLASS, isLaunch, eventDates
 sharePerAssetP = profile_Modelvec(MODEL,ASSET,CLASS,isLaunch,eventDates);
 sharePerAsset=(sharePerAssetOE*MODEL.OrderOfEntryWeight+sharePerAssetP*MODEL.ProfileWeight)/(MODEL.OrderOfEntryWeight + MODEL.ProfileWeight);
 adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
-sharePerAssetEventSeriesvec = reDistributevec(sharePerAsset, adjustmentFactor);
-for m=1:nEvents
-    sharePerAssetEventSeries(:,m) = reDistribute(sharePerAsset(:,m), adjustmentFactor);
-end
+sharePerAssetEventSeries = reDistributevec(sharePerAsset, adjustmentFactor);
 
+% for m=1:nEvents
+%     sharePerAssetEventSeries(:,m) = reDistribute(sharePerAsset(:,m), adjustmentFactor);
+% end
+%
 % adjustmentFactor = applyFactors(MODEL, ASSET,  isLaunch);
 % for m = 1:nEvents
 %     sharePerAssetOE(:,m) = orderOfEntryModel(MODEL, ASSET, CLASS, isLaunch, eventDates(m)); % NB: elastClass, elastAsset are contained in MODEL
