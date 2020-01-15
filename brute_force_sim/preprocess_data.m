@@ -11,7 +11,7 @@ sanitize=@(name)lower(regexprep(name,{'[^a-zA-Z_0-9 ]','\s'},{'','_'}));
 
 % Get country names in reverse ordering
 unique_country=string(cellfun(@(A)A.CountrySelected,cMODEL(end:-1:1),'UniformOutput',false));
-ind_unique_country=(1:length(unique_country))';
+ind_unique_country=cellfun(@(A)str2num(A.AssetSheet),cMODEL(end:-1:1));
 
 % Convert model array to table type 
 Tm=cellfun(@(C)struct2table(C,'AsArray',true),cMODEL,'UniformOutput',false);
