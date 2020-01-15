@@ -75,8 +75,8 @@ function [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fileName)
         cMODEL{m} = MODEL;
         cDEBUG{m} = DEBUG;
     end
-    opt=detectImportOptions('Market_Model_Assumptions.xlsm','Sheet','Class','TextType','string');
-    opt.VariableNames(1:3)={'Country','Therapy_Class','Starting_Share'};%,'In_Class_OE_Product_Elasticity','In_Class_PM_Product_E};
+    opt=detectImportOptions(fileName,'Sheet','Class','TextType','string');
+    opt.VariableNames(:)={'Country','Therapy_Class','Starting_Share','InClassOEProductElasticity','InClassPMProductElasticity'};
     % Load new class sheet
     Tc=readtable(fileName,opt);    
     
