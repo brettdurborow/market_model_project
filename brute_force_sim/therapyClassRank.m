@@ -24,8 +24,11 @@ CLASS(isnan(CLASS.First_Launch_Date),:)=[];
 
 % First we specify that all classes that are already on the market be given
 % a class rank based on their starting rank
+CLASS=sortrows(CLASS,'Starting_Share','descend');
 classHasLaunched = CLASS.Starting_Share>0;
-[~,CLASS.First_Launch_Rank(classHasLaunched)]=sort(CLASS.Starting_Share(classHasLaunched),'descend');
+CLASS.First_Launch_Rank(classHasLaunched)=1:sum(classHasLaunched);
+
+%[~,CLASS.First_Launch_Rank(classHasLaunched)]=sort(CLASS.Starting_Share(classHasLaunched),'descend');
 
 % Get median launch rank
 M=ceil(median(CLASS.First_Launch_Rank(classHasLaunched)));
