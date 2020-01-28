@@ -44,7 +44,7 @@ CLASS.First_Launch_Rank(classRankToShift)=CLASS.First_Launch_Rank(classRankToShi
 
 
 % Rank unlaunched classes based on first class asset market entry date
-CLASS(classUnlaunchedHasLaunchDate,:)=sortrows(CLASS(classUnlaunchedHasLaunchDate,:),'First_Launch_Date','descend');
+CLASS(classUnlaunchedHasLaunchDate,:)=sortrows(CLASS(classUnlaunchedHasLaunchDate,:),'First_Launch_Date');
 CLASS.First_Launch_Rank(classUnlaunchedHasLaunchDate)=M+(1:sum(classUnlaunchedHasLaunchDate));
 %[~,classUnlaunchedRank]=sort(CLASS.First_Launch_Date(classUnlaunchedHasLaunchDate));
 
