@@ -23,8 +23,9 @@ end
 CLASS(isnan(CLASS.First_Launch_Date),:)=[];
 
 % First we specify that all classes that are already on the market be given
-% a class rank based on their starting rank
-CLASS=sortrows(CLASS,'Starting_Share','descend');
+% a class rank based on their starting rank:
+% The class with the largest starting share gets the largest class rank
+CLASS=sortrows(CLASS,'Starting_Share');
 classHasLaunched = CLASS.Starting_Share>0;
 CLASS.First_Launch_Rank(classHasLaunched)=1:sum(classHasLaunched);
 
@@ -38,12 +39,12 @@ classUnlaunchedHasLaunchDate=~isnan(CLASS.First_Launch_Date)&~classHasLaunched;
 
 % Shift the launched assets above the median so that we can give the
 % unlaunched assets a launch rank closer to the median
-classRankToShift=CLASS.First_Launch_Rank(classHasLaunched)>M;
+classRankToShift=CLASS.First_Launch_Rank>M;
 CLASS.First_Launch_Rank(classRankToShift)=CLASS.First_Launch_Rank(classRankToShift)+sum(classUnlaunchedHasLaunchDate);
 
 
 % Rank unlaunched classes based on first class asset market entry date
-CLASS(classUnlaunchedHasLaunchDate,:)=sortrows(CLASS(classUnlaunchedHasLaunchDate,:),'First_Launch_Date');
+CLASS(classUnlaunchedHasLaunchDate,:)=sortrows(CLASS(classUnlaunchedHasLaunchDate,:),'First_Launch_Date','descend');
 CLASS.First_Launch_Rank(classUnlaunchedHasLaunchDate)=M+(1:sum(classUnlaunchedHasLaunchDate));
 %[~,classUnlaunchedRank]=sort(CLASS.First_Launch_Date(classUnlaunchedHasLaunchDate));
 
