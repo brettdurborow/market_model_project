@@ -37,14 +37,12 @@ M=ceil(median(CLASS.First_Launch_Rank(classHasLaunched)));
 % Find unlaunched classes with valid launch date
 classUnlaunchedHasLaunchDate=~isnan(CLASS.First_Launch_Date)&~classHasLaunched;
 
-% Shift the launched assets above the median so that we can give the
-% unlaunched assets a launch rank closer to the median
-classRankToShift=CLASS.First_Launch_Rank>M;
-CLASS.First_Launch_Rank(classRankToShift)=CLASS.First_Launch_Rank(classRankToShift)+sum(classUnlaunchedHasLaunchDate);
-
-
 % Rank unlaunched classes based on first class asset market entry date
 CLASS(classUnlaunchedHasLaunchDate,:)=sortrows(CLASS(classUnlaunchedHasLaunchDate,:),'First_Launch_Date');
+
+% The launch rank of the unlaunched assets will be M+1, M+2, etc ,this will
+% give duplicate entries for rank, so we will have to adjust them as each
+% one launches.
 CLASS.First_Launch_Rank(classUnlaunchedHasLaunchDate)=M+(1:sum(classUnlaunchedHasLaunchDate));
 %[~,classUnlaunchedRank]=sort(CLASS.First_Launch_Date(classUnlaunchedHasLaunchDate));
 

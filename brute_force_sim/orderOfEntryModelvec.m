@@ -14,9 +14,17 @@ isLaunchC=ismember(CLASS.Therapy_Class,ASSET.Therapy_Class(isLaunch));
 %% for each Therapy Class, compute the Per-Class share
 ixC=(CLASS.First_Launch_Date<=eventDates') & isLaunchC;
 
+classHasLaunched=CLASS.Starting_Share>0;
+ixShift=sum(ixC(~classHasLaunched,:));
+rowsToShift=(CLASS.First_Launch_Rank>median(CLASS.First_Launch_Rank(classHasLaunched)))&classHasLaunched;
+
+sharePerClass=CLASS.First_Launch_Rank.*ixC;
+sharePerClass(rowsToShift,:)=sharePerClass(rowsToShift,:)+ixShift;
+sharePerClass=sharePerClass.^MODEL.ClassOeElasticity;
+
 % Replicate the class Ranking for the model computation
-sharePerClass = (CLASS.First_Launch_Rank.^MODEL.ClassOeElasticity).*ixC;
-sharePerClass = sharePerClass./sum(sharePerClass);
+%sharePerClass = (CLASS.First_Launch_Rank.^MODEL.ClassOeElasticity).*ixC;
+sharePerClass = sharePerClass./sum(sharePerClass,'omitnan');
 sharePerClass(~ixC) = nan;
 
 %% for each Asset within a Therapy Class, compute the per-Asset-within-Class share
