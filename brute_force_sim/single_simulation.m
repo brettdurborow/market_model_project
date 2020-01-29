@@ -39,7 +39,7 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     Nlaunch=sum(isLaunch);
     
     % Construct the event date vector
-    eventDates = unique([ASSET.Launch_Date(isLaunch); ASSET.LOE_Date(isLaunch); ASSET.Starting_Share_Date(isLaunch)]);
+    eventDates = unique([ASSET.Launch_Date; ASSET.LOE_Date; ASSET.Starting_Share_Date]);
     nEvents=length(eventDates);
     [which_events,~]=find(allEvents==eventDates');
         
@@ -71,8 +71,10 @@ for i=find(launch_scenario<=launch_height) %1:Nco
     % Filter out any rows where all of the target shares are NaN
     Ttarget{i}=Ttarget{i}(~all(ismissing(Ttarget{i}(:,{'LOT','PMT','CMB','ADT'})),2),:);
     
-    
- 
+    % Filter out rows before the starting share date
+    start_date_id=eventTable.ID(dateGrid(1)==allEvents);
+    Ttarget{i}=Ttarget{i}(Ttarget{i}.event_id>=start_date_id,:);
+
     model_id=repmat(Model.ID,Ny*Nlaunch,1);
     country_id=repmat(i,Ny*Nlaunch,1);
     asset_id=kron(ASSET.Unique_ID(isLaunch),ones(Ny,1));
