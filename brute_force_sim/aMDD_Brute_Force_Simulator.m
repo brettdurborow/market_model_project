@@ -264,7 +264,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     % Calculate the best in class for each country
                     for i=1:height(app.Country) % c=app.Country.ID'
                         % Get the launched Assets
-                        launchedAssets=app.Ta((app.Ta.Country_ID==app.Country.ID(i))&isLaunched,{'Country','Therapy_Class','Starting_Share','Delivery','Efficacy','S_T'});
+                        launchedAssets=app.Ta((app.Ta.Country_ID==app.Country.ID(i))&isLaunched,{'Country','Assets_Rated','Therapy_Class','Starting_Share','Delivery','Efficacy','S_T'});
                         launchedAssets=addvars(launchedAssets,sum(launchedAssets(:,{'Starting_Share','Delivery','Efficacy','S_T'}).Variables,2),'NewVariableNames','Score');
                         % Get the unique classes
                         [uniC,iA,~]=unique(launchedAssets.Therapy_Class,'stable');
@@ -272,7 +272,11 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         % Iniaitalize the output table 
                         Tmax{i}=table(launchedAssets.Country(iA),uniC,zeros(size(uniC)),zeros(size(uniC)),'VariableNames',{'Country','Class','Starting_Share','Starting_Score'});
                         for iC=1:length(uniC)
-                            Tmax{i}.Starting_Score(iC)=max(launchedAssets.Score(launchedAssets.Therapy_Class==uniC(iC)));
+                            ixC=launchedAssets.Therapy_Class==uniC(iC);
+                            ixA=find(ixC);
+                            [max_score,max_index]=max(launchedAssets.Score(ixC));
+                            Tmax{i}.Starting_Score(iC)=max_score;
+                            Tmax{i}.Best_in_Class(iC)=launchedAssets.Assets_Rated(ixA(max_index));
                             Tmax{i}.Starting_Share(iC)=sum(launchedAssets.Starting_Share(launchedAssets.Therapy_Class==uniC(iC)));
                         end
                     end
@@ -828,7 +832,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.ProfileTab.Title = 'Class Starting Profile';
             app.ProfileTab.Scrollable = false;
             
-            app.ProfileTable = uitable(app.ProfileTab,'Data',app.Tmax,'ColumnName',{'Country','Class','Starting Share','Starting_Score'},'ColumnEditable',false);
+            app.ProfileTable = uitable(app.ProfileTab,'Data',app.Tmax,'ColumnName',{'Country','Class','Starting Share','Starting_Score','Best_in_Class'},'ColumnEditable',false);
             app.ProfileTable.Position = [1,1,520,390];
            
             
