@@ -38,6 +38,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         PreviousSelectionButton     matlab.ui.control.Button
         DelayTab                    matlab.ui.container.Tab
         DelayTable                  matlab.ui.control.Table
+        ProfileTab                    matlab.ui.container.Tab
+        ProfileTable                  matlab.ui.control.Table
     end
 
     
@@ -46,6 +48,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         Tm % Model table
         Tc % Class table (starting shares)
         Td % Delay table
+        Tmax % Profile score table
         modelID = 1 % Model
         isOkInput = false % Input file is read and OK.
         isOkOutput = false % Output folder is valid
@@ -248,7 +251,37 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Plotting Cumulative PTRS failed',app.Status_text.Value);
                 end
                 
+                app.Status_text.Value=vertcat('Updating output file size',app.Status_text.Value);
                 UpdateFileSize(app);
+                
+                try
+                    app.Status_text.Value=vertcat('Calculating Starting Profile Score',app.Status_text.Value);
+
+                    % We deal only with already launched assets
+                    isLaunched=app.Ta.Starting_Share>0;
+                    
+                    Tmax=cell(height(app.Country),1);
+                    % Calculate the best in class for each country
+                    for i=1:height(app.Country) % c=app.Country.ID'
+                        % Get the launched Assets
+                        launchedAssets=app.Ta((app.Ta.Country_ID==app.Country.ID(i))&isLaunched,{'Country','Therapy_Class','Starting_Share','Delivery','Efficacy','S_T'});
+                        launchedAssets=addvars(launchedAssets,sum(launchedAssets(:,{'Starting_Share','Delivery','Efficacy','S_T'}).Variables,2),'NewVariableNames','Score');
+                        % Get the unique classes
+                        [uniC,iA,~]=unique(launchedAssets.Therapy_Class,'stable');
+                        
+                        % Iniaitalize the output table 
+                        Tmax{i}=table(launchedAssets.Country(iA),uniC,zeros(size(uniC)),zeros(size(uniC)),'VariableNames',{'Country','Class','Starting_Share','Starting_Score'});
+                        for iC=1:length(uniC)
+                            Tmax{i}.Starting_Score(iC)=max(launchedAssets.Score(launchedAssets.Therapy_Class==uniC(iC)));
+                            Tmax{i}.Starting_Share(iC)=sum(launchedAssets.Starting_Share(launchedAssets.Therapy_Class==uniC(iC)));
+                        end
+                    end
+                    app.Tmax=vertcat(Tmax{:});
+                    app.ProfileTable.Data = app.Tmax;
+                catch ME
+                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Starting Profile Score calculation failed',app.Status_text.Value);
+                end
+                
             end
           
             
@@ -385,6 +418,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 writetable(app.Ta,output_folder+"assumptions.csv");
                 writetable(app.Tm,output_folder+"simulation.csv");
                 writetable(app.Tc,output_folder+"classElasticity.csv");
+                writetable(app.Tmax,output_folder+"Class_Profile_Score.csv");
                 twrite=toc(tstart);
                 app.Status_text.Value=vertcat(sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite),app.Status_text.Value);
                                 
@@ -788,6 +822,15 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 'Data',table((6:6:18)',(3:3:9)','VariableNames',{'Launch_Delay','LOE_Delay'}),...  % this is the default delay
                 'ColumnEditable',true);
             app.DelayTable.Position=[177,200,162,79];
+            
+            % Create the class profile tab
+            app.ProfileTab = uitab(app.TabGroup);
+            app.ProfileTab.Title = 'Class Starting Profile';
+            app.ProfileTab.Scrollable = false;
+            
+            app.ProfileTable = uitable(app.ProfileTab,'Data',app.Tmax,'ColumnName',{'Country','Class','Starting Share','Starting_Score'},'ColumnEditable',false);
+            app.ProfileTable.Position = [1,1,520,390];
+           
             
             % Checkbox for Janssen assets
             app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);

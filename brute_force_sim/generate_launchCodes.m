@@ -23,8 +23,8 @@ PTRS=array2table(zeros(Na_total,Nco),'VariableNames',Country.CName,'RowNames',As
 
 % We know that "" will be the first so we find the mapping between the
 % unique asset list and the follow on assets. 
-[followed_inds,~]=find(Asset.AName==unique_follow_on(2:end)');
-[follow_on_inds,~]=find(Asset.AName==Ta.Assets_Rated(ind_unique_follow_on(2:end))');
+[followed_inds,~]=find(Asset.AName==unique_follow_on(2:end,:)');
+[follow_on_inds,~]=find(Asset.AName==Ta.Assets_Rated(ind_unique_follow_on(2:end,:))');
 
 % Specify a vector for the potentially unlaunched assets
 unlaunched_id=Asset.ID<=64;

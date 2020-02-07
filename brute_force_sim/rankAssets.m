@@ -31,17 +31,24 @@ Nscenarios=2^Nassets;
 % Initialize the probabilities to output
 p=zeros(Nscenarios,1);
 
-% Indexing variable
-%I=uint32(0:Nscenarios-1)';
+% This is the way to vectorize the bitget computation
+I=uint32(0:Nscenarios-1)';
 II=false(Nscenarios,Ntotal);
 II(:,will_launch)=true;
-for i=1:Nscenarios
-    I=i+1;
-    launch=logical(bitget(I,1:Nassets,'uint32'));
-    p(i)=prod(ptrs(ptrs_inds(launch)))*prod(1-ptrs(ptrs_inds(~launch)));
-    II(i,ptrs_mask)=launch;
-    II(i,follow_on_inds)=II(i,followed_inds);
-end
+II(:,ptrs_mask)=bsxfun(@(a,b)logical(bitget(a,b,'uint32')),I,uint32(1):Nassets);
+II(:,follow_on_inds)=II(:,followed_inds);
+p=prod(ptrs(ptrs_mask)'.*II(:,ptrs_mask)+(1-ptrs(ptrs_mask)').*(~II(:,ptrs_mask)),2);
+
+%The old serial computation
+% II=false(Nscenarios,Ntotal);
+% II(:,will_launch)=true;
+% for i=1:Nscenarios
+%     I=i-1; % Scenarios will begin at 0 (nothing launches) until Nscenarios-1 (evenything launches)
+%     launch=logical(bitget(I,1:Nassets,'uint32'));
+%     p(i)=prod(ptrs(ptrs_inds(launch)))*prod(1-ptrs(ptrs_inds(~launch)));
+%     II(i,ptrs_mask)=launch;
+%     II(i,follow_on_inds)=II(i,followed_inds);
+% end
 
 % II2=false(Nscenarios,Ntotal);
 % II2(:,will_launch)=true;
