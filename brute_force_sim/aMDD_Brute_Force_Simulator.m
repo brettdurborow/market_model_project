@@ -48,6 +48,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         Tm % Model table
         Tc % Class table (starting shares)
         Td % Delay table
+        Tr % Robustness table
         Tmax % Profile score table
         modelID = 1 % Model
         isOkInput = false % Input file is read and OK.
@@ -402,6 +403,14 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     end
                 end
                 
+                % Make the robustness table
+                app.Tr=table(repmat(app.modelID,height(app.Country),1),...
+                    app.Country.ID,repmat(app.RobustnessSlider.Value,height(app.Country),1),...
+                    'VariableNames',{'model_id', 'country_id', 'robustness'});
+                                
+                % We now generate the constraints file in the background
+                
+                
                 % By here we should have everything needed to save the
                 % cache file for the previous input
                 Output_Folder = app.Output_Folder.Value;
@@ -410,6 +419,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 save('previous_selection.mat','dataFile','dataFolder','Output_Folder');
                                 
                 tstart=tic;
+                writetable(app.Tr,output_folder+"robustness.csv");
                 writetable(app.Model,output_folder+"Model.csv");
                 writetable(app.dateTable,output_folder+"dateGrid.csv");
                 writetable(app.eventTable,output_folder+"dateEvent.csv");

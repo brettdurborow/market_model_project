@@ -37,7 +37,7 @@ II=false(Nscenarios,Ntotal);
 II(:,will_launch)=true;
 II(:,ptrs_mask)=bsxfun(@(a,b)logical(bitget(a,b,'uint32')),I,uint32(1):Nassets);
 II(:,follow_on_inds)=II(:,followed_inds);
-p=prod(ptrs(ptrs_mask)'.*II(:,ptrs_mask)+(1-ptrs(ptrs_mask)').*(~II(:,ptrs_mask)),2);
+p(:)=prod(ptrs(ptrs_mask)'.*II(:,ptrs_mask)+(1-ptrs(ptrs_mask)').*(~II(:,ptrs_mask)),2);
 
 %The old serial computation
 % II=false(Nscenarios,Ntotal);
