@@ -31,7 +31,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         EstFileSizeLabel            matlab.ui.control.Label
         EstFileSizeEditField        matlab.ui.control.EditField
         RunSimulationButton         matlab.ui.control.Button
-        RunQueueButton              matlab.ui.control.Button
         ptrsTab                     matlab.ui.container.Tab
         ptrsAxes                    matlab.ui.control.UIAxes
         checkBox                    matlab.ui.control.CheckBox
@@ -57,6 +56,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         ParallelPool % Parallel pool
         Nunlaunched % Number of unlaunched assets
         Nlaunched % Number of launched assets
+        followInfo % Information about the indices of the followed assets.
     end
     
     properties (Access = public)
@@ -71,6 +71,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         launchInfo
         ptrsTable
         assetLaunchInfo
+        maskTable
     end
     
 
@@ -87,6 +88,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             
         % Button pushed function: BrowseFile
         function BrowseFileButtonPushed(app, event)
+            app.Status_text.Value = vertcat('Browse button pressed',app.Status_text.Value);
             % Specify file filters for excel or mat
             filterSpec = {'*.xls*;*.mat','Excel (.xls*) or Matlab Cache file (.mat)'};
             
@@ -95,7 +97,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
           
             switch event.Source.Text 
                 case 'Browse'
-                    app.Status_text.Value = vertcat('Browsing for input file',app.Status_text.Value);
+                    app.Status_text.Value = vertcat('File selection dialog box opened',app.Status_text.Value);
                     % Prompt user for file input
                     [dataFile,dataFolder] = uigetfile(filterSpec, dialogTitle);
 
@@ -125,7 +127,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 app.isOkInput = false;
                 app.Input_File.Value = '';
                 app.Status_text.Value=vertcat('[WARNING]: No input file selected!',app.Status_text.Value);
-                
+                return
             else % User selected something
                 
                 % Put together full file name in case app is run in a different dir.
@@ -133,7 +135,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 
                 % Get file extension fro deciding which path to take
                 [~,inputDataName,inputExtension]=fileparts(dataFile);
-                
+                app.Status_text.Value = vertcat(['Opening file: ',dataFile],app.Status_text.Value);
                 
                 % Check first for a Cache .mat file
                 switch inputExtension
@@ -225,7 +227,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 try
                     % Since we have the data available, we generate the launch codes
                     tstart=tic;
-                    [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.Nunlaunched,app.Nlaunched]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
+                    [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.maskTable,app.Nunlaunched,app.Nlaunched,app.followInfo]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
                     tlaunch_scenarios=toc(tstart);
                     app.Status_text.Value=vertcat(sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios),app.Status_text.Value);
                     app.NumberofScenariosEditField.Value=height(app.launchCodes);
@@ -286,7 +288,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 catch ME
                     app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Starting Profile Score calculation failed',app.Status_text.Value);
                 end
-                
+                app.Status_text.Value = vertcat('Finished loading and processing input data',app.Status_text.Value);
             end
           
             
@@ -363,7 +365,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % If input was already read, then we need to (re)calculate the launch Codes
             if app.isOkInput
                 tstart=tic;
-                [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
+                [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.maskTable,app.Nunlaunched,app.Nlaunched,app.followInfo]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
                 app.NumberofScenariosEditField.Value=height(app.launchCodes);
                 tlaunch_scenarios=toc(tstart);
                 cla(app.ptrsAxes)
@@ -405,11 +407,9 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 
                 % Make the robustness table
                 app.Tr=table(repmat(app.modelID,height(app.Country),1),...
-                    app.Country.ID,repmat(app.RobustnessSlider.Value,height(app.Country),1),...
+                    app.Country.ID,repmat(app.RobustnessSlider.Value/100,height(app.Country),1),...
                     'VariableNames',{'model_id', 'country_id', 'robustness'});
                                 
-                % We now generate the constraints file in the background
-                
                 
                 % By here we should have everything needed to save the
                 % cache file for the previous input
@@ -419,6 +419,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 save('previous_selection.mat','dataFile','dataFolder','Output_Folder');
                                 
                 tstart=tic;
+                writetable(app.maskTable,output_folder+"Mask.csv");
                 writetable(app.Tr,output_folder+"robustness.csv");
                 writetable(app.Model,output_folder+"Model.csv");
                 writetable(app.dateTable,output_folder+"dateGrid.csv");
@@ -438,7 +439,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                                 
                 fprintf('[Timing] Writing all non-output tables to disk %gs\n',twrite);
 
-                
                 %% Now we are in a position to do some of the actual calculations:
                 %Firstly, we need a loop per country,
                 tstart=tic;
@@ -467,7 +467,9 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 cleanWait=onCleanup(@()delete(WaitMessage));
 
                 % Check if we are running the serial code or not
-                if app.ParallelWorkers.Value == 1 
+                if app.ParallelWorkers.Value == 1
+                    rankConstraintsNew(output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
+                    
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
                         single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
@@ -484,13 +486,17 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 else
                     % parallel loop for the launch scenarios
                     app.Status_text.Value=vertcat('[WARNING]: Cancel button does not function for parfor loops',app.Status_text.Value);
+                    % Generate the constraints file in the background
+                    constraintWriter=parfeval(@rankConstraintsNew,0,output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
                     
                     parfor launch_scenario=1:max(launch_height)
                         single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
-                   end
+                    end
+                    % Wait for the constraint writer to finish before
+                    % simulation is completed
+                    wait(constraintWriter);
                 end
-                
                 tsimulate=toc(tstart);
                 fprintf('[Timing] Total simulation time: %gs\n',tsimulate);
                 %if the launch wasnt cancelled, then we are done!
@@ -508,112 +514,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         end
         
         
-        % [DEPRECIATED] Button pushed function: RunSimulationButton
-        function RunQueueButtonPushed(app, event)
-            % Check if input and output are set, then simulate
-            if app.isOkInput && app.isOkOutput
-                output_folder=app.Output_Folder.Value+app.Model.MName+filesep;
-                % make a new sub-directory
-                if ~exist(output_folder)
-                    try
-                        mkdir(output_folder)
-                    catch
-                        errordlg({'Could not create directory:',output_folder});
-                    end
-                end
-                
-                tstart=tic;
-                writetable(app.Model,output_folder+"Model.csv");
-                writetable(app.dateTable,output_folder+"dateGrid.csv");
-                writetable(app.eventTable,output_folder+"dateEvent.csv");
-                writetable(app.Country(:,{'ID','CName','Has_Model'}),output_folder+"Country.csv");
-                writetable(app.Asset,output_folder+"Asset.csv");
-                writetable(app.Company,output_folder+"Company.csv");
-                writetable(app.Class,output_folder+"Class.csv");
-                writetable(app.assetLaunchInfo,output_folder+"assetLaunchInfo.csv");
-                writetable(app.launchCodes,output_folder+"launchCodes.csv");
-                writetable(app.Ta,output_folder+"assumptions.csv");
-                writetable(app.Tm,output_folder+"simulation.csv");
-                twrite=toc(tstart);
-                app.Status_text.Value=vertcat(sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite),app.Status_text.Value);
-                                
-                fprintf('[Timing] Writing all non-output tables to disk %gs\n',twrite);
-
-                %% Now we are in a position to do some of the actual calculations:
-                %Firstly, we need a loop per country,
-                tstart=tic;
-                % Get the number of launchs in each country.
-                launch_height=cellfun(@height,app.launchInfo)';
-                
-                % Update the status
-                app.Status_text.Value=vertcat('Starting simulation.',app.Status_text.Value);
-                
-                % parallel loop for the launch scenarios
-                WaitMessage = parfor_wait(max(launch_height),'Waitbar',true,'ReportInterval',1);
-                cleanWait=onCleanup(@()delete(WaitMessage));
-                % For parallel execution, apparently we can't access the
-                % app variables directly, so we copy
-                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc; Td=app.Td; eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
-                output_type=app.OutputType.Value;
-
-                if app.ParallelWorkers.Value==1
-                    % Run Serial code
-                    for launch_scenario=1:max(launch_height)
-                        single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
-                        WaitMessage.Send;
-                        if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
-                            % Write out that we have cancelled, all other
-                            % variable should be cleaned up on exit.
-                            app.Status_text.Value=vertcat('Simulation cancelled',app.Status_text.Value);
-                            % Then exit the loop to stop fetching new jobs
-                            break
-                        end
-                    end
-                else
-                    % Otherwise we run parallel version
-                    for launch_scenario=1:max(launch_height)
-                        % Asynchronously launch each scenario
-                        future_launch(launch_scenario)=parfeval(@(launch) single_simulation(launch,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type),0,launch_scenario);
-                    end
-                    app.Status_text.Value=vertcat('Parallel queue initialized',app.Status_text.Value);
-                    
-                    cancelFutures = onCleanup(@() cancel(future_launch));
-                    % Register progress bar to update after each excecution
-                    updateWaitMessage=afterEach(future_launch,@()WaitMessage.Send(),0);
-                    afterEach(future_launch,@(f) disp(f.Diary),0,'passFuture',true);
-                    
-                    numRead=0;timeout=10;
-                    while numRead <= max(launch_height)
-                        if ~all([future_launch.Read])
-                            completedID=fetchNext(future_launch,timeout);
-                        end
-                        
-                        if ~isempty(completedID)
-                            numRead=numRead+1;
-                            app.Status_text.Value=vertcat(future_launch(completedID).Diary,app.Status_text.Value);
-                        end
-                        
-                        if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
-                            % Write out that we have cancelled, all other
-                            % variable should be cleaned up on exit.
-                            app.Status_text.Value=vertcat('Simulation cancelled',app.Status_text.Value);
-                            % Then exit the loop to stop fetching new jobs
-                            break
-                        end
-                    end
-                end
-                tsimulate=toc(tstart);
-                fprintf('[Timing] Total simulation time: %gs\n',tsimulate);
-                %if the launch wasnt cancelled, then we are done!
-                app.Status_text.Value=vertcat('Simulation completed',app.Status_text.Value);
-
-                app.Status_text.Value=vertcat(sprintf('[Timing] Total simulation time: %gs',tsimulate),app.Status_text.Value);
-                
-            else
-                app.Status_text.Value=vertcat('[Warning]: Input and output paths must be specified',app.Status_text.Value);
-            end
-        end
-
         function OutputTypeValueChanged(app, event)
             value = app.OutputType.Value;
             app.Status_text.Value=vertcat(sprintf('Output type change to: %s',value),app.Status_text.Value);
@@ -809,12 +709,6 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.RunSimulationButton.Position = [480 20 100 22];
             app.RunSimulationButton.Text = 'Run Simulation';
             
-            % Create RunSimulationButton2
-            %             app.RunQueueButton = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
-            %             app.RunQueueButton.ButtonPushedFcn = createCallbackFcn(app, @RunQueueButtonPushed, true);
-            %             app.RunQueueButton.Position = [59 20 100 22];
-            %             app.RunQueueButton.Text = 'Run Queue';
-            %
             % Create ConsoleTab
             app.ptrsTab= uitab(app.TabGroup);
             app.ptrsTab.Title = 'Cumulative PTRS';
