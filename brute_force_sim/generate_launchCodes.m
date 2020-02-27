@@ -1,4 +1,4 @@
-function [launchCodes,launchInfo,assetLaunchInfo,ptrsTable,Nunlaunched,Nlaunched]=generate_launchCodes(Ta,Country,Asset,robustness)
+function [launchCodes,launchInfo,assetLaunchInfo,ptrsTable,maskTable,Nunlaunched,Nlaunched,followInfo]=generate_launchCodes(Ta,Country,Asset,robustness)
 %% Now we generate the launch scenrios for each country
 %
 % This is really the entry point to the main algorithm, and the one that
@@ -25,6 +25,9 @@ PTRS=array2table(zeros(Na_total,Nco),'VariableNames',Country.CName,'RowNames',As
 % unique asset list and the follow on assets. 
 [followed_inds,~]=find(Asset.AName==unique_follow_on(2:end,:)');
 [follow_on_inds,~]=find(Asset.AName==Ta.Assets_Rated(ind_unique_follow_on(2:end,:))');
+
+% Put the information into a table
+followInfo=table(followed_inds,follow_on_inds);
 
 % Specify a vector for the potentially unlaunched assets
 unlaunched_id=Asset.ID<=64;
@@ -76,4 +79,6 @@ launchCodes=sortrows(vertcat(launchCodes{:}),'probability','descend');
 launch_mask=PTRS.Variables>0; % these assets launch
 ptrsTable=table(PTRS.Variables,launch_mask,'VariableNames',{'PTRS','launch_mask'});
 tlaunch_scenarios=toc(tstart);
+
+maskTable=table((1:height(Country))',Country.ID,uint64(launch_mask(unlaunched_id,:)'*2.^(Asset.ID(unlaunched_id)-1)),'VariableNames',{'ID','country_id','unlaunched_mask'});
 fprintf('[Timing] Generate launch scenario ranking: %gs\n',tlaunch_scenarios);
