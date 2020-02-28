@@ -12,7 +12,7 @@ h=waitbar(0,'Constraint processing');
 waitObject=onCleanup(@()delete(h));
 
 %WaitMessage = parfor_wait(max(launch_height),'Waitbar',true,'ReportInterval',1);
-T=table(zeros(0,1),zeros(0,1),zeros(0,1),zeros(0,1,'uint64'),zeros(0,1,'uint64'),...
+T=table(zeros(0,1,'uint64'),zeros(0,1),zeros(0,1),zeros(0,1,'uint64'),zeros(0,1,'uint64'),...
     zeros(0,1),zeros(0,1),zeros(0,1),zeros(0,64,'logical'),strings(0,1),'VariableNames',...
     {'Country_id','Probability','Model','Launch_ON','Launch_OFF','Constraints_total','Constraints_ON','Constraints_OFF','A','Description'});
 for i=1:size(ptrsTable.PTRS,2)
@@ -169,11 +169,11 @@ fmt1=['%d,',regexprep(fmt,'D','%s')];
 
 fp=fopen(output_folder+"Top100constraints.csv",'w');
 fprintf(fp,['setid,Country_id,Probability,Model,Launch_ON,Launch_OFF,Constraints_total,Constraints_ON,Constraints_OFF,',repmat('A%d,',1,64),'Description\n'],1:64);
-
+setid_epoch=uint64((now-datenum(2020,1,1))*1e5);
 for setid=1:100
     select=(bitand(US.Launch_ON(setid),Tmask)==T.Launch_ON)&(bitand(US.Launch_OFF(setid),Tmask)==T.Launch_OFF);
-    Tsel=addvars(T(select,:),repmat(setid,Ncountry,1),'NewVariableNames','setid','Before','Country_id');
-    T100=vertcat(T100,addvars(T(select,:),repmat(setid,Ncountry,1),'NewVariableNames','setid','Before','Country_id'));
+    Tsel=addvars(T(select,:),repmat(setid_epoch+setid,Ncountry,1),'NewVariableNames','setid','Before','Country_id');
+    T100=vertcat(T100,Tsel);
     Tselc=table2cell(Tsel)';
     sout=sprintf(fmt1,Tselc{:});
     sout=regexprep(sout,'-1','');
