@@ -433,7 +433,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 writetable(app.Ta,output_folder+"assumptions.csv");
                 writetable(app.Tm,output_folder+"simulation.csv");
                 writetable(app.Tc,output_folder+"classElasticity.csv");
-                writetable(app.Tmax,output_folder+"Class_Profile_Score.csv");
+                writetable(app.Tmax,output_folder+"ClassProfileScore.csv");
                 twrite=toc(tstart);
                 app.Status_text.Value=vertcat(sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite),app.Status_text.Value);
                                 
