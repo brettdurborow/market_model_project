@@ -468,7 +468,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
                 % Check if we are running the serial code or not
                 if app.ParallelWorkers.Value == 1
-                    rankConstraintsNew(output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
+                    %rankConstraintsNew(output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
                     
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
@@ -487,7 +487,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     % parallel loop for the launch scenarios
                     app.Status_text.Value=vertcat('[WARNING]: Cancel button does not function for parfor loops',app.Status_text.Value);
                     % Generate the constraints file in the background
-                    constraintWriter=parfeval(@rankConstraintsNew,0,output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
+                    %constraintWriter=parfeval(@rankConstraintsNew,0,output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
                     
                     parfor launch_scenario=1:max(launch_height)
                         single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
@@ -495,7 +495,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     end
                     % Wait for the constraint writer to finish before
                     % simulation is completed
-                    wait(constraintWriter);
+                    %wait(constraintWriter);
                 end
                 tsimulate=toc(tstart);
                 fprintf('[Timing] Total simulation time: %gs\n',tsimulate);
