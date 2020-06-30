@@ -46,7 +46,7 @@ ixA= repmat(assetLaunchDate,1,Nevents)<=repmat(eventDates',length(assetLaunchDat
         
         %[~,~,assetRank] = unique(ASSET.Launch_Date(ix));
         [~,~,assetRank] = unique(assetLaunchDate(ix));
-        ProductOeElasticity=CLASS.InClassOEProductElasticity(CLASS.Therapy_Class==thisClass);
+        ProductOeElasticity=CLASS.In_Class_Product_Elasticity(CLASS.Therapy_Class==thisClass);
         sharePerAssetWithinClass(ix) = oeShare(assetRank, ProductOeElasticity);
         sharePerAsset(ix) = sharePerAssetWithinClass(ix) * thisClassShare;
     end

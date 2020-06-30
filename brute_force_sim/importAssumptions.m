@@ -10,14 +10,20 @@ function [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fileName)
     [status, sheets, xlFormat] = xlsfinfo(fileName);
 
     % Find sheets matching a single string digit in range 1 thru 7
-    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'^[1-7]*$'));
+    ind_assetSheets= cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'^[0-9]*$'));
     assetSheets=sheets(ind_assetSheets);
+    
+    % Assert that there is at least one Asset sheet
+    assert(~isempty(assetSheets),'[ERROR]: There must be at least one Asset sheet named 1,2,..., etc.')
     
     Nwait = length(assetSheets) + 1;
     
+    sanitizer=@(f) regexprep(f,{'^([0-9])','\W'},{'a$1','_'});
     %% Read the "Simulation" sheet
-
     sheetName1 = 'Simulation';
+    % first, make sure it exists
+    assert(any(strcmp(sheets,sheetName1)),'[ERROR]: The sheet Simulation must exist in the input Excel file')
+    
     waitbar(1/Nwait, hWait, sprintf('Reading File: %s, Sheet: %s', shortName, sheetName1));
     [~,~,raw]  = xlsread(fileName, sheetName1);
     raw = removeEmptyTrailing(raw);
@@ -30,10 +36,8 @@ function [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fileName)
         'Market DOT','Market DOT Growth','Market DOT Floor Ceiling'};
     expectedFields2 = {'Rest of EMEA Bump Up from EU5', 'Rest of AP Bump Up from EU5', ...
         'CA Bump Up from EU5', 'LA Bump Up from EU5'};
-    fnames = {'Country'};
-    for row = [2:20]
-        fnames{end+1} = cleanFieldName(raw{row, 1});
-    end
+    fnames = vertcat({'Country'},sanitizer(raw(2:20,1)));
+
     SIMULATION = struct;
     ixE = find(~cellisnan(raw(1,:)), 1, 'last');    
     for m = 1:length(fnames)
@@ -75,15 +79,16 @@ function [cMODEL, cASSET, Tc,cDEBUG] = importAssumptions(fileName)
         cMODEL{m} = MODEL;
         cDEBUG{m} = DEBUG;
     end
-    opt=detectImportOptions(fileName,'Sheet','Class','TextType','string');
-    opt.VariableNames(:)={'Country','Therapy_Class','Starting_Share','InClassOEProductElasticity','InClassPMProductElasticity'};
-    % Load new class sheet
-    Tc=readtable(fileName,opt);    
+    
+    % Read Class sheet and convert to table:
+    [A,B]=xlsread(fileName,'Class');
+    Tc=table(string(B(2:end,1)),string(B(2:end,2)),A(:,1),A(:,2),A(:,3),'VariableNames',{'Country','Therapy_Class','Starting_Share','InClassOEProductElasticity','InClassPMProductElasticity'});
     
     % We have to further assume that the class starting share is not
     % normalized. Thus, we normalize it here.
     for country=unique(Tc.Country,'stable')'
-        Tc.Starting_Share(Tc.Country==country)=Tc.Starting_Share(Tc.Country==country)/sum(Tc.Starting_Share(Tc.Country==country));
+        normalization_factor=sum(Tc.Starting_Share(Tc.Country==country));
+        Tc.Starting_Share(Tc.Country==country)=Tc.Starting_Share(Tc.Country==country)/normalization_factor;
     end
     
     %toc    

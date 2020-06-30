@@ -5,6 +5,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         aMDDBruteForceSimulatorUIFigure  matlab.ui.Figure
         RobustnessSliderLabel       matlab.ui.control.Label
         RobustnessSlider            matlab.ui.control.Slider
+        RobustnessEditField         matlab.ui.control.NumericEditField
         InputFileEditFieldLabel     matlab.ui.control.Label
         Input_File                  matlab.ui.control.EditField
         OutputEditFieldLabel        matlab.ui.control.Label
@@ -33,12 +34,12 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         RunSimulationButton         matlab.ui.control.Button
         ptrsTab                     matlab.ui.container.Tab
         ptrsAxes                    matlab.ui.control.UIAxes
-        checkBox                    matlab.ui.control.CheckBox
+        janssensCheckBox            matlab.ui.control.CheckBox
         PreviousSelectionButton     matlab.ui.control.Button
         DelayTab                    matlab.ui.container.Tab
         DelayTable                  matlab.ui.control.Table
-        ProfileTab                    matlab.ui.container.Tab
-        ProfileTable                  matlab.ui.control.Table
+        ProfileTab                  matlab.ui.container.Tab
+        ProfileTable                matlab.ui.control.Table
     end
 
     
@@ -57,6 +58,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         Nunlaunched % Number of unlaunched assets
         Nlaunched % Number of launched assets
         followInfo % Information about the indices of the followed assets.
+        logFilename = 'logfile_aMDD.txt' % Stores the file name of the logfile
+        startingShareErrorTol = 1e-6
     end
     
     properties (Access = public)
@@ -72,6 +75,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         ptrsTable
         assetLaunchInfo
         maskTable
+        doBinaryConstraints
+        USconstraints
     end
     
 
@@ -79,16 +84,31 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
+            % Check for logfile and delete if necessary
+            if isfile(app.logFilename)
+                delete(app.logFilename)
+            end
+            % Initialize diary file for logging errors, etc.
+            diary(app.logFilename);
+            fprintf('[INFO]: GUI Started at %s on platform %s\n',datetime,computer);
             % Set the number of entries in the dropdown for the number of parallel workers.
             app.ParallelWorkers.Items=["Serial","Parallel"];
             app.ParallelWorkers.ItemsData=[1,app.numCores];
+            fprintf('[INFO]: CPU cores available: %d\n',app.numCores);
             app.ParallelWorkers.Value=app.numCores;
             app.NumberofParallelWorkersEditField.Value = app.numCores;
         end
-            
+        
+        function logMessage(app,Message)
+            % Logs messages to the GUI status box and to the
+            % logfile/console
+            app.Status_text.Value = vertcat(Message,app.Status_text.Value);
+            fprintf('%s\n',Message);
+        end
+        
         % Button pushed function: BrowseFile
         function BrowseFileButtonPushed(app, event)
-            app.Status_text.Value = vertcat('Browse button pressed',app.Status_text.Value);
+            logMessage(app,'[INFO]: Browse button pressed');
             % Specify file filters for excel or mat
             filterSpec = {'*.xls*;*.mat','Excel (.xls*) or Matlab Cache file (.mat)'};
             
@@ -97,7 +117,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
           
             switch event.Source.Text 
                 case 'Browse'
-                    app.Status_text.Value = vertcat('File selection dialog box opened',app.Status_text.Value);
+                    logMessage(app,'[INFO]: File selection dialog box opened')
                     % Prompt user for file input
                     [dataFile,dataFolder] = uigetfile(filterSpec, dialogTitle);
 
@@ -105,18 +125,19 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     try
                         load('previous_selection.mat','dataFile','dataFolder','Output_Folder');
                         app.Output_Folder.Value = Output_Folder;
-                        app.Status_text.Value = vertcat(sprintf('Loading previously selected file: %s',dataFile),app.Status_text.Value);
+                        logMessage(app,sprintf('[INFO]: Loading previously selected file: %s',dataFile));
                         app.isOkInput = true;
                         app.isOkOutput = true;
                     catch ME
-                        app.Status_text.Value = vertcat(['[ERRORMSG]: ',ME.message],'[ERROR]: Previous File Selection failed',app.Status_text.Value);
+                        logMessage(app,'[ERROR]: Previous File Selection failed');
+                        logMessage(app,['[ERRORMSG]: ',ME.message]);
                         return
                     end
                     
                 otherwise
                     % This should not happen. But just in case, we should
                     % block any OkInput values
-                    app.Status_text.Value = vertcat('Unknown event source',app.Status_text.Value);
+                    logMessage(app,'[ERROR]: Unknown event source in BrowseFileButtonPushed');
                     app.isOkInput = false;
                     app.isOkOutput = false;
                     return
@@ -126,7 +147,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             if dataFolder == 0  % user hit cancel in uigetfile dialog
                 app.isOkInput = false;
                 app.Input_File.Value = '';
-                app.Status_text.Value=vertcat('[WARNING]: No input file selected!',app.Status_text.Value);
+                logMessage(app,'[WARNING]: No input file selected!');
                 return
             else % User selected something
                 
@@ -135,30 +156,41 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 
                 % Get file extension fro deciding which path to take
                 [~,inputDataName,inputExtension]=fileparts(dataFile);
-                app.Status_text.Value = vertcat(['Opening file: ',dataFile],app.Status_text.Value);
+                logMessage(app,['[INFO]: Opening file: ',dataFile]);
                 
                 % Check first for a Cache .mat file
                 switch inputExtension
                     case '.mat'
                         try
                             load(fullDataFile, 'cMODEL','cASSET', 'Tc','cDEBUG');
+                            app.Tc=Tc;
                             app.isOkInput = true;
                         catch ME
-                            app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Error reading cache file. Try loading Excel file instead');
+                            logMessage(app,['[ERRORMSG]: ',ME.message]);
+                            logMessage(app,'[WARNING]: Error reading cache file. Try loading Excel file instead');
                             app.isOKInput=false;
                         end
                     case {'.xls','.xlsx','.xlsm','.xlsb'}
                         % Check input file for asset, change event, and simulation sheets
                         assetSheets=[];
+                        % This is where we will replace the Excel data
+                        % loading. It seems that we just need to
+                        % roll-our-own loader here, since we will only ever
+                        % read data, it probably makes sense to make
+                        % something persist.
+                        %extractExcelSheets(fullDataFile);
+                        
                         try
                             [assetSheets, ~ , simuSheet] = checkInputSheets(fullDataFile);%ceSheets
                         catch ME
-                            app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Unable to open Input file!  Please check file location and Excel installation.',app.Status_text.Value);
+                            logMessage(app,['[ERRORMSG]: ',ME.message])
+                            logMessage(app,'[WARNING]: Unable to open Input file!  Please check file location and Excel installation.');
                             app.isOkInput = false;
                         end
                         % Input check passes now check if there are asset sheets to import
                         if all(assetSheets==0) || simuSheet==0
                             warndlg('Found no "Asset" sheet in this file named "1", "2", etc.  Unable to continue.');
+                            logMessage(app,'[WARNING]: Found no "Asset" sheet in this file named "1", "2", etc.  Unable to continue.');
                             app.isOkInput = false;
                         else
                             tStart = tic;
@@ -168,45 +200,50 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                                 app.Tc=Tc;
                                 % Test the error in the starting share, if any.
                                 starting_share_error=abs(cellfun(@(A) sum(A.Starting_Share),cASSET)-1);
-                                if(any(starting_share_error>1e-6))
+                                if(any(starting_share_error>app.startingShareErrorTol))
                                     % Only process those in error
-                                    those_in_error=starting_share_error>1e-6;
+                                    those_in_error=starting_share_error>app.startingShareErrorTol;
                                     for err=find(those_in_error)'
-                                        app.Status_text.Value=vertcat(sprintf('[WARNING]: Starting share does not sum to 100 percent for sheet: %s',cMODEL{err}.CountrySelected),app.Status_text.Value);
-                                        app.Status_text.Value=vertcat(sprintf('[WARNING]: Starting share in %s in error by: %.2g percent',cMODEL{err}.CountrySelected,starting_share_error(err)*100),app.Status_text.Value);
+                                        logMessage(app,sprintf('[WARNING]: Starting share does not sum to 100 percent for sheet: %s',cMODEL{err}.CountrySelected));
+                                        logMessage(app,sprintf('[WARNING]: Starting share in %s in error by: %.2g percent',cMODEL{err}.CountrySelected,starting_share_error(err)*100));
                                         % Normalize the starting share
                                         cASSET{err}.Starting_Share = cASSET{err}.Starting_Share/sum( cASSET{err}.Starting_Share);
                                     end
                                     
                                 end
 
-                                app.Status_text.Value = vertcat(sprintf('[Timing] Import Data: %gs',toc(tStart)),app.Status_text.Value);
+                                logMessage(app,sprintf('[TIMING] Import Data: %gs',toc(tStart)));
                                 app.isOkInput = true;
                             catch ME
-                                app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Importing assumptions failed. Check input data', app.Status_text.Value);
+                                logMessage(app,['[ERRORMSG]: ',ME.message]);
+                                logMessage(app,'[WARNING]: Importing assumptions failed. Check input data');
                                 app.isOkInput=false;
                             end
                                                             
                             % Cache the output in a Matlab .Mat file
-                            if app.isOkInput && exist([inputDataName,'.mat'],'file')
-                                app.Status_text.Value=vertcat('[INFO]: Overwriting existing Cache file',app.Status_text.Value);
+                            if app.isOkInput 
                                 save([inputDataName,'.mat'], 'cMODEL','cASSET', 'Tc','cDEBUG');
+                                if exist([inputDataName,'.mat'],'file')
+                                    logMessage(app,'[INFO]: Overwriting existing Cache file');
+                                else
+                                    logMessage(app,'[INFO]: Writing existing Cache file');
+                                end
                             end
                         end
                 end
                 if ~app.isOkInput
                     % Update input text (probably not necessary).
                     app.Input_File.Value='';
-                    app.Status_text.Value = vertcat('[WARNING]: Input file not correctly loaded', app.Status_text.Value);
+                    logMessage(app,'[WARNING]: Input file not correctly loaded');
                     return
                 else
                     % Update input text
                     app.Input_File.Value=fullDataFile;  %[inputDataName,inputExtension];
-                    app.Status_text.Value=vertcat('Success: Input data loaded.',app.Status_text.Value);
+                    logMessage(app,'[INFO]: Success: Input data loaded.');
                 end
                 
                 
-                app.Status_text.Value=vertcat('Starting data pre-processing:',app.Status_text.Value);
+                logMessage(app,'[INFO]: Starting data pre-processing:');
                 % We preprocess the data to get the tables out
                 try
                     tstart=tic;
@@ -214,51 +251,42 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         = preprocess_data(app.modelID,cMODEL,cASSET);
                     tdata_proc=toc(tstart);
                     % Output some status messages
-                    app.Status_text.Value=vertcat(sprintf('[Timing] Data pre-processing: %gs',tdata_proc),app.Status_text.Value);
+                    logMessage(app,sprintf('[Timing] Data pre-processing: %gs',tdata_proc));
                 catch ME
-                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Data pre-processing failed',app.Status_text.Value);
+                    logMessage(app,['[ERRORMSG]: ',ME.message]);
+                    logMessage(app,'[WARNING]: Data pre-processing failed');
                     app.Input_File.Value='';
                     app.isOkInput=false;
                     return
                 end
                 
                 
-                app.Status_text.Value=vertcat('Generating launch Scenarios',app.Status_text.Value);
+                logMessage(app,'[INFO]: Generating launch Scenarios');
                 try
                     % Since we have the data available, we generate the launch codes
                     tstart=tic;
-                    [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.maskTable,app.Nunlaunched,app.Nlaunched,app.followInfo]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
+                    [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.maskTable,app.Nunlaunched,app.Nlaunched,app.followInfo,app.USconstraints,NON,NOFF]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
                     tlaunch_scenarios=toc(tstart);
-                    app.Status_text.Value=vertcat(sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios),app.Status_text.Value);
+                                       
+                    logMessage(app,sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios));
                     app.NumberofScenariosEditField.Value=height(app.launchCodes);
                     app.NumberofUnlaunchedAssetsEditField.Value=app.Nunlaunched;
                     app.NumberofLaunchedAssetsEditField.Value=app.Nlaunched;
                 catch ME
-                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Generating launch scenarios failed',app.Status_text.Value);
+                    logMessage(app,['[ERRORMSG]: ',ME.message]);
+                    logMessage(app,'[WARNING]: Generating launch scenarios failed');
                     app.Input_File.Value='';
                     app.isOkInput=false;
                     return
                 end
                 
                 
-                try
-                    cla(app.ptrsAxes)
-                    app.ptrsAxes.XScale='log';
-                    hold(app.ptrsAxes,'on')
-                    for i=1:length(app.launchInfo)
-                        semilogx(app.ptrsAxes,app.launchInfo{i}.cdf);
-                    end
-                    legend(app.ptrsAxes,app.Country.CName,'Location','SouthEast')
-                    hold(app.ptrsAxes,'off');
-                catch ME
-                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Plotting Cumulative PTRS failed',app.Status_text.Value);
-                end
-                
-                app.Status_text.Value=vertcat('Updating output file size',app.Status_text.Value);
+           
+                logMessage(app,'[INFO]: Updating output file size');
                 UpdateFileSize(app);
                 
                 try
-                    app.Status_text.Value=vertcat('Calculating Starting Profile Score',app.Status_text.Value);
+                    logMessage(app,'[INFO]: Calculating Starting Profile Score');
 
                     % We deal only with already launched assets
                     isLaunched=app.Ta.Starting_Share>0;
@@ -286,23 +314,26 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     app.Tmax=vertcat(Tmax{:});
                     app.ProfileTable.Data = app.Tmax;
                 catch ME
-                    app.Status_text.Value=vertcat(['[ERRORMSG]: ',ME.message],'[WARNING]: Starting Profile Score calculation failed',app.Status_text.Value);
+                    logMessage(app,['[ERRORMSG]: ',ME.message]);
+                    logMessage(app,'[WARNING]: Starting Profile Score calculation failed');
                 end
-                app.Status_text.Value = vertcat('Finished loading and processing input data',app.Status_text.Value);
-            end
-          
-            
-            function [assetSheets, ceSheets, simuSheet] = checkInputSheets(fileName)
-                % Build a list of Asset sheets in this workbook
-                [~, sheets, ~] = xlsfinfo(fileName);
-                %Find simulation sheet
-                simuSheet = sum(strcmpi(sheets, 'Simulation')) == 1;  % look for a sheet called "Simulation"
                 
-                % Find asset sheets
-                assetSheets=cellfun(@(s) ~isempty(s) && length(s)==1 ,regexp(sheets,'^[1-7]$'));
-                ceSheets=cellfun(@(s) ~isempty(s) && length(s)==3,regexp(sheets,'^[1-7]CE$'));
-            end
-            
+                try
+                    cla(app.ptrsAxes)
+                    app.ptrsAxes.XScale='log';
+                    hold(app.ptrsAxes,'on')
+                    for i=1:length(app.launchInfo)
+                        semilogx(app.ptrsAxes,app.launchInfo{i}.cdf);
+                    end
+                    legend(app.ptrsAxes,app.Country.CName,'Location','SouthEast')
+                    hold(app.ptrsAxes,'off');
+                catch ME
+                    logMessage(app,['[ERRORMSG]: ',ME.message])
+                    logMessage(app,'[WARNING]: Plotting Cumulative PTRS failed');
+                end
+                
+                logMessage(app,'[INFO]: Finished loading and processing input data');
+            end            
         end
 
         function UpdateFileSize(app,event)
@@ -329,7 +360,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             unit_ind=min(max(1,floor(log2(total_filesize)/10)),4);
             units={'KB','MB','GB','TB'};
             
-            fprintf('Total file size: %6.2f %s\n',total_filesize/2^(unit_ind*10),units{unit_ind});
+            fprintf('[INFO]: Total file size: %6.2f %s\n',total_filesize/2^(unit_ind*10),units{unit_ind});
             app.EstFileSizeEditField.Value=sprintf('%6.2f %s',total_filesize/2^(unit_ind*10),units{unit_ind});
             app.EstFileSizeEditField.UserData=total_filesize;
         end
@@ -341,31 +372,37 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             if ischar(foldername) && exist(foldername,'dir') == 7
                 app.isOkOutput = true;
                 app.Output_Folder.Value=[foldername,filesep];
-                msg = {'Selected valid output folder:';app.Output_Folder.Value};
+                logMessage(app,['[INFO]: Selected valid output folder: ',app.Output_Folder.Value]);
             elseif foldername==0
                 
-                msg = '[WARNING]: No output folder selected';
+                logMessage(app,'[WARNING]: No output folder selected');
                 if ~isempty(app.Output_Folder.Value)
-                    msg = vertcat({'[WARNING]: Retaining existing data directory:'},app.Output_Folder.Value,msg);
+                    logMessage(app,['[WARNING]: Retaining existing data directory: ',app.Output_Folder.Value]);
                 else                    
                     app.Output_Folder.Value = '';
                 end
             else
                 app.isOkOutput = false;
-                msg = '[WARNING]: invalid Output Folder!';
+                logMessage(app,'[WARNING]: Invalid Output Folder selection!');
                 app.Output_Folder.Value = '';
             end
-            app.Status_text.Value=vertcat(msg,app.Status_text.Value);
-            
         end
 
         % Value changed function: RobustnessSlider
-        function RobustnessSliderValueChanged(app, event)
-            app.Status_text.Value=vertcat(sprintf('Robustness value changed to: %.1f', app.RobustnessSlider.Value),app.Status_text.Value);
+        function RobustnessValueChanged(app, event)
+            
+            % Test which event is being used (either the slider or the edit box).
+            if isa(event.Source,'matlab.ui.control.Slider')
+                app.RobustnessEditField.Value=app.RobustnessSlider.Value;
+            else
+                app.RobustnessSlider.Value=app.RobustnessEditField.Value;
+            end
+                        
+            logMessage(app,sprintf('Robustness value changed to: %.1f', app.RobustnessSlider.Value));
             % If input was already read, then we need to (re)calculate the launch Codes
             if app.isOkInput
                 tstart=tic;
-                [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.maskTable,app.Nunlaunched,app.Nlaunched,app.followInfo]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
+                [app.launchCodes,app.launchInfo,app.assetLaunchInfo,app.ptrsTable,app.maskTable,app.Nunlaunched,app.Nlaunched,app.followInfo,app.USconstraints,NON,NOFF]=generate_launchCodes(app.Ta,app.Country,app.Asset,app.RobustnessSlider.Value/100);
                 app.NumberofScenariosEditField.Value=height(app.launchCodes);
                 tlaunch_scenarios=toc(tstart);
                 cla(app.ptrsAxes)
@@ -377,8 +414,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 legend(app.ptrsAxes,app.Country.CName)
                 hold(app.ptrsAxes,'off');
 
-                app.Status_text.Value=vertcat(sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios),...
-                    app.Status_text.Value);
+                logMessage(app,sprintf('[Timing] Generating launch scenarios: %gs',tlaunch_scenarios));
 
                 UpdateFileSize(app);
 
@@ -433,9 +469,10 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 writetable(app.Ta,output_folder+"assumptions.csv");
                 writetable(app.Tm,output_folder+"simulation.csv");
                 writetable(app.Tc,output_folder+"classElasticity.csv");
-                writetable(app.Tmax,output_folder+"ClassProfileScore.csv");
+                writetable(app.Tmax,output_folder+"ProfileScore.csv");
                 twrite=toc(tstart);
-                app.Status_text.Value=vertcat(sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite),app.Status_text.Value);
+                
+                logMessage(app,sprintf('[Timing] Wrote all non-scenario tables to disk %gs',twrite));
                                 
                 fprintf('[Timing] Writing all non-output tables to disk %gs\n',twrite);
 
@@ -446,9 +483,9 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 launch_height=cellfun(@height,app.launchInfo)';
                 
                 % Update the status
-                app.Status_text.Value=vertcat('Starting simulation.',app.Status_text.Value);
+                logMessage(app,'[INFO]: Starting simulation');
 
-                if app.checkBox.Value
+                if app.janssensCheckBox.Value
                     Delay=app.DelayTable.Data;
                     Launch_Delay=Delay.Launch_Delay(Delay.Launch_Delay~=0); % Throw away zero delays
                     LOE_Delay=Delay.LOE_Delay(Delay.Launch_Delay~=0);
@@ -460,15 +497,21 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                 
                 
                 % Extract static variables 
-                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc;  eventTable=app.eventTable;dateTable=app.dateTable;Model=app.Model;Country=app.Country;launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
+                Tm=app.Tm; Ta=app.Ta; Tc=app.Tc;  eventTable=app.eventTable;
+                dateTable=app.dateTable;Model=app.Model;Country=app.Country;
+                launchInfo=app.launchInfo;ptrsTable=app.ptrsTable;
+               
                 output_type=app.OutputType.Value;
+
+                app.RunSimulationButton.Enable = 'off';
+                cleanFail=onCleanup(@()set(app.RunSimulationButton,'Enable','on'));
+                
                 % Set up a progress bar (apparently works in serial code, too)
                 WaitMessage = parfor_wait(max(launch_height),'Waitbar',true,'ReportInterval',1);
                 cleanWait=onCleanup(@()delete(WaitMessage));
-
+                
                 % Check if we are running the serial code or not
                 if app.ParallelWorkers.Value == 1
-                    %rankConstraintsNew(output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
                     
                     % Run Serial code
                     for launch_scenario=1:max(launch_height)
@@ -477,7 +520,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                         if getappdata(WaitMessage.WaitbarHandle,'Cancelled')
                             % Write out that we have cancelled, all other
                             % variable should be cleaned up on exit.
-                            app.Status_text.Value=vertcat('Simulation cancelled',app.Status_text.Value);
+                            logMessage(app,'[INFO]: Simulation cancelled');
                             % Then exit the loop to stop fetching new jobs
                             break
                         end
@@ -485,27 +528,22 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
                     end
                 else
                     % parallel loop for the launch scenarios
-                    app.Status_text.Value=vertcat('[WARNING]: Cancel button does not function for parfor loops',app.Status_text.Value);
-                    % Generate the constraints file in the background
-                    %constraintWriter=parfeval(@rankConstraintsNew,0,output_folder,app.ptrsTable,app.Model,app.Country, app.Asset,app.RobustnessSlider.Value/100,app.followInfo.followed_inds,app.followInfo.follow_on_inds);
-                    
+                    logMessage(app,'[WARNING]: Cancel button does not function for parfor loops');
+
                     parfor launch_scenario=1:max(launch_height)
                         single_simulation(launch_scenario,Tm,Ta,Tc,Td,eventTable,dateTable,Model,Country,launchInfo,ptrsTable,output_folder,output_type);
                         WaitMessage.Send;
                     end
-                    % Wait for the constraint writer to finish before
-                    % simulation is completed
-                    %wait(constraintWriter);
                 end
                 tsimulate=toc(tstart);
                 fprintf('[Timing] Total simulation time: %gs\n',tsimulate);
                 %if the launch wasnt cancelled, then we are done!
-                app.Status_text.Value=vertcat('Simulation completed',app.Status_text.Value);
+                logMessage(app,'[INFO]: Simulation completed');
 
-                app.Status_text.Value=vertcat(sprintf('[Timing] Total simulation time: %gs\n',tsimulate),app.Status_text.Value);
+                logMessage(app,sprintf('[Timing] Total simulation time: %gs\n',tsimulate));
                 
             else
-                app.Status_text.Value=vertcat('[Warning]: Input and output paths must be specified',app.Status_text.Value);
+                logMessage(app,'[Warning]: Input and output paths must be specified');
             end
         end
 
@@ -516,7 +554,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         
         function OutputTypeValueChanged(app, event)
             value = app.OutputType.Value;
-            app.Status_text.Value=vertcat(sprintf('Output type change to: %s',value),app.Status_text.Value);
+            logMessage(app,sprintf('[INFO]: Output type change to: %s',value));
             UpdateFileSize(app);
         end
 
@@ -525,7 +563,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function ParallelWorkersValueChanged(app, event)
             value = app.ParallelWorkers.Value;
             app.NumberofParallelWorkersEditField.Value=value;
-            app.Status_text.Value=vertcat(sprintf('Number of processors changed to: %d',value),app.Status_text.Value);
+            logMessage(app,sprintf('Number of processors changed to: %d',value));
         end
         
     end
@@ -537,23 +575,34 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
         function createComponents(app)
 
             % Create aMDDBruteForceSimulatorUIFigure
-            app.aMDDBruteForceSimulatorUIFigure = uifigure;
+            app.aMDDBruteForceSimulatorUIFigure = uifigure('Visible','off');
             app.aMDDBruteForceSimulatorUIFigure.Position = [100 100 640 694];
             app.aMDDBruteForceSimulatorUIFigure.Name = 'aMDD Brute Force Simulator';
 
+            app.RobustnessEditField = uieditfield(app.aMDDBruteForceSimulatorUIFigure,'numeric');
+            app.RobustnessEditField.ValueChangedFcn = createCallbackFcn(app, @RobustnessValueChanged, true);
+            app.RobustnessEditField.HorizontalAlignment = 'right';
+            app.RobustnessEditField.Position = [49 560 69 22];
+            app.RobustnessEditField.Value = 80;
+            app.RobustnessEditField.Limits = [0 100];
+            app.RobustnessEditField.ValueDisplayFormat = '%.1f%%';
+
+            
             % Create RobustnessSliderLabel
             app.RobustnessSliderLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.RobustnessSliderLabel.HorizontalAlignment = 'right';
             app.RobustnessSliderLabel.Position = [49 581 69 22];
             app.RobustnessSliderLabel.Text = 'Robustness';
 
+      
             % Create RobustnessSlider
             app.RobustnessSlider = uislider(app.aMDDBruteForceSimulatorUIFigure);
-            app.RobustnessSlider.ValueChangedFcn = createCallbackFcn(app, @RobustnessSliderValueChanged, true);
+            app.RobustnessSlider.ValueChangedFcn = createCallbackFcn(app, @RobustnessValueChanged, true);
             app.RobustnessSlider.Tooltip = {'Set robustness percentage'};
             app.RobustnessSlider.Position = [131 590 437 3];
             app.RobustnessSlider.Value = 80;
-
+           
+            
             % Create InputFileEditFieldLabel
             app.InputFileEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
             app.InputFileEditFieldLabel.HorizontalAlignment = 'right';
@@ -588,7 +637,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             % Create Status_text
             app.Status_text = uitextarea(app.StatusTab);
             app.Status_text.Editable = 'on';
-            app.Status_text.Position = [15 10 487 373];
+            app.Status_text.Position = [15 10 487 329];%373
 
             % Create NumberofParallelWorkersDropDownLabel
             app.NumberofParallelWorkersDropDownLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
@@ -630,6 +679,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.OutputType.Position = [280 480 110 22];
             app.OutputType.Value = 'Yearly';
             
+            
             % Create BrowseFile
             app.BrowseFile = uibutton(app.aMDDBruteForceSimulatorUIFigure, 'push');
             app.BrowseFile.ButtonPushedFcn = createCallbackFcn(app, @BrowseFileButtonPushed, true);
@@ -663,8 +713,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
             % Create NumberofParallelWorkersEditFieldLabel
             app.NumberofUnlaunchedAssetsEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
-            app.NumberofUnlaunchedAssetsEditFieldLabel.HorizontalAlignment = 'right';
-            app.NumberofUnlaunchedAssetsEditFieldLabel.Position = [139 511 92 42];
+            app.NumberofUnlaunchedAssetsEditFieldLabel.HorizontalAlignment = 'left';
+            app.NumberofUnlaunchedAssetsEditFieldLabel.Position = [170 511 92 42];
             app.NumberofUnlaunchedAssetsEditFieldLabel.Text = {'Number of';'Unlaunched';'Assets'};
 
             % Create NumberofUnlaunchedAssetsEditField
@@ -676,8 +726,8 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
 
             % Create NumberofLaunchedAssetsEditFieldLabel
             app.NumberofLaunchedAssetsEditFieldLabel = uilabel(app.aMDDBruteForceSimulatorUIFigure);
-            app.NumberofLaunchedAssetsEditFieldLabel.HorizontalAlignment = 'right';
-            app.NumberofLaunchedAssetsEditFieldLabel.Position = [139+110 511 92 42];
+            app.NumberofLaunchedAssetsEditFieldLabel.HorizontalAlignment = 'left';
+            app.NumberofLaunchedAssetsEditFieldLabel.Position = [139+145 511 92 42];
             app.NumberofLaunchedAssetsEditFieldLabel.Text = {'Number of';'Launched';'Assets'};
 
             % Create NumberofLaunchedAssetsEditField
@@ -741,12 +791,15 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
            
             
             % Checkbox for Janssen assets
-            app.checkBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
-            app.checkBox.Position =  [186 2 100 58];
-            app.checkBox.Enable = 'on';
-            app.checkBox.Text = {'Janssen';'Delay Analysis'};
-            %app.checkBox.ValueChangedFcn = createCallbackFcn(app,@initializeDelays,true);
-            app.checkBox.Value = true;
+            app.janssensCheckBox = uicheckbox(app.aMDDBruteForceSimulatorUIFigure);
+            app.janssensCheckBox.Position =  [186 2 100 58];
+            app.janssensCheckBox.Enable = 'on';
+            app.janssensCheckBox.Text = {'Janssen';'Delay Analysis'};
+            %app.janssensCheckBox.ValueChangedFcn = createCallbackFcn(app,@initializeDelays,true);
+            app.janssensCheckBox.Value = true;
+        
+            % Finally make GUI visible
+            app.aMDDBruteForceSimulatorUIFigure.Visible='on';
         end
     end
 

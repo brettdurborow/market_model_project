@@ -1,4 +1,4 @@
-function [II,p,cdf]=rankAssets(ptrs,followed_inds,follow_on_inds)
+function [II,p,cdf,ind]=rankAssets(ptrs,followed_inds,follow_on_inds)
 % rankAssets enumerates and ranks all possible launch combinations of
 % assets given their PTRS value.
 
@@ -10,7 +10,7 @@ function [II,p,cdf]=rankAssets(ptrs,followed_inds,follow_on_inds)
 not_follow_on=true(size(ptrs));
 not_follow_on(follow_on_inds)=false;
 ptrs_mask=(0<ptrs)&(ptrs<1)& not_follow_on;
-ptrs_inds=find(ptrs_mask);
+%ptrs_inds=find(ptrs_mask);
 
 % Mask for guaranteed launches
 will_launch = ptrs==1;
