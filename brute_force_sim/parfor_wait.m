@@ -98,7 +98,7 @@ end
            %EstimatedTimeNeeded = (UsedTime_now-Obj.UsedTime_1)/Obj.ReportInterval*(Obj.TotalMessage-Obj.NumMessage);
            EstimatedTimeNeeded = (Obj.TotalMessage/Obj.NumMessage-1)*UsedTime_now;
            ms=@(d)[floor(d/60),rem(d,60)];
-           waitbar(Obj.NumMessage/Obj.TotalMessage, Obj.WaitbarHandle,sprintf('Progress: %.2f %%;\n %dm %.0fs elapsed %dm %.0fs remaining',Obj.NumMessage/Obj.TotalMessage*100,ms(UsedTime_now),ms(EstimatedTimeNeeded)));
+           waitbar(Obj.NumMessage/Obj.TotalMessage, Obj.WaitbarHandle,sprintf('Progress: %.2f %%;\n %dm %02.0fs elapsed %dm %02.0fs remaining',Obj.NumMessage/Obj.TotalMessage*100,ms(UsedTime_now),ms(EstimatedTimeNeeded)));
            
            %['Progress: ',num2str(Obj.NumMessage/Obj.TotalMessage*100, '%.2f'), '%; ', num2str(UsedTime_now, '%.2f'), 's elapsed ', num2str(EstimatedTimeNeeded, '%.2f'), 's remaining.']);
            Obj.UsedTime_1 = UsedTime_now;

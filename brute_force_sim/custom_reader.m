@@ -1,4 +1,5 @@
 function data=custom_reader(filename)
 fp=fopen(filename,'r');
-data=reshape(fread(fp,inf,'double'),[],2);
+d=reshape(fread(fp,'*uint64'),3,[])';
+data=table(typecast(d(:,1),'double'),d(:,2),d(:,3),'VariableNames',{'p','on','off'});
 fclose(fp);
