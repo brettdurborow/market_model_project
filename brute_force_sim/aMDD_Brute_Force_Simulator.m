@@ -364,7 +364,7 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
             app.EstFileSizeEditField.Value=sprintf('%6.2f %s',total_filesize/2^(unit_ind*10),units{unit_ind});
             app.EstFileSizeEditField.UserData=total_filesize;
         end
-        
+                
         % Button pushed function: BrowseFolder
         function BrowseFolderButtonPushed(app, event)
             foldername = uigetdir();
