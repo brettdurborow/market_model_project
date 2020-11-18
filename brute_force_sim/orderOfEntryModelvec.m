@@ -24,8 +24,8 @@ sharePerClass=sharePerClass.^MODEL.ClassOeElasticity;
 
 % Replicate the class Ranking for the model computation
 %sharePerClass = (CLASS.First_Launch_Rank.^MODEL.ClassOeElasticity).*ixC;
-sharePerClass = sharePerClass./sum(sharePerClass,'omitnan');
 sharePerClass(~ixC) = nan;
+sharePerClass = sharePerClass./sum(sharePerClass,'omitnan');
 
 %% for each Asset within a Therapy Class, compute the per-Asset-within-Class share
 ixA= (assetLaunchDate<=eventDates') & isLaunch;
