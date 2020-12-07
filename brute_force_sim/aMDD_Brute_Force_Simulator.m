@@ -43,13 +43,16 @@ classdef aMDD_Brute_Force_Simulator < matlab.apps.AppBase
     end
 
     
-    properties (Access = private)
+    properties (Access = public)
         Ta % Asset table
         Tm % Model table
         Tc % Class table (starting shares)
         Td % Delay table
         Tr % Robustness table
         Tmax % Profile score table
+    end
+    
+    properties (Access = private)
         modelID = 1 % Model
         isOkInput = false % Input file is read and OK.
         isOkOutput = false % Output folder is valid
